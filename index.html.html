@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tournée 2026">
+<meta name="theme-color" content="#0a0f1e">
+<title>Plan de Tournée 2026</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Inter',sans-serif;background:#0a0f1e;color:#f1f5f9;min-height:100vh;overscroll-behavior:none}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#334155;border-radius:4px}
+input,select,textarea{font-family:inherit;font-size:16px!important;color-scheme:dark}
+@keyframes su{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.card{transition:transform .12s;cursor:pointer;-webkit-user-select:none}
+.card:active{transform:scale(.98)}
+.bp{background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;cursor:pointer;border-radius:10px;font-weight:600;transition:.15s;font-size:14px}
+.bg{background:transparent;border:1px solid #334155;color:#94a3b8;cursor:pointer;border-radius:8px;transition:.15s;font-size:13px}
+.bg:active{background:rgba(99,102,241,.15);border-color:#6366f1;color:#a5b4fc}
+.bd{background:transparent;border:1px solid #ef444433;color:#f87171;cursor:pointer;border-radius:7px;font-size:12px;padding:4px 9px}
+.chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.r-visited{box-shadow:0 0 0 3px #22c55e}.r-absent{box-shadow:0 0 0 3px #f59e0b}
+.r-closed{box-shadow:0 0 0 3px #ef4444}.r-callback{box-shadow:0 0 0 3px #8b5cf6}.r-none{box-shadow:0 0 0 2px #334155}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.sheet{background:#0f172a;border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:93vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.6);border-top:1px solid #1e293b}
+.sheet-h{padding:0 18px 12px;border-bottom:1px solid #1e293b;position:sticky;top:0;background:#0f172a;z-index:1}
+.sheet-b{padding:14px 18px 40px;display:flex;flex-direction:column;gap:14px}
+.fl{font-size:10px;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.fi{width:100%;background:#060d1a;border:1px solid #1e293b;color:#f1f5f9;padding:10px 12px;border-radius:9px;outline:none}
+.day-col{background:#0f172a;border-radius:10px;border:1px solid #1e293b;padding:8px 6px;display:flex;flex-direction:column;gap:3px;min-height:110px}
+.day-col.today{border-color:#6366f140;background:rgba(99,102,241,.06)}
+.rdv-tag{font-size:9px;background:rgba(245,158,11,.15);color:#f59e0b;border-radius:4px;padding:2px 4px;font-weight:600;margin:1px 0;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc{border-radius:5px;padding:4px 5px;cursor:pointer;display:flex;align-items:center;gap:3px;font-size:10px;border:1px solid transparent;-webkit-user-select:none}
+.cc:active{opacity:.7}
+.nav-bar{display:flex;background:#0f172a;border-top:1px solid #1e293b;position:fixed;bottom:0;left:0;right:0;z-index:90;padding-bottom:env(safe-area-inset-bottom,10px)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px 8px;cursor:pointer;font-size:10px;color:#64748b;border:none;background:none}
+.nb.on{color:#6366f1}
+.nb .ic{font-size:20px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const CR = [{"sek":"102","kd_nr":"31549","name":"Avant Garde","vorname":"","salon":"","strasse":"Chemin sous le Grand Pré 4","plz":"1860","ort":"Aigle","tel":"024 466 61 61","tel2":"","ca_2025":"843","diff":"178","ca_2024":"665"},{"sek":"102","kd_nr":"30863","name":"Salar","vorname":"Omar","salon":"Mésopotamie Coiffeur Barbier","strasse":"Rue du Rhône 19","plz":"1860","ort":"Aigle","tel":"076 450 93 40","tel2":"","ca_2025":"523","diff":"-91","ca_2024":"614"},{"sek":"112","kd_nr":"31597","name":"Aliberti","vorname":"Christel","salon":"Ô XIIIème Sàrl","strasse":"Rue du Midi 13","plz":"1860","ort":"Aigle","tel":"024 466 47 66","tel2":"078 587 52 74","ca_2025":"127","diff":"-530","ca_2024":"657"},{"sek":"112","kd_nr":"30158","name":"De Masi","vorname":"Patrizia","salon":"De Masi Style Coiffure","strasse":"Rue du Krafft 7","plz":"1860","ort":"Aigle","tel":"078 671 00 38","tel2":"","ca_2025":"0","diff":"-760","ca_2024":"760"},{"sek":"112","kd_nr":"30702","name":"Duarte","vorname":"Tania","salon":"Unalum Salon de Coiffure","strasse":"Rue du Bourg 9","plz":"1860","ort":"Aigle","tel":"024 466 22 58","tel2":"","ca_2025":"62","diff":"-103","ca_2024":"165"},{"sek":"112","kd_nr":"31599","name":"Gschwend","vorname":"Laetitia","salon":"Letty Coiff Barbe","strasse":"Chemin des Lieugex 14","plz":"1860","ort":"Aigle","tel":"077 524 27 25","tel2":"","ca_2025":"57","diff":"-740","ca_2024":"797"},{"sek":"112","kd_nr":"23495","name":"Nguyen","vorname":"Line","salon":"Coiffure Hairline","strasse":"Pré Emoz 31D","plz":"1860","ort":"Aigle","tel":"024 466 26 05","tel2":"079 193 27 17","ca_2025":"339","diff":"-157","ca_2024":"496"},{"sek":"112","kd_nr":"30066","name":"Salemi","vorname":"Eliane","salon":"Tony Coiffure Barbier","strasse":"Rue du Bourg 38","plz":"1860","ort":"Aigle","tel":"078 948 00 29","tel2":"","ca_2025":"679","diff":"-146","ca_2024":"825"},{"sek":"112","kd_nr":"30003","name":"Sejdiu","vorname":"Jetmir","salon":"Hella Coiffeur Barbier","strasse":"Rue du Bourg 1","plz":"1860","ort":"Aigle","tel":"024 466 23 95","tel2":"","ca_2025":"0","diff":"-741","ca_2024":"741"},{"sek":"112","kd_nr":"20588","name":"Neves","vorname":"Susana","salon":"Coiffure Suzanne","strasse":"Route de la Printse 29","plz":"1994","ort":"Aproz","tel":"027 203 07 70","tel2":"078 623 35 44","ca_2025":"951","diff":"-433","ca_2024":"1384"},{"sek":"112","kd_nr":"28425","name":"Pannatier","vorname":"Caroline","salon":"Coiffure Prendre Hair","strasse":"35, rue de Saxonne","plz":"1974","ort":"Arbaz","tel":"079 587 56 83","tel2":"","ca_2025":"2654","diff":"1466","ca_2024":"1188"},{"sek":"112","kd_nr":"10762","name":"Delaloye","vorname":"Odile","salon":"Salon de Coiffure","strasse":"Bâtiment Raiffeisen Simplon 46","plz":"1957","ort":"Ardon","tel":"027 306 15 85","tel2":"","ca_2025":"195","diff":"-877","ca_2024":"1072"},{"sek":"112","kd_nr":"18022","name":"Exquis","vorname":"Almène","salon":"Maison Almène Sàrl","strasse":"Grands Vergers 4","plz":"1957","ort":"Ardon","tel":"027 306 75 75","tel2":"079 278 12 79","ca_2025":"1790","diff":"999","ca_2024":"791"},{"sek":"102","kd_nr":"31679","name":"Blanc","vorname":"Hanitra","salon":"Le Salon de Coiffure 51","strasse":"Grand-Rue 51","plz":"1616","ort":"Attalens","tel":"021 559 08 38","tel2":"","ca_2025":"388","diff":"388","ca_2024":"0"},{"sek":"102","kd_nr":"26350","name":"Udrisard-Gavin","vorname":"Céline","salon":"C sa Coiffure","strasse":"Grand-Rue 42","plz":"1616","ort":"Attalens","tel":"021 947 39 39","tel2":"079 635 05 70","ca_2025":"628","diff":"-138","ca_2024":"766"},{"sek":"112","kd_nr":"26202","name":"Ibrahim Hasan","vorname":"Semira","salon":"Bellerine Coiffure Mixte","strasse":"Rue Centrale 43","plz":"1880","ort":"Bex","tel":"024 463 10 79","tel2":"079 511 93 91","ca_2025":"156","diff":"-94","ca_2024":"250"},{"sek":"112","kd_nr":"29957","name":"Krasniqi","vorname":"Melidé","salon":"Coiffure Leona","strasse":"Rue du Cropt 2","plz":"1880","ort":"Bex","tel":"079 377 09 59","tel2":"","ca_2025":"142","diff":"-358","ca_2024":"500"},{"sek":"112","kd_nr":"26732","name":"Naigeon","vorname":"Sandrine","salon":"Salon Créatiff","strasse":"Rue Centrale 22","plz":"1880","ort":"Bex","tel":"024 463 35 90","tel2":"","ca_2025":"1233","diff":"-873","ca_2024":"2106"},{"sek":"112","kd_nr":"12748","name":"Pilet","vorname":"Dominique","salon":"Salon de Coiffure Dominique","strasse":"Rue Centrale 23 A","plz":"1880","ort":"Bex","tel":"024 463 17 56","tel2":"","ca_2025":"149","diff":"71","ca_2024":"78"},{"sek":"102","kd_nr":"30590","name":"Blanc","vorname":"Karine","salon":"La Tête dans les Etoiles","strasse":"Route de Saint Jacques 8","plz":"1966","ort":"Blignoud","tel":"079 637 85 27","tel2":"","ca_2025":"0","diff":"-129","ca_2024":"129"},{"sek":"112","kd_nr":"29741","name":"Ramos","vorname":"Katia","salon":"Coiffure KR","strasse":"Route de St-Jacques 33","plz":"1966","ort":"Blignoud","tel":"078 730 40 77","tel2":"078 719 14 77","ca_2025":"484","diff":"351","ca_2024":"133"},{"sek":"102","kd_nr":"31704","name":"Lamasa","vorname":"Ambre","salon":"Authentique par V.","strasse":"Route du Village 26","plz":"1807","ort":"Blonay","tel":"079 908 82 19","tel2":"021 931 63 07","ca_2025":"147","diff":"147","ca_2024":"0"},{"sek":"102","kd_nr":"17260","name":"Monnard-Glassey","vorname":"Sophie","salon":"Hair Service","strasse":"Biolley-Centre Rte Oron 2","plz":"1615","ort":"Bossonnens","tel":"021 947 53 47","tel2":"079 358 82 65","ca_2025":"557","diff":"181","ca_2024":"376"},{"sek":"102","kd_nr":"27249","name":"Provost","vorname":"Nathalie","salon":"Coiffure Elle et Lui","strasse":"Rue du Lac 6","plz":"1897","ort":"Bouveret","tel":"024 481 56 76","tel2":"","ca_2025":"0","diff":"-63","ca_2024":"63"},{"sek":"112","kd_nr":"30063","name":"Clerc","vorname":"Raffaela","salon":"Coiffure Le Scalp","strasse":"Route Cantonale 52","plz":"1897","ort":"Bouveret","tel":"024 481 46 81","tel2":"","ca_2025":"685","diff":"104","ca_2024":"581"},{"sek":"112","kd_nr":"20268","name":"Jost","vorname":"Sonia","salon":"Salon Carmen","strasse":"rue de la Cure 22","plz":"1967","ort":"Bramois","tel":"027 203 12 30","tel2":"","ca_2025":"862","diff":"-350","ca_2024":"1212"},{"sek":"112","kd_nr":"20795","name":"Lambiel","vorname":"Christiane","salon":"Azur Coiffure","strasse":"6, chemin du Levant","plz":"1967","ort":"Bramois","tel":"027 203 56 00","tel2":"079 291 14 93","ca_2025":"2286","diff":"-47","ca_2024":"2333"},{"sek":"102","kd_nr":"31812","name":"Meuwly","vorname":"Marie","salon":"Le Cocon","strasse":"c/o Rouge-Gorge SA","plz":"1630","ort":"Bulle","tel":"079 584 43 75","tel2":"","ca_2025":"687","diff":"687","ca_2024":"0"},{"sek":"102","kd_nr":"13594","name":"Sousa-Biancaniello","vorname":"Ida","salon":"Coiffure Rétro","strasse":"8, rue de Lausanne","plz":"1030","ort":"Bussigny","tel":"021 701 20 03","tel2":"","ca_2025":"1635","diff":"1524","ca_2024":"111"},{"sek":"102","kd_nr":"26362","name":"Burlet","vorname":"Régine","salon":"Coiffure Living R","strasse":"59, rue de Industrie","plz":"1030","ort":"Bussigny","tel":"021 701 09 01","tel2":"078 749 29 39","ca_2025":"211","diff":"211","ca_2024":"0"},{"sek":"102","kd_nr":"31522","name":"Aeschlimann","vorname":"Alison","salon":"Alison Coiffure","strasse":"Route de Montreux 7","plz":"1618","ort":"Châtel-St-Denis","tel":"076 801 64 93","tel2":"","ca_2025":"0","diff":"-137","ca_2024":"137"},{"sek":"102","kd_nr":"30779","name":"Couto","vorname":"Helder","salon":"Coiffure Figaro","strasse":"Grand Rue 24","plz":"1618","ort":"Châtel-St-Denis","tel":"021 948 74 25","tel2":"","ca_2025":"0","diff":"-471","ca_2024":"471"},{"sek":"102","kd_nr":"26478","name":"Parent","vorname":"Valérie","salon":"Coiffure Tête-à-Tête","strasse":"Rue Centrale 26","plz":"1022","ort":"Chavannes-Renens","tel":"021 634 22 67","tel2":"","ca_2025":"1262","diff":"-213","ca_2024":"1475"},{"sek":"102","kd_nr":"19699","name":"Burnier","vorname":"Michel","salon":"Coiffure aux ciseaux or","strasse":"4, avenue de la gare","plz":"1022","ort":"Chavannes-Renens","tel":"021 634 53 24","tel2":"","ca_2025":"419","diff":"121","ca_2024":"298"},{"sek":"102","kd_nr":"31055","name":"Conne","vorname":"Cécile","salon":"CC Coiffure","strasse":"Rue du Bourg 5","plz":"1071","ort":"Chexbres","tel":"079 939 40 02","tel2":"","ca_2025":"0","diff":"-521","ca_2024":"521"},{"sek":"102","kd_nr":"31094","name":"Gaudin","vorname":"Magalie","salon":"c/o CC Coiffure","strasse":"Rue du Bourg 5","plz":"1071","ort":"Chexbres","tel":"079 350 93 39","tel2":"079 939 40 02","ca_2025":"536","diff":"536","ca_2024":"0"},{"sek":"112","kd_nr":"30425","name":"Palumbo","vorname":"Michela","salon":"M Coiffure","strasse":"Grande Avenue 3","plz":"3965","ort":"Chippis","tel":"078 976 49 22","tel2":"","ca_2025":"439","diff":"439","ca_2024":"0"},{"sek":"102","kd_nr":"14353","name":"Caravello","vorname":"Helen","salon":"Coiffure Helen Nadia","strasse":"1, avenue Mayor-Vautier","plz":"1815","ort":"Clarens","tel":"021 964 12 57","tel2":"","ca_2025":"998","diff":"677","ca_2024":"321"},{"sek":"102","kd_nr":"16476","name":"Ducraux","vorname":"Esmeralda","salon":"Emeraude Coiffure","strasse":"7, rue du Grammont","plz":"1815","ort":"Clarens","tel":"021 964 22 23","tel2":"","ca_2025":"1048","diff":"-59","ca_2024":"1107"},{"sek":"102","kd_nr":"18754","name":"Durgnat","vorname":"Myriam","salon":"Coiffure Expression","strasse":"26, avenue Mayor-Vautier","plz":"1815","ort":"Clarens","tel":"079 659 03 57","tel2":"","ca_2025":"1002","diff":"945","ca_2024":"57"},{"sek":"112","kd_nr":"31903","name":"Joss elisa","vorname":"","salon":"Ambiance Coiffure SARL","strasse":"Zone Artisanale Pré Jacquet 1","plz":"1868","ort":"Collombey","tel":"024 472 50 40","tel2":"079 374 24 62","ca_2025":"2835","diff":"100","ca_2024":"2735"},{"sek":"112","kd_nr":"13018","name":"Jordan","vorname":"Daniela","salon":"House of Beauty","strasse":"Rue du Clos-Novex 47","plz":"1868","ort":"Collombey","tel":"079 794 95 90","tel2":"024 565 65 64","ca_2025":"521","diff":"-217","ca_2024":"738"},{"sek":"102","kd_nr":"30574","name":"Follonier","vorname":"Nadège","salon":"Signature coiffure","strasse":"Avenue de la Gare 39","plz":"1964","ort":"Conthey","tel":"078 806 30 28","tel2":"","ca_2025":"832","diff":"310","ca_2024":"522"},{"sek":"112","kd_nr":"27260","name":"Gidor Coiffure","vorname":"","salon":"Centre Commercial","strasse":"Forum des Alpes","plz":"1964","ort":"Conthey","tel":"027 346 45 70","tel2":"","ca_2025":"1933","diff":"1471","ca_2024":"462"},{"sek":"112","kd_nr":"23815","name":"Trachsler","vorname":"Laurent","salon":"Coiffure R Play Studio","strasse":"9, rue de la Gare","plz":"1964","ort":"Conthey","tel":"027 346 25 24","tel2":"","ca_2025":"158","diff":"-71","ca_2024":"229"},{"sek":"102","kd_nr":"24549","name":"Menetrey Tania Antunes Sofia","vorname":"","salon":"Coiffure Souffle de Vie","strasse":"rue du Village 18A","plz":"1802","ort":"Corseaux","tel":"021 922 44 22","tel2":"078 619 08 63","ca_2025":"4704","diff":"2824","ca_2024":"1880"},{"sek":"112","kd_nr":"24205","name":"Cavallo","vorname":"Pierre André","salon":"Coiffure Pierre André","strasse":"Rue Centrale 15","plz":"3963","ort":"Crans-Montana","tel":"027 481 02 02","tel2":"","ca_2025":"0","diff":"-202","ca_2024":"202"},{"sek":"112","kd_nr":"10778","name":"Di Stasi","vorname":"Jérôme","salon":"Coiffure Pierre","strasse":"Rue Théodore Stéphani 4","plz":"3963","ort":"Crans-Montana","tel":"027 481 38 38","tel2":"","ca_2025":"955","diff":"-131","ca_2024":"1086"},{"sek":"112","kd_nr":"10758","name":"Di Stasi","vorname":"Yvette","salon":"Coiffure Yvette","strasse":"15, Villa les Murettes","plz":"3963","ort":"Crans-Montana","tel":"027 481 43 18","tel2":"","ca_2025":"1115","diff":"-135","ca_2024":"1250"},{"sek":"112","kd_nr":"17692","name":"Ezequiel","vorname":"Tânia","salon":"Salon de Coiffure Tania","strasse":"Imm. ESR Sion Albert","plz":"3963","ort":"Crans-Montana","tel":"027 481 66 12","tel2":"079 240 53 79","ca_2025":"1166","diff":"-54","ca_2024":"1220"},{"sek":"112","kd_nr":"24335","name":"Rennaz","vorname":"Rosanna","salon":"Coiffure Jean-Pierre","strasse":"Rue Centrale 6","plz":"3963","ort":"Crans-sur-Sierre","tel":"027 481 40 68","tel2":"","ca_2025":"1060","diff":"50","ca_2024":"1010"},{"sek":"102","kd_nr":"30737","name":"Varela","vorname":"Montserrat","salon":"Moon Coiffure","strasse":"Chemin de la Pierre 16","plz":"1023","ort":"Crissier","tel":"021 534 25 82","tel2":"079 246 74 14","ca_2025":"1253","diff":"-491","ca_2024":"1744"},{"sek":"102","kd_nr":"24365","name":"Amado","vorname":"Cristina","salon":"Attrap Tifs","strasse":"Chemin du Monte-Faux 6","plz":"1023","ort":"Crissier","tel":"079 912 78 66","tel2":"021 633 78 66","ca_2025":"813","diff":"514","ca_2024":"299"},{"sek":"102","kd_nr":"21861","name":"Dos Santos-Xavier","vorname":"Cristina","salon":"","strasse":"ZI Les Portettes 10","plz":"1312","ort":"Eclépens","tel":"","tel2":"078 803 91 61","ca_2025":"5827","diff":"208","ca_2024":"5619"},{"sek":"102","kd_nr":"30896","name":"Perdomo","vorname":"Pénélope","salon":"L Artiste Coiffure","strasse":"Route Echallens 10","plz":"1037","ort":"Etagnières","tel":"","tel2":"079 745 78 73","ca_2025":"1716","diff":"122","ca_2024":"1594"},{"sek":"102","kd_nr":"31525","name":"Ebener","vorname":"Carolin","salon":"Coiffure Chez Caroline","strasse":"Talstrasse 22","plz":"3916","ort":"Ferden","tel":"027 939 25 32","tel2":"079 827 32 39","ca_2025":"61","diff":"-551","ca_2024":"612"},{"sek":"102","kd_nr":"31794","name":"Guillèn","vorname":"Carlos","salon":"Coiffure le Tiffier","strasse":"Les Combes 54","plz":"1971","ort":"Grimisuat","tel":"078 768 18 40","tel2":"","ca_2025":"1974","diff":"1974","ca_2024":"0"},{"sek":"112","kd_nr":"20749","name":"Llukes","vorname":"Marta","salon":"Coiffure Le Coup de Ciseaux","strasse":"C. Cial Les Crêtes","plz":"1971","ort":"Grimisuat","tel":"027 398 16 26","tel2":"078 802 46 57","ca_2025":"4063","diff":"1259","ca_2024":"2804"},{"sek":"112","kd_nr":"26276","name":"Deriaz","vorname":"Anne-Laure","salon":"Coiffure LOOK IN","strasse":"Rue Centrale 125","plz":"3979","ort":"Grône","tel":"027 458 44 33","tel2":"078 627 84 10","ca_2025":"915","diff":"-7","ca_2024":"922"},{"sek":"112","kd_nr":"23977","name":"Jacob","vorname":"Valérie","salon":"Coiffure Coeur de plaire","strasse":"rue Centrale 168","plz":"3979","ort":"Grône","tel":"027 458 23 59","tel2":"","ca_2025":"895","diff":"645","ca_2024":"250"},{"sek":"112","kd_nr":"10759","name":"Praz","vorname":"Catherine","salon":"Coiffure Les Arcades SARL","strasse":"Route des Ecluses 4","plz":"1997","ort":"Haute-Nendaz","tel":"027 288 20 67","tel2":"","ca_2025":"764","diff":"-509","ca_2024":"1273"},{"sek":"102","kd_nr":"26312","name":"Borisavljevic","vorname":"Daniel","salon":"Salon B72","strasse":"Rue du Léman 3","plz":"1814","ort":"La Tour-de-Peilz","tel":"021 921 43 57","tel2":"079 295 17 91","ca_2025":"1847","diff":"969","ca_2024":"878"},{"sek":"102","kd_nr":"31211","name":"Perrin Giza","vorname":"","salon":"Coiffure No Limit","strasse":"Grand-Rue 41","plz":"1814","ort":"La Tour-de-Peilz","tel":"021 944 54 06","tel2":"","ca_2025":"565","diff":"198","ca_2024":"367"},{"sek":"102","kd_nr":"31728","name":"Pertuiset","vorname":"Nong","salon":"Design Hair Coiffure","strasse":"Avenue de Traménaz 2","plz":"1814","ort":"La Tour-de-Peilz","tel":"021 944 25 83","tel2":"","ca_2025":"2842","diff":"2842","ca_2024":"0"},{"sek":"102","kd_nr":"10973","name":"Duc","vorname":"Dolly","salon":"Coiffure Dolly","strasse":"Valentin 68","plz":"1018","ort":"Lausanne","tel":"079 521 34 09","tel2":"021 646 25 00","ca_2025":"124","diff":"59","ca_2024":"65"},{"sek":"102","kd_nr":"27820","name":"COFOP Coiffure","vorname":"","salon":"Mme Anne Marie Vésy","strasse":"Av. de Valmont 24","plz":"1010","ort":"Lausanne","tel":"021 316 97 95","tel2":"","ca_2025":"7708","diff":"-1522","ca_2024":"9230"},{"sek":"102","kd_nr":"10712","name":"Ferreyra","vorname":"Liliane","salon":"Coiffure Sonia","strasse":"16, ave des Toises","plz":"1005","ort":"Lausanne","tel":"021 323 45 28","tel2":"","ca_2025":"1968","diff":"733","ca_2024":"1235"},{"sek":"102","kd_nr":"17910","name":"Gonçalves","vorname":"Olinda","salon":"Coiffure","strasse":"22, ave Vallonette","plz":"1012","ort":"Lausanne","tel":"021 652 25 92","tel2":"","ca_2025":"676","diff":"444","ca_2024":"232"},{"sek":"102","kd_nr":"27233","name":"Kozarova","vorname":"Katia","salon":"Coiffure Katia Créatif","strasse":"Les Galeries de Dorigny BSF 2","plz":"1015","ort":"Lausanne","tel":"021 692 26 94","tel2":"079 614 34 20","ca_2025":"885","diff":"4","ca_2024":"881"},{"sek":"102","kd_nr":"30952","name":"Pesi","vorname":"Roberto","salon":"Coiffeur Coloriste","strasse":"Rue du Midi 16","plz":"1003","ort":"Lausanne","tel":"021 311 11 16","tel2":"","ca_2025":"1746","diff":"1440","ca_2024":"306"},{"sek":"102","kd_nr":"26833","name":"Rechsteiner","vorname":"Sonja","salon":"Coiffure Linéa Hair","strasse":"Avenue de Rumine 5","plz":"1005","ort":"Lausanne","tel":"078 615 49 15","tel2":"021 312 99 74","ca_2025":"1500","diff":"808","ca_2024":"692"},{"sek":"102","kd_nr":"30905","name":"Uwakwe","vorname":"Tony","salon":"Black And White","strasse":"Rue de la Pontaise 34","plz":"1018","ort":"Lausanne","tel":"021 558 87 83","tel2":"079 578 16 22","ca_2025":"576","diff":"193","ca_2024":"383"},{"sek":"102","kd_nr":"31681","name":"Veseli","vorname":"Moira Débora","salon":"Style Elégance","strasse":"Avenue du Léman 69","plz":"1005","ort":"Lausanne","tel":"021 214 24 34","tel2":"","ca_2025":"1121","diff":"1121","ca_2024":"0"},{"sek":"102","kd_nr":"23533","name":"Carrichon","vorname":"Fabien","salon":"Hairstylist Colorist","strasse":"Grand-Rue 1","plz":"1095","ort":"Lutry","tel":"021 888 06 05","tel2":"","ca_2025":"2478","diff":"2478","ca_2024":"0"},{"sek":"102","kd_nr":"20785","name":"Orciuoli","vorname":"Nicola","salon":"Coiffure Rebelles","strasse":"7, rue des Terreaux","plz":"1095","ort":"Lutry","tel":"021 791 51 60","tel2":"079 351 56 87","ca_2025":"2805","diff":"395","ca_2024":"2410"},{"sek":"102","kd_nr":"30091","name":"Santoro","vorname":"Andrea","salon":"Tiff-Ologue","strasse":"Grand-Rue 29","plz":"1095","ort":"Lutry","tel":"079 775 77 00","tel2":"","ca_2025":"1059","diff":"705","ca_2024":"354"},{"sek":"102","kd_nr":"30808","name":"Blanc","vorname":"Cindy","salon":"Institut La Naturelle","strasse":"Avenue de la Gare 54","plz":"1920","ort":"Martigny","tel":"079 107 97 72","tel2":"","ca_2025":"864","diff":"-829","ca_2024":"1693"},{"sek":"112","kd_nr":"10945","name":"Fellay","vorname":"Véronique","salon":"Coiffure Vogue","strasse":"Rue du Léman 12","plz":"1920","ort":"Martigny","tel":"027 722 17 71","tel2":"079 2096006","ca_2025":"7245","diff":"349","ca_2024":"6896"},{"sek":"112","kd_nr":"17900","name":"Ferreira","vorname":"Bruno","salon":"Coiffure Préville","strasse":"7, rue de la Poste","plz":"1920","ort":"Martigny","tel":"027 722 19 17","tel2":"079 436 60 30","ca_2025":"1348","diff":"1003","ca_2024":"345"},{"sek":"112","kd_nr":"19137","name":"Biondo","vorname":"Dominique","salon":"Coiffure Boucles dOr","strasse":"34, av. du Grand-St-Bernard","plz":"1920","ort":"Martigny","tel":"027 722 05 04","tel2":"","ca_2025":"1445","diff":"661","ca_2024":"784"},{"sek":"112","kd_nr":"14294","name":"Coppex-Buchard","vorname":"Patricia","salon":"Coiffure Diminutifs Sàrl","strasse":"Route du Village 16","plz":"1908","ort":"Riddes","tel":"027 306 12 41","tel2":"","ca_2025":"3716","diff":"872","ca_2024":"2844"},{"sek":"112","kd_nr":"30793","name":"Lemos","vorname":"Carla","salon":"LCN Coiffure","strasse":"Rue du Village 22","plz":"1908","ort":"Riddes","tel":"078 676 18 56","tel2":"","ca_2025":"889","diff":"680","ca_2024":"209"},{"sek":"112","kd_nr":"30459","name":"Merovci","vorname":"Liridona","salon":"Donaa Coiffure Esthétique","strasse":"Centre Com. Shopping Roche","plz":"1852","ort":"Roche VD","tel":"021 968 12 10","tel2":"079 608 53 38","ca_2025":"3999","diff":"1348","ca_2024":"2651"},{"sek":"112","kd_nr":"29946","name":"De Boni","vorname":"Sonia","salon":"Coiffure Neptune","strasse":"Les Bains de Saillon","plz":"1913","ort":"Saillon","tel":"027 744 27 41","tel2":"","ca_2025":"402","diff":"201","ca_2024":"201"},{"sek":"112","kd_nr":"29737","name":"Batista","vorname":"Paula","salon":"Hair Style Coiffure","strasse":"Route du Vieux Pont 7","plz":"1913","ort":"Saillon","tel":"078 888 38 64","tel2":"","ca_2025":"3739","diff":"-307","ca_2024":"4046"},{"sek":"112","kd_nr":"21105","name":"Praz","vorname":"Cynthia","salon":"Coiffure Oxygène","strasse":"Chemin du Midi 4","plz":"1913","ort":"Saillon","tel":"027 744 41 44","tel2":"","ca_2025":"1224","diff":"-126","ca_2024":"1350"},{"sek":"102","kd_nr":"30726","name":"Lambrigger","vorname":"Jenny","salon":"Salon Créatifs","strasse":"Gemmistrasse 65","plz":"3970","ort":"Salgesch","tel":"027 455 92 93","tel2":"078 600 92 93","ca_2025":"1532","diff":"1532","ca_2024":"0"},{"sek":"112","kd_nr":"19526","name":"Jacquier","vorname":"Gaby","salon":"Coiffure Chez Gaby","strasse":"St-Germain","plz":"1965","ort":"Savièse","tel":"027 395 12 86","tel2":"","ca_2025":"1391","diff":"-175","ca_2024":"1566"},{"sek":"102","kd_nr":"31452","name":"Da Costa","vorname":"Isabelle","salon":"Isab.hair","strasse":"Route principale","plz":"1907","ort":"Saxon","tel":"077 400 98 14","tel2":"","ca_2025":"1706","diff":"1443","ca_2024":"263"},{"sek":"102","kd_nr":"18532","name":"Maurer","vorname":"Francine","salon":"Coiffure Francine","strasse":"Chemin du Théâtre 5","plz":"1077","ort":"Servion","tel":"021 903 22 54","tel2":"","ca_2025":"2475","diff":"585","ca_2024":"1890"},{"sek":"102","kd_nr":"30839","name":"Rodrigues","vorname":"Ivo","salon":"RS Barbershop","strasse":"Route de Sion 8","plz":"3960","ort":"Sierre","tel":"076 709 14 47","tel2":"076 767 04 87","ca_2025":"581","diff":"427","ca_2024":"154"},{"sek":"112","kd_nr":"28301","name":"Foti","vorname":"Tina","salon":"Coiffure Vidômes","strasse":"Rue du Bourg 27","plz":"3960","ort":"Sierre","tel":"027 455 13 04","tel2":"","ca_2025":"1933","diff":"868","ca_2024":"1065"},{"sek":"112","kd_nr":"24559","name":"In-Albon","vorname":"Véronique","salon":"Salon A Vos Tifs","strasse":"Av. Rothorn 9A La Terrasse","plz":"3960","ort":"Sierre","tel":"027 455 41 14","tel2":"078 601 02 87","ca_2025":"4041","diff":"-246","ca_2024":"4287"},{"sek":"112","kd_nr":"23460","name":"Faliti","vorname":"Tina","salon":"Art Coiffure Chez Tina","strasse":"18, avenue des Alpes","plz":"3960","ort":"Sierre","tel":"027 455 00 77","tel2":"078 667 53 32","ca_2025":"3004","diff":"543","ca_2024":"2461"},{"sek":"112","kd_nr":"10775","name":"Briguet","vorname":"Myriam","salon":"Coiffure Les Ciseaux dOr","strasse":"38, rte du Simplon","plz":"3960","ort":"Sierre","tel":"027 455 66 57","tel2":"078 834 81 05","ca_2025":"1873","diff":"621","ca_2024":"1252"},{"sek":"112","kd_nr":"17925","name":"Cappelle","vorname":"Ingrid","salon":"Coiffure Dynamite","strasse":"41, rue du Bourg","plz":"3960","ort":"Sierre","tel":"027 456 77 00","tel2":"078 615 77 00","ca_2025":"1107","diff":"-92","ca_2024":"1199"},{"sek":"102","kd_nr":"31172","name":"Andreic","vorname":"Durdica","salon":"Coiffure SI-HAIR","strasse":"Route du Simplon 38","plz":"3960","ort":"Sierre","tel":"027 451 90 60","tel2":"","ca_2025":"1507","diff":"827","ca_2024":"680"},{"sek":"112","kd_nr":"29944","name":"Zen","vorname":"Mirna","salon":"Atelier de Coiffure","strasse":"avenue de France 41","plz":"3960","ort":"Sierre","tel":"027 455 00 45","tel2":"079 773 28 34","ca_2025":"1432","diff":"-999","ca_2024":"2431"},{"sek":"102","kd_nr":"23396","name":"Panchard","vorname":"Nicole","salon":"Coiffure Colormania","strasse":"Rue de Conthey 2","plz":"1950","ort":"Sion","tel":"027 323 55 95","tel2":"","ca_2025":"0","diff":"-10","ca_2024":"10"},{"sek":"102","kd_nr":"31260","name":"Ricciardi","vorname":"Antonio","salon":"Le Barbier chez Antonio","strasse":"Rue du Scex 14","plz":"1950","ort":"Sion","tel":"078 912 87 57","tel2":"","ca_2025":"647","diff":"647","ca_2024":"0"},{"sek":"112","kd_nr":"16632","name":"Balet","vorname":"Christianne","salon":"Coiffure dames Salon Elysée","strasse":"8, rue des Creusets","plz":"1950","ort":"Sion","tel":"027 322 21 35","tel2":"079 236 86 91","ca_2025":"3264","diff":"1844","ca_2024":"1420"},{"sek":"112","kd_nr":"24793","name":"Gaeta","vorname":"Lise","salon":"Coiffure Personnalise","strasse":"Rue du Scex 49","plz":"1950","ort":"Sion","tel":"027 321 14 89","tel2":"079 334 67 69","ca_2025":"1133","diff":"-474","ca_2024":"1607"},{"sek":"102","kd_nr":"31624","name":"Araujo","vorname":"Cristina","salon":"L Appartement Coiffure","strasse":"Rue du Rhône 4","plz":"1950","ort":"Sion","tel":"027 322 18 78","tel2":"078 616 13 55","ca_2025":"2525","diff":"251","ca_2024":"2274"},{"sek":"102","kd_nr":"30834","name":"Casari","vorname":"Thomas","salon":"Tomtoms Barbershop SARL","strasse":"Route de la Drague 18","plz":"1950","ort":"Sion","tel":"079 339 65 77","tel2":"","ca_2025":"1479","diff":"207","ca_2024":"1272"},{"sek":"112","kd_nr":"13249","name":"Castella","vorname":"Maïté","salon":"Coiffure Akimbo","strasse":"54, route du Manège","plz":"1950","ort":"Sion","tel":"027 203 69 70","tel2":"","ca_2025":"6174","diff":"3022","ca_2024":"3152"},{"sek":"112","kd_nr":"14293","name":"Cacciatore","vorname":"Giovanni","salon":"Coiffure Milady","strasse":"Rue de Savièse 1","plz":"1950","ort":"Sion","tel":"027 322 24 13","tel2":"","ca_2025":"2913","diff":"2287","ca_2024":"626"},{"sek":"112","kd_nr":"20472","name":"Campo","vorname":"Raffaella","salon":"Salon NKR","strasse":"9, place du Scex","plz":"1950","ort":"Sion","tel":"078 623 68 16","tel2":"027 322 16 00","ca_2025":"1658","diff":"458","ca_2024":"1200"},{"sek":"112","kd_nr":"23735","name":"Monticelli","vorname":"Nathalie","salon":"Salon Un temps pour soi","strasse":"Rue de la Dixence 23","plz":"1950","ort":"Sion","tel":"027 321 20 27","tel2":"079 730 32 82","ca_2025":"4188","diff":"1253","ca_2024":"2935"},{"sek":"112","kd_nr":"26508","name":"Vidal","vorname":"Frédéric","salon":"Le Temps dun Barbier","strasse":"avenue de la Gare 24","plz":"1950","ort":"Sion","tel":"027 322 18 24","tel2":"079 107 37 54","ca_2025":"3783","diff":"2802","ca_2024":"981"},{"sek":"102","kd_nr":"31655","name":"Constantin","vorname":"Morgane","salon":"Evolution Coiffure MC","strasse":"44, route de Vissigen","plz":"1950","ort":"Sion","tel":"027 203 64 31","tel2":"079 612 87 03","ca_2025":"3259","diff":"3259","ca_2024":"0"},{"sek":"102","kd_nr":"21208","name":"Telley","vorname":"Nathalie","salon":"Styl Coiffure","strasse":"Route de Moudon 1","plz":"1670","ort":"Ursy","tel":"021 909 03 23","tel2":"079 122 86 57","ca_2025":"5685","diff":"1629","ca_2024":"4056"},{"sek":"102","kd_nr":"21683","name":"Magnin","vorname":"Marilyne","salon":"Evolutifs Coiffure","strasse":"Chemin du Soleil 3","plz":"1670","ort":"Ursy","tel":"021 909 59 68","tel2":"","ca_2025":"4227","diff":"312","ca_2024":"3915"},{"sek":"102","kd_nr":"24042","name":"Deschenaux","vorname":"Virginie","salon":"Artifice Coiffure","strasse":"5, route de Vauderens","plz":"1670","ort":"Ursy","tel":"021 909 51 39","tel2":"078 831 84 00","ca_2025":"2842","diff":"866","ca_2024":"1976"},{"sek":"102","kd_nr":"31635","name":"Schwery","vorname":"Jéromie","salon":"Jéromie Coiffure","strasse":"Route des Joncs 103","plz":"1958","ort":"Uvrier","tel":"079 740 22 08","tel2":"","ca_2025":"3555","diff":"3555","ca_2024":"0"},{"sek":"102","kd_nr":"30639","name":"Giannini","vorname":"Liliane","salon":"Coiffure Le Look","strasse":"Rue du Pont 17","plz":"1963","ort":"Vétroz","tel":"027 323 71 81","tel2":"","ca_2025":"354","diff":"-68","ca_2024":"422"},{"sek":"112","kd_nr":"23943","name":"Carron","vorname":"Liliane","salon":"La Boîte à coupe","strasse":"20, avenue des Vergers","plz":"1963","ort":"Vétroz","tel":"027 346 36 64","tel2":"078 858 20 42","ca_2025":"5225","diff":"-176","ca_2024":"5401"},{"sek":"112","kd_nr":"30468","name":"Frederico Gabriel","vorname":"Isabel","salon":"Coiffure lAtelier","strasse":"Route Cantonale 125","plz":"1963","ort":"Vétroz","tel":"078 766 08 86","tel2":"","ca_2025":"1631","diff":"-903","ca_2024":"2534"},{"sek":"102","kd_nr":"20718","name":"Buchs","vorname":"Véronique","salon":"La Coifferie","strasse":"rue des Deux-Marchés 27","plz":"1800","ort":"Vevey","tel":"021 922 27 51","tel2":"076 436 00 23","ca_2025":"2965","diff":"399","ca_2024":"2566"},{"sek":"102","kd_nr":"14364","name":"Fiorenza","vorname":"Gérard","salon":"Coiffure Gérard","strasse":"26, rue dItalie","plz":"1800","ort":"Vevey","tel":"021 921 53 61","tel2":"","ca_2025":"1866","diff":"886","ca_2024":"980"},{"sek":"102","kd_nr":"13310","name":"Melileo","vorname":"Maria","salon":"Coiffure Domino","strasse":"9, rue du Conseil","plz":"1800","ort":"Vevey","tel":"021 921 52 80","tel2":"079 394 46 08","ca_2025":"1426","diff":"920","ca_2024":"506"},{"sek":"102","kd_nr":"22330","name":"Coimbra","vorname":"Emilie","salon":"Coiffure L As de Trèfle","strasse":"23 rue du Midi","plz":"1800","ort":"Vevey","tel":"021 921 67 43","tel2":"076 321 28 85","ca_2025":"887","diff":"-74","ca_2024":"961"},{"sek":"102","kd_nr":"30529","name":"DAngelo","vorname":"Sabrina","salon":"Diamant Centre de Beauté","strasse":"Rue des Tilleuls 2","plz":"1800","ort":"Vevey","tel":"021 922 81 97","tel2":"078 678 75 76","ca_2025":"511","diff":"16","ca_2024":"495"},{"sek":"102","kd_nr":"31492","name":"Damjanovic","vorname":"Marijana","salon":"Beauty World","strasse":"4, avenue Reller","plz":"1800","ort":"Vevey","tel":"079 558 69 59","tel2":"","ca_2025":"1075","diff":"682","ca_2024":"393"},{"sek":"102","kd_nr":"31792","name":"Wicht","vorname":"Nathalie","salon":"Le Grand Salon","strasse":"Rue Hotel-de-Ville 13","plz":"1800","ort":"Vevey","tel":"079 478 86 80","tel2":"024 494 18 00","ca_2025":"3047","diff":"3047","ca_2024":"0"},{"sek":"102","kd_nr":"31618","name":"Richard","vorname":"Valérie","salon":"Salon Oser F Hair","strasse":"Grande Rue 92","plz":"1844","ort":"Villeneuve VD","tel":"078 801 68 59","tel2":"","ca_2025":"1503","diff":"819","ca_2024":"684"},{"sek":"112","kd_nr":"11836","name":"Da Campo","vorname":"Vincent","salon":"Coiffure Vincent","strasse":"4, Grand-Rue","plz":"1844","ort":"Villeneuve","tel":"021 960 24 24","tel2":"","ca_2025":"465","diff":"141","ca_2024":"324"},{"sek":"112","kd_nr":"20004","name":"Pignat","vorname":"Chrystel","salon":"Impact Coiffure","strasse":"Grand Rue 14","plz":"1896","ort":"Vouvry","tel":"024 481 11 94","tel2":"","ca_2025":"351","diff":"351","ca_2024":"0"},{"sek":"102","kd_nr":"31610","name":"Rizzo","vorname":"Jessica","salon":"Coiffure Emeraude","strasse":"Avenue de Savoie 4","plz":"1896","ort":"Vouvry","tel":"024 481 41 80","tel2":"077 424 01 23","ca_2025":"709","diff":"652","ca_2024":"57"}];
+
+const RDV_FIXES = {
+  "2026-07-01": [{h:"9h30", lieu:"Carmelo Coiffure — Sion"}],
+  "2026-07-03": [{h:"9h45", lieu:"Coiffure Rebelles — Lutry"}],
+  "2026-07-07": [{h:"8h30", lieu:"Francine — Servion"},{h:"9h45", lieu:"Artifice Coiffure — Ursy"},{h:"10h15", lieu:"Evolution Coiffure — Ursy"}],
+  "2026-07-08": [{h:"9h30", lieu:"Gérard Coiffure — Vevey"},{h:"10h00", lieu:"Coiffure Domino — Vevey"}],
+  "2026-07-10": [{h:"9h30", lieu:"Evolution Coiffure MC (Morgane) — Sion"},{h:"10h30", lieu:"A Vos Tifs — Sierre"}],
+};
+
+const PRELOAD_SCHEDULE = {
+  // ── Semaine 1 : 30 juin – 3 juillet ──────────────────────────────────────
+  // Mar 30/06 : Villeneuve + Corseaux + Roche + Clarens + Vevey + Bouveret
+  "2026-06-30": ["31618","11836","15487","29601","30459","24549","31812","16476","18754","14353","30063","27249","31610","31704"],
+  // Mer 01/07 : RDV Carmelo → Sion + Conthey + Vétroz + Grimisuat + Uvrier
+  "2026-07-01": ["26508","23735","16632","30834","27260","30574","23943","30468","20749","31794","19526","31635","18022","10762"],
+  // Jeu 02/07 : Sierre + Salgesch + Haute-Nendaz + Blignoud
+  "2026-07-02": ["23460","28301","10775","31172","29944","17925","30726","10759","29741","30839","26276","23977","30425","20795"],
+  // Ven 03/07 : RDV Rebelles → Lutry + Pully + Lausanne + Coiffure Sonia
+  "2026-07-03": ["20785","30091","27820","10712","30952","26833","31681","30905","18532","24365","19810","21861","26478","19699"],
+
+  // ── Semaine 2 : 7 – 10 juillet ───────────────────────────────────────────
+  // Mar 07/07 : RDV Francine+Artifice+Evolution → Ursy + Servion + Chexbres + Crissier + Attalens + Châtel
+  "2026-07-07": ["21683","24042","30896","30737","26350","31094","31679","31661","31680","30291","26404","31522","31242","30779"],
+  // Mer 08/07 : RDV Gérard+Domino → Vevey + Montreux + Collombey + Lutry + Pully
+  "2026-07-08": ["21987","31674","30655","31792","31903","23533","30657","31587","22330","31802","13753","14389","31744","27023"],
+  // Jeu 09/07 : Martigny + Riddes + Saillon + Ardon + Leytron
+  "2026-07-09": ["14297","12744","12145","22380","30793","23608","30777","31352","30168","31740","31779","27677","28717","24898"],
+  // Ven 10/07 : RDV A Vos Tifs+Morgane → Sierre + Sion + Uvrier + Crans
+  "2026-07-10": ["24035","27254","27551","24793","10758","24335","31690","10778","31620","31630","31724","21386","30141","24047"],
+
+  // ── Semaine 3 : 14 – 17 juillet ──────────────────────────────────────────
+  // Mar 14/07 : Aigle + Bex + Monthey + Collombey
+  "2026-07-14": ["10410","29777","27576","26732","21177","12166","31549","20974","30066","29955","31738","30863","13018","11736"],
+  // Mer 15/07 : Lausanne + Renens + Prilly
+  "2026-07-15": ["27182","31519","31842","21347","30154","30292","19433","17910","31685","30080","24968","30677","23439","10608"],
+  // Jeu 16/07 : Sion reste + Conthey + Aproz + Vétroz
+  "2026-07-16": ["13249","31655","20588","16651","31535","31260","28145","31220","20521","18248","26593","31747","29751","30639"],
+  // Ven 17/07 : Sierre reste + Crans + Miège + Noës
+  "2026-07-17": ["12234","24559","30921","29738","30048","27620","31658","21077","31048","18527","16607","20265","19581","31317"],
+};
+
+
+const SK='tv3_sa',DK='td3_sa',SCK='ts3_sa',EK='te3_sa';
+const MAX=14;
+const WDAYS=['Mardi','Mercredi','Jeudi','Vendredi'];
+const SC={
+  visited:{l:'Visité',c:'#22c55e',bg:'#052e16',i:'\u2713'},
+  absent:{l:'Client absent',c:'#f59e0b',bg:'#451a03',i:'~'},
+  closed:{l:'Salon fermé',c:'#ef4444',bg:'#450a0a',i:'\u2715'},
+  callback:{l:'À rappeler',c:'#8b5cf6',bg:'#2e1065',i:'\u21a9'},
+  none:{l:'Non visité',c:'#64748b',bg:'#0f172a',i:'\u25cb'}
+};
+const RV=['Présentation produits','Suivi commande','Relance client','Introduction nouveauté','Fidélisation','Autre'];
+
+function load(k){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null}catch{return null}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+function loadSch(){
+  const s=load(SCK)||{},m={...PRELOAD_SCHEDULE};
+  Object.keys(s).forEach(d=>{if(s[d]&&s[d].length)m[d]=s[d]});
+  return m;
+}
+
+let vis=load(SK)||{},del=load(DK)||{},sch=loadSch(),extra=load(EK)||[];
+let view='week',wkOff=0,modal=null,toast=null,tTimer=null;
+let srch='',fCity='Toutes',fStat='Tous',fSek='Tous';
+
+function toStr(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
+function today(){return toStr(new Date())}
+function addD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function wkMon(d){const x=new Date(d),dy=x.getDay();x.setDate(x.getDate()+(dy===0?-6:1-dy));x.setHours(0,0,0,0);return x}
+function fmtFR(s){if(!s)return'';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('fr-CH',{weekday:'short',day:'2-digit',month:'2-digit'})}
+function ini(n,v){return([v,n].filter(Boolean).map(p=>p[0]?.toUpperCase()).filter(Boolean).slice(0,2).join(''))||'?'}
+function sal(c){return c.salon||c.name||'Salon'}
+function cname(c){return c.vorname?`${c.vorname} ${c.name}`:c.name}
+function getWkDates(){const mon=wkMon(new Date()),tue=addD(mon,1+wkOff*7);return Array.from({length:4},(_,i)=>toStr(addD(tue,i)))}
+function allC(){const b=new Set(CR.map(c=>c.kd_nr));return[...CR,...extra.filter(c=>!b.has(c.kd_nr))]}
+function activeC(){return allC().filter(c=>!del[c.kd_nr])}
+function cMap(){const m={};allC().forEach(c=>{m[c.kd_nr]=c});return m}
+function persist(){save(SK,vis);save(DK,del);save(SCK,sch);save(EK,extra)}
+
+function showToast(msg,type='ok'){
+  if(tTimer)clearTimeout(tTimer);
+  toast={msg,type};render();
+  tTimer=setTimeout(()=>{toast=null;render()},2600);
+}
+
+function exportSync(){
+  const data={vis,del,sch,extra,at:new Date().toISOString(),v:1};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`tournee_sync_${today()}.json`;a.click();
+  showToast('Fichier sync exporté !');
+}
+function importSync(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!d.v)throw new Error('Format invalide');
+      vis=d.vis||{};del=d.del||{};extra=d.extra||[];
+      const m={...PRELOAD_SCHEDULE};
+      if(d.sch)Object.keys(d.sch).forEach(dt=>{if(d.sch[dt]&&d.sch[dt].length)m[dt]=d.sch[dt]});
+      sch=m;persist();showToast(`Sync importée - ${Object.keys(vis).length} visites`);render();
+    }catch(err){showToast('Erreur: '+err.message,'err');}
+  };r.readAsText(file);
+}
+
+async function exportExcel(){
+  showToast('Génération Excel...','warn');
+  const script=document.createElement('script');
+  script.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  await new Promise((res,rej)=>{script.onload=res;script.onerror=rej;document.head.appendChild(script)});
+  const X=window.XLSX,wb=X.utils.book_new(),cm=cMap(),dn=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const rows=[['SEK','N° Client','Nom','Prénom','Salon','Adresse','NPA','Ville','Tél','CA 2025','CA 2024','Diff','Statut','Date visite','Motif','Produits','Commande CHF','Notes','Prochaine action','Date relance','Planifié','Supprimé']];
+  allC().forEach(c=>{const v=vis[c.kd_nr]||{};const d=del[c.kd_nr];
+    const sc=Object.entries(sch).filter(([,ids])=>ids.includes(c.kd_nr)).map(([dt])=>dt).join(', ');
+    rows.push([c.sek,c.kd_nr,c.name,c.vorname||'',c.salon||'',c.strasse||'',c.plz||'',c.ort||'',c.tel||'',parseInt(c.ca_2025)||0,parseInt(c.ca_2024)||0,parseInt(c.diff)||0,v.status||'',v.visitDate||'',v.reason||'',v.products||'',parseFloat(v.amount)||0,v.note||'',v.nextAction||'',v.followUpDate||'',sc,d?'Oui':'Non']);
+  });
+  const ws1=X.utils.aoa_to_sheet(rows);ws1['!cols']=[6,9,18,14,24,22,6,16,14,9,9,8,12,12,18,20,10,30,24,12,24,6].map(w=>({wch:w}));
+  X.utils.book_append_sheet(wb,ws1,'Clients & Visites');
+  const pr=[['Date','Jour','N° Client','Salon','Ville','Statut','CHF','Notes']];
+  Object.entries(sch).sort(([a],[b])=>a.localeCompare(b)).forEach(([date,ids])=>{
+    if(!ids||!ids.length)return;const djn=dn[new Date(date+'T00:00:00').getDay()];
+    ids.forEach(id=>{const c=cm[id];if(!c)return;const v=vis[id]||{};
+      pr.push([date,djn,id,sal(c),c.ort,v.status||'planifié',parseFloat(v.amount)||0,v.note||'']);});
+  });
+  X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(pr),'Planning');
+  X.writeFile(wb,`Tournee_${today()}.xlsx`);showToast('Excel téléchargé !');
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────────
+function h(tag,attrs,...ch){
+  const el=document.createElement(tag);
+  if(attrs)Object.entries(attrs).forEach(([k,v])=>{
+    if(k==='style'&&typeof v==='object')Object.assign(el.style,v);
+    else if(k.startsWith('on'))el[k.toLowerCase()]=v;
+    else if(k==='className')el.className=v;
+    else el.setAttribute(k,v);
+  });
+  ch.flat(9).forEach(c=>{if(c==null||c===false||c===undefined)return;el.appendChild(typeof c==='string'||typeof c==='number'?document.createTextNode(String(c)):c);});
+  return el;
+}
+
+function render(){
+  const app=document.getElementById('app');
+  const sc=app.querySelector('.ms')?.scrollTop||0;
+  app.innerHTML='';
+  const wkDates=getWkDates(),ac=activeC(),cm_=cMap(),td=today();
+
+  if(toast){
+    app.appendChild(h('div',{style:{position:'fixed',bottom:'76px',left:'50%',transform:'translateX(-50%)',
+      background:toast.type==='err'?'#ef4444':toast.type==='warn'?'#f59e0b':'#22c55e',color:'#fff',
+      padding:'9px 20px',borderRadius:11,fontWeight:600,zIndex:9999,whiteSpace:'nowrap',
+      boxShadow:'0 4px 20px rgba(0,0,0,.5)',animation:'su .25s'}},toast.msg));
+  }
+  if(modal){app.appendChild(renderModal(modal,wkDates,cm_,ac,td));}
+
+  // Header
+  const todayCA=Object.values(vis).filter(v=>v.visitDate===td&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+  const wkCA=Object.values(vis).filter(v=>wkDates.includes(v.visitDate)&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+  const vc=Object.values(vis).filter(v=>v.status==='visited').length;
+  const pct=ac.length>0?Math.round((vc/ac.length)*100):0;
+
+  app.appendChild(h('div',{style:{background:'linear-gradient(135deg,#0f172a,#0a0f1e)',borderBottom:'1px solid #1e293b',padding:'env(safe-area-inset-top,0px) 12px 0',position:'sticky',top:0,zIndex:100}},
+    h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:52}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+        h('div',{style:{width:30,height:30,background:'linear-gradient(135deg,#6366f1,#8b5cf6)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}},'\u2702\uFE0F'),
+        h('div',null,
+          h('div',{style:{fontWeight:700,fontSize:14}},'Tournée 2026'),
+          h('div',{style:{fontSize:10,color:'#475569'}},ac.length,' clients · ',pct,'% visités · ',
+            h('span',{style:{color:'#22c55e'}},todayCA.toLocaleString('fr-CH'),' CHF auj.'))
+        )
+      ),
+      h('div',{style:{display:'flex',gap:5}},
+        h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11},onClick:()=>{modal={type:'sync'};render()}},'🔄'),
+        h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11,color:'#22d3ee',borderColor:'#06b6d444'},onClick:exportExcel},'📤')
+      )
+    )
+  ));
+
+  const main=h('div',{className:'ms',style:{overflowY:'auto',paddingBottom:'64px',height:'calc(100vh - 52px - env(safe-area-inset-top,0px))'}});
+
+  if(view==='week')main.appendChild(renderWeek(wkDates,cm_,td,wkCA));
+  else if(view==='list')main.appendChild(renderList(ac));
+  else if(view==='stats')main.appendChild(renderStats(wkDates,ac,td));
+
+  app.appendChild(main);
+  setTimeout(()=>{const m=app.querySelector('.ms');if(m)m.scrollTop=sc},0);
+
+  app.appendChild(h('nav',{className:'nav-bar'},
+    ...[{id:'week',ic:'📅',l:'Planning'},{id:'list',ic:'👥',l:'Clients'},{id:'stats',ic:'📊',l:'Stats'},{id:'sync',ic:'🔄',l:'Sync'}].map(n=>
+      h('button',{className:'nb'+(view===n.id?' on':''),onClick:()=>{if(n.id==='sync'){modal={type:'sync'};render();}else{view=n.id;render();}}},
+        h('span',{className:'ic'},n.ic),n.l)
+    ),
+    h('button',{className:'nb',onClick:()=>{modal={type:'newclient'};render()}},h('span',{className:'ic'},'➕'),'Nouveau')
+  ));
+}
+
+function renderWeek(wkDates,cm,td,wkCA){
+  const wrap=h('div',{style:{padding:'8px 10px 10px'}});
+  const total=wkDates.reduce((s,d)=>s+(sch[d]||[]).length,0);
+  const wkLabel=wkOff===0?'Semaine en cours':wkOff===1?'Semaine prochaine':wkOff===-1?'Sem. précédente':`Sem. ${wkOff>0?'+':''}${wkOff}`;
+
+  wrap.appendChild(h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#0f172a',borderRadius:10,padding:'9px 12px',border:'1px solid #1e293b',marginBottom:8}},
+    h('button',{className:'bg',style:{padding:'6px 14px',fontWeight:700},onClick:()=>{wkOff--;render()}},'←'),
+    h('div',{style:{textAlign:'center'}},
+      h('div',{style:{fontWeight:700,fontSize:13}},wkLabel,'  ',h('span',{style:{fontSize:10,color:'#6366f1',fontWeight:400}},'Lun: maison')),
+      h('div',{style:{fontSize:10,color:'#64748b'}},fmtFR(wkDates[0]),' → ',fmtFR(wkDates[3]),' · ',h('b',{style:{color:'#f1f5f9'}},total),' planifiées · ',h('b',{style:{color:'#22c55e'}},wkCA.toLocaleString('fr-CH'),' CHF'))
+    ),
+    h('button',{className:'bg',style:{padding:'6px 14px',fontWeight:700},onClick:()=>{wkOff++;render()}},'→')
+  ));
+
+  const todayC=(sch[td]||[]).map(id=>cm[id]).filter(Boolean);
+  if(wkDates.includes(td)&&todayC.length>0){
+    const dayCA=Object.values(vis).filter(v=>v.visitDate===td&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+    const strip=h('div',{style:{background:'rgba(99,102,241,.1)',borderRadius:10,padding:'9px 12px',border:'1px solid #6366f130',marginBottom:8}});
+    strip.appendChild(h('div',{style:{fontWeight:700,fontSize:12,color:'#a5b4fc',marginBottom:6}},
+      '\uD83D\uDCCD Aujourd\'hui — ',todayC.length,'/',MAX,' visites',
+      dayCA>0?h('span',{style:{color:'#22c55e',marginLeft:8}},'· '+dayCA.toLocaleString('fr-CH')+' CHF'):''));
+    const chips=h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}});
+    todayC.forEach(c=>{
+      const v=vis[c.kd_nr],cfg=SC[v?.status||'none'];
+      chips.appendChild(h('div',{className:'card',style:{background:'#0f172a',borderRadius:7,padding:'5px 9px',fontSize:11,display:'flex',alignItems:'center',gap:5,border:'1px solid #1e293b'},onClick:()=>{modal={type:'visit',client:c};render()}},
+        h('span',{style:{width:6,height:6,borderRadius:'50%',background:cfg.c,display:'inline-block'}}),
+        h('b',null,sal(c)),
+        v?.status==='visited'?h('span',{style:{color:'#22c55e'}},'✓'):'',
+        v?.amount?h('span',{style:{color:'#22c55e',fontSize:10}},parseFloat(v.amount).toLocaleString('fr-CH')+' CHF'):''
+      ));
+    });
+    strip.appendChild(chips);wrap.appendChild(strip);
+  }
+
+  const grid=h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:5}});
+  wkDates.forEach((d,i)=>{
+    const dc=(sch[d]||[]).map(id=>cm[id]).filter(Boolean);
+    const isT=d===td,isPast=d<td,cnt=dc.length;
+    const bar=cnt>=MAX?'#22c55e':cnt>=10?'#f59e0b':cnt>0?'#ef4444':'#1e293b';
+    const dayCA=Object.values(vis).filter(v=>v.visitDate===d&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+    const rdvL=RDV_FIXES[d];
+    const col=h('div',{className:'day-col'+(isT?' today':''),style:{opacity:isPast?.75:1}});
+    const dh=h('div',{style:{textAlign:'center',marginBottom:2}},
+      h('div',{style:{fontWeight:700,fontSize:11,color:isT?'#a5b4fc':'#64748b'}},WDAYS[i]),
+      h('div',{style:{fontSize:9,color:isT?'#6366f1':'#475569'}},fmtFR(d)));
+    if(rdvL)rdvL.forEach(r=>dh.appendChild(h('div',{className:'rdv-tag'},'\u2B50 '+r.h+' '+r.lieu)));
+    dh.appendChild(h('div',{style:{fontSize:9,fontWeight:700,color:bar,marginTop:1}},cnt+'/'+MAX+' '+(cnt>=MAX?'✓':cnt>=10?'':'\u26A0\uFE0F')));
+    dh.appendChild(h('div',{style:{background:'#1e293b',borderRadius:999,height:3,overflow:'hidden',margin:'2px 0'}},h('div',{style:{width:Math.min((cnt/MAX)*100,100)+'%',height:'100%',background:bar}})));
+    if(dayCA>0)dh.appendChild(h('div',{style:{fontSize:9,color:'#22c55e',fontWeight:600}},dayCA.toLocaleString('fr-CH')+' CHF'));
+    col.appendChild(dh);
+    dc.forEach(c=>{
+      const v=vis[c.kd_nr],cfg=SC[v?.status||'none'],amt=parseFloat(v?.amount)||0;
+      col.appendChild(h('div',{className:'cc',style:{background:cfg.bg,borderColor:cfg.c+'33'},onClick:()=>{modal={type:'visit',client:c};render()}},
+        h('span',{style:{color:cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},cfg.i),
+        h('div',{style:{flex:1,minWidth:0}},
+          h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#e2e8f0',fontSize:9}},sal(c)),
+          h('div',{style:{color:'#475569',fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':''))),
+        h('span',{style:{color:'#334155',cursor:'pointer',fontSize:13,lineHeight:1,flexShrink:0,padding:'0 2px'},
+          onClick:e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render()}},'×')
+      ));
+    });
+    if(!cnt)col.appendChild(h('div',{style:{textAlign:'center',color:'#1e293b',fontSize:9,margin:'auto 0',padding:'6px 0'}},'— vide —'));
+    col.appendChild(h('div',{style:{textAlign:'center',fontSize:8,fontWeight:700,marginTop:2,color:cnt>=MAX?'#22c55e':'#ef4444'}},cnt>=MAX?'✓ OK':cnt>0?'\u26A0\uFE0F -'+(MAX-cnt):''));
+    grid.appendChild(col);
+  });
+  wrap.appendChild(grid);
+  wrap.appendChild(h('div',{style:{background:'#0f172a',borderRadius:9,padding:'7px 12px',border:'1px solid #1e293b',fontSize:10,color:'#475569',marginTop:7,display:'flex',justifyContent:'space-between'}},
+    'Appuyez pour ouvrir la fiche · × pour retirer',
+    h('span',{style:{color:total>=MAX*4?'#22c55e':'#f59e0b',fontWeight:600}},total+'/'+(MAX*4))));
+  return wrap;
+}
+
+function renderList(ac){
+  const wrap=h('div',{style:{padding:'8px 10px'}});
+  wrap.appendChild(h('input',{type:'search',placeholder:'\uD83D\uDD0D  Rechercher…',value:srch,style:{width:'100%',background:'#0f172a',border:'1px solid #334155',color:'#f1f5f9',padding:'9px 12px',borderRadius:9,outline:'none',marginBottom:8,display:'block'},onInput:e=>{srch=e.target.value;render()}}));
+  const cities=['Toutes',...Array.from(new Set(ac.map(c=>c.ort).filter(Boolean))).sort()];
+  const fr=h('div',{style:{display:'flex',gap:6,marginBottom:8,overflowX:'auto'}});
+  [[fCity,cities,v=>{fCity=v;render()}],[fStat,['Tous',...Object.entries(SC).map(([k,c])=>k)],v=>{fStat=v;render()},Object.fromEntries(Object.entries(SC).map(([k,c])=>[k,c.l]))],[fSek,['Tous','102','112'],v=>{fSek=v;render()}]].forEach(([val,opts,onCh,labels])=>{
+    const sel=h('select',{style:{background:'#0f172a',border:'1px solid #334155',color:'#f1f5f9',padding:'6px 8px',borderRadius:8,fontSize:12,flexShrink:0},onChange:e=>onCh(e.target.value)});
+    opts.forEach(o=>{const label=labels?labels[o]||o:o;const opt=h('option',{value:o},label==='Tous'?'Tous statuts':o==='Tous'?(labels?'Tous statuts':'Tous SEK'):label);if(o===val)opt.selected=true;sel.appendChild(opt);});
+    fr.appendChild(sel);
+  });
+  wrap.appendChild(fr);
+  let list=[...ac];
+  if(fCity!=='Toutes')list=list.filter(c=>c.ort===fCity);
+  if(fSek!=='Tous')list=list.filter(c=>c.sek===fSek);
+  if(fStat!=='Tous')list=list.filter(c=>(vis[c.kd_nr]?.status||'none')===fStat);
+  if(srch){const q=srch.toLowerCase();list=list.filter(c=>c.name.toLowerCase().includes(q)||c.vorname?.toLowerCase().includes(q)||c.salon?.toLowerCase().includes(q)||c.ort?.toLowerCase().includes(q)||c.kd_nr?.includes(q));}
+  list.sort((a,b)=>(a.ort||'').localeCompare(b.ort||''));
+  wrap.appendChild(h('div',{style:{fontSize:11,color:'#475569',marginBottom:6}},list.length+' client'+(list.length!==1?'s':'')));
+  list.forEach(c=>{
+    const v=vis[c.kd_nr],st=v?.status||'none',cfg=SC[st],amt=parseFloat(v?.amount)||0,ca=parseInt(c.ca_2025)||0;
+    wrap.appendChild(h('div',{className:'card',style:{background:'#0f172a',borderRadius:11,padding:'10px 12px',border:'1px solid #1e293b',display:'flex',alignItems:'center',gap:10,marginBottom:6},onClick:()=>{modal={type:'visit',client:c};render()}},
+      h('div',{className:'r-'+st,style:{width:38,height:38,borderRadius:10,background:'linear-gradient(135deg,#4f46e5,#7c3aed)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff',flexShrink:0}},ini(c.name,c.vorname)),
+      h('div',{style:{flex:1,minWidth:0}},
+        h('div',{style:{fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},sal(c)),
+        h('div',{style:{fontSize:11,color:'#64748b'}},cname(c),' · ',c.ort),
+        v?.note?h('div',{style:{fontSize:10,color:'#475569',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},'📝 '+v.note):''
+      ),
+      h('div',{style:{textAlign:'right',flexShrink:0}},
+        amt>0?h('div',{style:{fontSize:12,fontWeight:700,color:'#22c55e'}},amt.toLocaleString('fr-CH')+' CHF'):h('div',{style:{fontSize:10,color:'#334155'}},'réf. '+ca.toLocaleString()),
+        h('div',{style:{marginTop:3}},h('span',{className:'chip',style:{background:cfg.bg,color:cfg.c}},cfg.i+' '+cfg.l))
+      )
+    ));
+  });
+  return wrap;
+}
+
+function renderStats(wkDates,ac,td){
+  const wrap=h('div',{style:{padding:'8px 10px'}});
+  const tCA=Object.values(vis).filter(v=>v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+  const dCA=Object.values(vis).filter(v=>v.visitDate===td&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+  const wCA=Object.values(vis).filter(v=>wkDates.includes(v.visitDate)&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+  const fups=ac.filter(c=>vis[c.kd_nr]?.followUpDate).sort((a,b)=>vis[a.kd_nr].followUpDate.localeCompare(vis[b.kd_nr].followUpDate));
+  const kpis=[{l:"CA aujourd'hui",v:dCA.toLocaleString('fr-CH')+' CHF',i:'📍',c:'#22c55e'},{l:'CA semaine',v:wCA.toLocaleString('fr-CH')+' CHF',i:'📅',c:'#6366f1'},{l:'CA total saisi',v:tCA.toLocaleString('fr-CH')+' CHF',i:'💰',c:'#f59e0b'},{l:'Relances',v:fups.length,i:'↩',c:'#f87171'}];
+  const g=h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}});
+  kpis.forEach(k=>g.appendChild(h('div',{style:{background:'#0f172a',borderRadius:10,padding:'11px 12px',border:'1px solid #1e293b',borderLeft:'3px solid '+k.c}},h('div',{style:{fontSize:18,marginBottom:2}},k.i),h('div',{style:{fontWeight:800,fontSize:17,color:k.c}},k.v),h('div',{style:{fontSize:10,color:'#475569',marginTop:2}},k.l))));
+  wrap.appendChild(g);
+  const wkBars=wkDates.map(d=>({d,label:['Mar','Mer','Jeu','Ven'][wkDates.indexOf(d)],ca:Object.values(vis).filter(v=>v.visitDate===d&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0)}));
+  const maxCA=Math.max(...wkBars.map(x=>x.ca),1);
+  const chart=h('div',{style:{background:'#0f172a',borderRadius:10,padding:'12px',border:'1px solid #1e293b',marginBottom:10}});
+  chart.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:10}},'💵 CA par jour'));
+  const bars=h('div',{style:{display:'flex',gap:6,alignItems:'flex-end',height:70}});
+  wkBars.forEach(({d,label,ca})=>{
+    const isT=d===td,pct=ca>0?Math.round((ca/maxCA)*100):0;
+    bars.appendChild(h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
+      h('div',{style:{fontSize:9,fontWeight:700,color:ca>0?'#22c55e':'#334155'}},ca>0?ca.toLocaleString('fr-CH'):'—'),
+      h('div',{style:{width:'100%',background:'#1e293b',borderRadius:5,height:45,display:'flex',alignItems:'flex-end',overflow:'hidden'}},h('div',{style:{width:'100%',height:pct+'%',background:isT?'#22c55e':'#6366f1',minHeight:ca>0?3:0}})),
+      h('div',{style:{fontSize:9,color:isT?'#a5b4fc':'#475569',fontWeight:isT?700:400}},label)));
+  });
+  chart.appendChild(bars);wrap.appendChild(chart);
+  if(fups.length){
+    const rel=h('div',{style:{background:'#0f172a',borderRadius:10,padding:'12px',border:'1px solid #f59e0b33'}});
+    rel.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:8,color:'#f59e0b'}},'📅 Relances à effectuer'));
+    fups.slice(0,6).forEach(c=>rel.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#060d1a',borderRadius:8,padding:'8px 10px',marginBottom:5},onClick:()=>{modal={type:'visit',client:c};render()}},
+      h('div',null,h('div',{style:{fontWeight:600,fontSize:12}},sal(c)),h('div',{style:{fontSize:10,color:'#475569'}},c.ort)),
+      h('div',{style:{color:'#f59e0b',fontWeight:700,fontSize:11}},fmtFR(vis[c.kd_nr].followUpDate)))));
+    wrap.appendChild(rel);
+  }
+  return wrap;
+}
+
+function renderModal(modal,wkDates,cm,ac,td){
+  const ov=h('div',{className:'overlay',onClick:e=>{if(e.target===ov){window.modal=null;render();}}});
+  const sheet=h('div',{className:'sheet'});
+  ov.appendChild(sheet);
+  const handle=h('div',{style:{width:36,height:4,background:'#334155',borderRadius:2,margin:'10px auto 0',flexShrink:0}});
+  sheet.appendChild(handle);
+
+  if(modal.type==='visit'){
+    const c=modal.client,v=vis[c.kd_nr]||{},ca=parseInt(c.ca_2025)||0,diff=parseInt(c.diff)||0;
+    const hd=h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}},
+        h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},sal(c)),h('div',{style:{fontSize:11,color:'#6366f1',marginTop:1}},cname(c),' · ',c.ort,' · SEK ',c.sek)),
+        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render()}},'✕')));
+    sheet.appendChild(hd);
+    const body=h('div',{className:'sheet-b'});
+    body.appendChild(h('div',{style:{display:'flex',gap:6}},
+      ...[{l:'CA 2025',v:ca.toLocaleString()+' CHF',c:'#a5b4fc'},{l:'Diff',v:(diff>=0?'▲':'▼')+Math.abs(diff).toLocaleString(),c:diff>=0?'#4ade80':'#f87171'}].map(s=>
+        h('div',{style:{flex:1,background:'#060d1a',borderRadius:8,padding:'7px',textAlign:'center',border:'1px solid #1e293b'}},h('div',{style:{fontSize:9,color:'#475569',marginBottom:1}},s.l),h('div',{style:{fontWeight:700,fontSize:12,color:s.c}},s.v)))));
+    if(c.tel||c.strasse){
+      const ct=h('div',{style:{background:'#060d1a',borderRadius:9,padding:'9px 11px',border:'1px solid #1e293b'}});
+      if(c.strasse)ct.appendChild(h('div',{style:{fontSize:12,color:'#64748b'}},'📍 '+c.strasse+', '+c.plz+' '+c.ort));
+      if(c.tel){const a=h('a',{href:'tel:'+c.tel.replace(/\s/g,''),style:{fontSize:12,color:'#6366f1',textDecoration:'none',display:'block'}},'📞 '+c.tel);ct.appendChild(a);}
+      if(c.tel2){const a=h('a',{href:'tel:'+c.tel2.replace(/\s/g,''),style:{fontSize:12,color:'#6366f1',textDecoration:'none',display:'block'}},'📞 '+c.tel2);ct.appendChild(a);}
+      body.appendChild(ct);
+    }
+    const stBtns=h('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}});
+    ['visited','absent','closed','callback'].forEach(k=>{
+      const cfg=SC[k],active=(v.status||'none')===k;
+      stBtns.appendChild(h('button',{style:{padding:'8px 12px',borderRadius:9,border:'2px solid '+(active?cfg.c:'#1e293b'),background:active?cfg.c+'18':'transparent',color:active?cfg.c:'#475569',cursor:'pointer',fontWeight:600,fontSize:12},
+        onClick:()=>{vis[c.kd_nr]={...v,status:k,visitDate:v.visitDate||today()};persist();modal={type:'visit',client:c};render();}},cfg.i+' '+cfg.l));
+    });
+    body.appendChild(h('div',null,h('div',{className:'fl'},'Statut'),stBtns));
+
+    const dr=h('div',{style:{display:'flex',gap:8}});
+    [[{l:'Date de visite',k:'visitDate'}],...(['absent','closed','callback'].includes(v.status)?[[{l:'📅 À revisiter le',k:'followUpDate',c:'#f59e0b'}]]:[])].flat().forEach(({l,k,c:col})=>{
+      const w=h('div',{style:{flex:1}},h('div',{className:'fl',style:col?{color:col}:{}},l));
+      const inp=h('input',{type:'date',value:v[k]||'',className:'fi',onChange:e=>{vis[c.kd_nr]={...vis[c.kd_nr],[k]:e.target.value};persist();}});
+      w.appendChild(inp);dr.appendChild(w);
+    });
+    body.appendChild(dr);
+
+    const amtW=h('div',null,h('div',{className:'fl'},'Montant commande (CHF)'));
+    amtW.appendChild(h('input',{type:'number',value:v.amount||'',placeholder:'0.00',className:'fi',onChange:e=>{vis[c.kd_nr]={...vis[c.kd_nr],amount:e.target.value};persist();}}));
+    body.appendChild(amtW);
+
+    const motif=h('div',null,h('div',{className:'fl'},'Motif'));
+    const mb=h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}});
+    RV.forEach(r=>{const a=v.reason===r;mb.appendChild(h('button',{style:{padding:'5px 9px',borderRadius:7,border:'1px solid '+(a?'#6366f1':'#1e293b'),background:a?'rgba(99,102,241,.15)':'transparent',color:a?'#a5b4fc':'#475569',cursor:'pointer',fontSize:11},onClick:()=>{vis[c.kd_nr]={...vis[c.kd_nr],reason:r};persist();}},r));});
+    motif.appendChild(mb);body.appendChild(motif);
+
+    const prodW=h('div',null,h('div',{className:'fl'},'Produits / commande'));
+    const prodTA=h('textarea',{rows:2,placeholder:'Ex: Coloration Wella 60g × 3…',className:'fi',style:{resize:'vertical'},onInput:e=>{vis[c.kd_nr]={...vis[c.kd_nr],products:e.target.value};persist();}},v.products||'');
+    prodW.appendChild(prodTA);body.appendChild(prodW);
+
+    const noteW=h('div',null,h('div',{className:'fl'},'Notes'));
+    const noteTA=h('textarea',{rows:3,placeholder:'Observations, besoins…',className:'fi',style:{resize:'vertical'},onInput:e=>{vis[c.kd_nr]={...vis[c.kd_nr],note:e.target.value};persist();}},v.note||'');
+    noteW.appendChild(noteTA);body.appendChild(noteW);
+
+    body.appendChild(h('div',{style:{display:'flex',gap:8}},
+      c.strasse?h('a',{href:'https://maps.apple.com/?address='+encodeURIComponent(c.strasse+' '+c.plz+' '+c.ort),target:'_blank',style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:5,background:'rgba(99,102,241,.1)',border:'1px solid rgba(99,102,241,.25)',color:'#a5b4fc',padding:'10px',borderRadius:9,textDecoration:'none',fontSize:12,fontWeight:600}},'🗺️ Plans Apple'):'',
+      h('button',{className:'bg',style:{flex:1,padding:'10px',fontSize:12,fontWeight:600,borderColor:'#22c55e40',color:'#4ade80'},onClick:()=>{modal={type:'schedule',client:c};render();}},'📅 Planning')
+    ));
+    body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'12px',fontSize:14},onClick:()=>{modal=null;showToast('Visite enregistrée \u2713');}},'💾 Enregistrer & fermer'));
+    sheet.appendChild(body);
+
+  } else if(modal.type==='schedule'){
+    const c=modal.client;
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'📅 Ajouter au planning'),h('div',{style:{fontSize:11,color:'#6366f1'}},sal(c))),
+        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal={type:'visit',client:c};render();}},'←'))));
+    const body=h('div',{className:'sheet-b'});
+    const td_=today();
+    wkDates.forEach((d,i)=>{
+      const cnt=(sch[d]||[]).length,full=cnt>=MAX,hasTh=(sch[d]||[]).includes(c.kd_nr),isT=d===td_;
+      body.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',borderRadius:9,border:'1px solid '+(hasTh?'#22c55e':'#1e293b'),background:hasTh?'rgba(34,197,94,.08)':'transparent',cursor:full&&!hasTh?'not-allowed':'pointer',opacity:d<td_?.6:1,marginBottom:5},
+        onClick:()=>{
+          if(hasTh){showToast('Déjà planifié ce jour','warn');return;}
+          if(full){showToast('Maximum '+MAX+' visites ce jour !','err');return;}
+          sch[d]=[...(sch[d]||[]),c.kd_nr];persist();showToast('✓ Ajouté !');modal={type:'visit',client:c};render();
+        }},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+          h('span',{style:{fontWeight:600,fontSize:13,color:isT?'#6366f1':hasTh?'#22c55e':'#94a3b8'}},WDAYS[i]),
+          h('span',{style:{fontSize:11,color:'#475569'}},fmtFR(d)),
+          isT?h('span',{style:{fontSize:9,color:'#6366f1',fontWeight:700}},"AUJ."):'',
+          hasTh?h('span',{style:{fontSize:9,color:'#22c55e',fontWeight:700}},'✓ PLANIFIÉ'):''),
+        h('span',{style:{fontSize:11,color:full?'#ef4444':'#64748b',fontWeight:600}},cnt+'/'+MAX)));
+    });
+    sheet.appendChild(body);
+
+  } else if(modal.type==='sync'){
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'🔄 Synchronisation & Export'),h('div',{style:{fontSize:11,color:'#06b6d4'}},'Transférer entre appareils')),
+        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
+    const body=h('div',{className:'sheet-b'});
+    body.appendChild(h('div',{style:{background:'#060d1a',borderRadius:10,padding:'14px',border:'1px solid #1e293b',fontSize:12,color:'#94a3b8',lineHeight:1.8}},
+      h('b',{style:{color:'#f1f5f9',display:'block',marginBottom:6}},'Comment synchroniser :'),
+      '1️⃣  Sur cet appareil : appuyez sur ',h('b',null,'"Exporter sync"'),h('br'),
+      '2️⃣  Partagez le fichier .json via AirDrop, iCloud Drive, email…',h('br'),
+      '3️⃣  Sur l\'autre appareil : ouvrir ce fichier HTML → ',h('b',null,'"Importer sync"'),h('br'),h('br'),
+      h('span',{style:{color:'#22c55e'}},'✅ '),Object.keys(vis).length+' visites · '+Object.keys(sch).filter(d=>sch[d]?.length).length+' jours planifiés'));
+    body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'13px',fontSize:14},onClick:()=>{exportSync();}},'📤 Exporter sync (.json)'));
+    const impLbl=h('label',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'13px',borderRadius:10,border:'2px dashed #06b6d444',background:'rgba(6,182,212,.06)',color:'#22d3ee',fontWeight:600,fontSize:14,cursor:'pointer'}},'📥 Importer sync (.json)',h('input',{type:'file',accept:'.json',style:{display:'none'},onChange:e=>{const f=e.target.files[0];if(f){importSync(f);modal=null;}}}));
+    body.appendChild(impLbl);
+    body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'12px',fontWeight:600,fontSize:13,color:'#22d3ee',borderColor:'#06b6d444'},onClick:exportExcel},'📊 Exporter Excel complet'));
+    sheet.appendChild(body);
+
+  } else if(modal.type==='newclient'){
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'➕ Nouveau client'),h('div',{style:{fontSize:11,color:'#22c55e'}},'Les visites existantes sont conservées')),
+        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
+    const body=h('div',{className:'sheet-b'});
+    const form={kd_nr:'',sek:'102',name:'',vorname:'',salon:'',strasse:'',plz:'',ort:'',tel:'',ca_2025:'0'};
+    const eids=new Set(allC().map(c=>c.kd_nr));
+    const mkF=(label,key,type='text',ph='')=>{
+      const w=h('div',null,h('div',{className:'fl'},label));
+      const inp=h('input',{type,value:form[key]||'',placeholder:ph,className:'fi',onInput:e=>{form[key]=e.target.value;}});
+      w.appendChild(inp);return w;
+    };
+    body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},mkF('N° Client *','kd_nr','text','ex: 99001'),mkF('Secteur','sek','text','102 ou 112')));
+    body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},mkF('Nom *','name','text','Nom'),mkF('Prénom','vorname','text','Prénom')));
+    body.appendChild(mkF('Salon','salon','text','ex: Coiffure Dupont'));
+    body.appendChild(mkF('Adresse','strasse','text','Rue et numéro'));
+    body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'90px 1fr',gap:10}},mkF('NPA','plz','text','1950'),mkF('Localité','ort','text','Sion')));
+    body.appendChild(mkF('Téléphone','tel','tel','027 XXX XX XX'));
+    body.appendChild(mkF('CA 2025 (CHF)','ca_2025','number','0'));
+    body.appendChild(h('div',{style:{display:'flex',gap:8}},
+      h('button',{className:'bg',style:{flex:1,padding:'11px',fontWeight:600},onClick:()=>{modal=null;render();}},'Annuler'),
+      h('button',{className:'bp',style:{flex:2,padding:'11px',fontSize:14},onClick:()=>{
+        const kd=form.kd_nr.trim();
+        if(!kd||!form.name.trim()){showToast('Numéro et nom requis','err');return;}
+        if(eids.has(kd)){showToast('Numéro déjà existant','err');return;}
+        extra=[...extra,{...form,kd_nr:kd,_manual:true}];
+        persist();showToast('\u2713 '+( form.salon||form.name)+' ajouté');modal=null;render();
+      }},'✓ Ajouter')
+    ));
+    sheet.appendChild(body);
+  }
+  return ov;
+}
+
+render();
+</script>
+</body>
+</html>
