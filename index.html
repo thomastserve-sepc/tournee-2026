@@ -133,32 +133,41 @@ function archiveCurrentVisit(kd_nr){
   const amt=parseFloat(v.amount)||0;
   if(amt<=0)return; // pas de commande, rien à archiver
   // Vérifie si cette visite (même date+montant) n'est pas déjà archivée pour éviter doublons
-  const already=hist.find(h=>h.kd_nr===kd_nr&&h.visitDate===v.visitDate&&parseFloat(h.amount)===amt);
+  const already=hist.find(h=>h.kd_nr===kd_nr&&h.visitDate===v.visitDate&&Math.abs(parseFloat(h.amount)-amt)<0.01);
   if(already)return;
   hist.push({kd_nr,visitDate:v.visitDate,amount:v.amount,products:v.products||'',note:v.note||'',archivedAt:new Date().toISOString()});
   persist();
 }
 // CA 2026 réel d'un client = somme de tout son historique + commande en cours si déjà 'visited'
 function clientCA2026(kd_nr){
+  // Source unique : l'historique archivé (hist)
+  // Si la visite courante n'est pas encore dans hist, on l'ajoute temporairement
   const fromHist=hist.filter(h=>h.kd_nr===kd_nr).reduce((s,h)=>s+(parseFloat(h.amount)||0),0);
   const cur=vis[kd_nr];
-  const curAmt=(cur&&cur.status==='visited')?(parseFloat(cur.amount)||0):0;
-  // Évite double-comptage si la visite courante a déjà été archivée à l'identique
-  const curAlreadyArchived=cur&&hist.find(h=>h.kd_nr===kd_nr&&h.visitDate===cur.visitDate&&parseFloat(h.amount)===curAmt);
-  return fromHist+(curAlreadyArchived?0:curAmt);
+  if(!cur||cur.status!=='visited')return fromHist;
+  const curAmt=parseFloat(cur.amount)||0;
+  if(curAmt<=0)return fromHist;
+  // Vérifier si cette visite est déjà dans hist (même kd_nr + même date + même montant)
+  const alreadyIn=hist.some(h=>h.kd_nr===kd_nr&&h.visitDate===cur.visitDate&&Math.abs(parseFloat(h.amount)-curAmt)<0.01);
+  return fromHist+(alreadyIn?0:curAmt);
 }
-// CA 2026 total (tous clients) = historique + visites en cours non encore archivées
+// CA total = uniquement depuis hist (source de vérité), + visites en cours pas encore archivées
 function totalCA2026(filterFn){
-  let total=hist.filter(h=>!filterFn||filterFn(h.visitDate)).reduce((s,h)=>s+(parseFloat(h.amount)||0),0);
+  // 1. Tout ce qui est dans hist
+  const histTotal=hist
+    .filter(h=>!filterFn||filterFn(h.visitDate))
+    .reduce((s,h)=>s+(parseFloat(h.amount)||0),0);
+  // 2. Visites en cours (vis) qui ne sont PAS encore dans hist
+  let visExtra=0;
   Object.entries(vis).forEach(([kd_nr,v])=>{
     if(v.status!=='visited')return;
     const amt=parseFloat(v.amount)||0;
     if(amt<=0)return;
     if(filterFn&&!filterFn(v.visitDate))return;
-    const alreadyArchived=hist.find(h=>h.kd_nr===kd_nr&&h.visitDate===v.visitDate&&parseFloat(h.amount)===amt);
-    if(!alreadyArchived)total+=amt;
+    const alreadyIn=hist.some(h=>h.kd_nr===kd_nr&&h.visitDate===v.visitDate&&Math.abs(parseFloat(h.amount)-amt)<0.01);
+    if(!alreadyIn)visExtra+=amt;
   });
-  return total;
+  return histTotal+visExtra;
 }
 
 function showToast(msg,type='ok'){
@@ -182,9 +191,9 @@ function importSync(file){
       vis=d.vis||{};del=d.del||{};extra=d.extra||[];
       // Fusionne l'historique (pas de remplacement, pour ne jamais perdre de commandes archivées)
       const importedHist=d.hist||[];
-      const existingKeys=new Set(hist.map(h=>h.kd_nr+'|'+h.visitDate+'|'+h.amount));
+      const existingKeys=new Set(hist.map(h=>h.kd_nr+'|'+h.visitDate+'|'+Math.round(parseFloat(h.amount)||0)));
       importedHist.forEach(h=>{
-        const key=h.kd_nr+'|'+h.visitDate+'|'+h.amount;
+        const key=h.kd_nr+'|'+h.visitDate+'|'+Math.round(parseFloat(h.amount)||0);
         if(!existingKeys.has(key)){hist.push(h);existingKeys.add(key);}
       });
       const m={...PRELOAD_SCHEDULE};
