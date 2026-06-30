@@ -384,15 +384,15 @@ function renderStats(wkDates,ac,td){
   return wrap;
 }
 
-function renderModal(modal,wkDates,cm,ac,td){
-  const ov=h('div',{className:'overlay',onClick:e=>{if(e.target===ov){window.modal=null;render();}}});
+function renderModal(m,wkDates,cm,ac,td){
+  const ov=h('div',{className:'overlay',onClick:e=>{if(e.target===ov){modal=null;render();}}});
   const sheet=h('div',{className:'sheet'});
   ov.appendChild(sheet);
   const handle=h('div',{style:{width:36,height:4,background:'#334155',borderRadius:2,margin:'10px auto 0',flexShrink:0}});
   sheet.appendChild(handle);
 
-  if(modal.type==='visit'){
-    const c=modal.client,v=vis[c.kd_nr]||{},ca=parseInt(c.ca_2025)||0,diff=parseInt(c.diff)||0;
+  if(m.type==='visit'){
+    const c=m.client,v=vis[c.kd_nr]||{},ca=parseInt(c.ca_2025)||0,diff=parseInt(c.diff)||0;
     const hd=h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},sal(c)),h('div',{style:{fontSize:11,color:'#6366f1',marginTop:1}},cname(c),' · ',c.ort,' · SEK ',c.sek)),
@@ -449,8 +449,8 @@ function renderModal(modal,wkDates,cm,ac,td){
     body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'12px',fontSize:14},onClick:()=>{modal=null;showToast('Visite enregistrée \u2713');}},'💾 Enregistrer & fermer'));
     sheet.appendChild(body);
 
-  } else if(modal.type==='schedule'){
-    const c=modal.client;
+  } else if(m.type==='schedule'){
+    const c=m.client;
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'📅 Ajouter au planning'),h('div',{style:{fontSize:11,color:'#6366f1'}},sal(c))),
@@ -474,7 +474,7 @@ function renderModal(modal,wkDates,cm,ac,td){
     });
     sheet.appendChild(body);
 
-  } else if(modal.type==='sync'){
+  } else if(m.type==='sync'){
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'🔄 Synchronisation & Export'),h('div',{style:{fontSize:11,color:'#06b6d4'}},'Transférer entre appareils')),
@@ -492,7 +492,7 @@ function renderModal(modal,wkDates,cm,ac,td){
     body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'12px',fontWeight:600,fontSize:13,color:'#22d3ee',borderColor:'#06b6d444'},onClick:exportExcel},'📊 Exporter Excel complet'));
     sheet.appendChild(body);
 
-  } else if(modal.type==='newclient'){
+  } else if(m.type==='newclient'){
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'➕ Nouveau client'),h('div',{style:{fontSize:11,color:'#22c55e'}},'Les visites existantes sont conservées')),
