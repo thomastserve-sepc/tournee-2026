@@ -118,7 +118,7 @@ function wkMon(d){const x=new Date(d),dy=x.getDay();x.setDate(x.getDate()+(dy===
 function fmtFR(s){if(!s)return'';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('fr-CH',{weekday:'short',day:'2-digit',month:'2-digit'})}
 function ini(n,v){return([v,n].filter(Boolean).map(p=>p[0]?.toUpperCase()).filter(Boolean).slice(0,2).join(''))||'?'}
 function sal(c){return c.salon||c.name||'Salon'}
-function cname(c){return c.vorname?`${c.vorname} ${c.name}`:c.name}
+function cname(c){const n=c.vorname?`${c.vorname} ${c.name||''}`.trim():(c.name||'');return n||'Prospect'}
 function getWkDates(){const mon=wkMon(new Date()),tue=addD(mon,1+wkOff*7);return Array.from({length:4},(_,i)=>toStr(addD(tue,i)))}
 function allC(){const b=new Set(CR.map(c=>c.kd_nr));return[...CR,...extra.filter(c=>!b.has(c.kd_nr))]}
 function activeC(){return allC().filter(c=>!del[c.kd_nr])}
@@ -393,7 +393,7 @@ function renderList(ac){
     if(fCity!=='Toutes')list=list.filter(c=>c.ort===fCity);
     if(fSek!=='Tous')list=list.filter(c=>c.sek===fSek);
     if(fStat!=='Tous')list=list.filter(c=>(vis[c.kd_nr]?.status||'none')===fStat);
-    if(srch){const q=srch.toLowerCase();list=list.filter(c=>c.name.toLowerCase().includes(q)||c.vorname?.toLowerCase().includes(q)||c.salon?.toLowerCase().includes(q)||c.ort?.toLowerCase().includes(q)||c.kd_nr?.includes(q));}
+    if(srch){const q=srch.toLowerCase();list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||c.vorname?.toLowerCase().includes(q)||c.salon?.toLowerCase().includes(q)||c.ort?.toLowerCase().includes(q)||c.kd_nr?.includes(q));}
     list.sort((a,b)=>(a.ort||'').localeCompare(b.ort||''));
     return list;
   }
@@ -583,8 +583,10 @@ function renderModal(m,wkDates,cm,ac,td){
       const inp=h('input',{type,value:form[key]||'',placeholder:ph,className:'fi',onInput:e=>{form[key]=e.target.value;}});
       w.appendChild(inp);return w;
     };
-    body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},mkF('N° Client *','kd_nr','text','ex: 99001'),mkF('Secteur','sek','text','102 ou 112')));
-    body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},mkF('Nom *','name','text','Nom'),mkF('Prénom','vorname','text','Prénom')));
+    body.appendChild(h('div',{style:{background:'rgba(99,102,241,.08)',border:'1px solid #6366f130',borderRadius:9,padding:'9px 12px',fontSize:11,color:'#a5b4fc'}},
+      '💡 Pour un prospect, le numéro client n\u2019est pas obligatoire — il sera généré automatiquement. Seul le nom ou le salon est requis.'));
+    body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},mkF('N° Client (optionnel)','kd_nr','text','laisser vide si prospect'),mkF('Secteur','sek','text','102 ou 112')));
+    body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},mkF('Nom','name','text','Nom'),mkF('Prénom','vorname','text','Prénom')));
     body.appendChild(mkF('Salon','salon','text','ex: Coiffure Dupont'));
     body.appendChild(mkF('Adresse','strasse','text','Rue et numéro'));
     body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'90px 1fr',gap:10}},mkF('NPA','plz','text','1950'),mkF('Localité','ort','text','Sion')));
@@ -593,11 +595,15 @@ function renderModal(m,wkDates,cm,ac,td){
     body.appendChild(h('div',{style:{display:'flex',gap:8}},
       h('button',{className:'bg',style:{flex:1,padding:'11px',fontWeight:600},onClick:()=>{modal=null;render();}},'Annuler'),
       h('button',{className:'bp',style:{flex:2,padding:'11px',fontSize:14},onClick:()=>{
-        const kd=form.kd_nr.trim();
-        if(!kd||!form.name.trim()){showToast('Numéro et nom requis','err');return;}
-        if(eids.has(kd)){showToast('Numéro déjà existant','err');return;}
-        extra=[...extra,{...form,kd_nr:kd,_manual:true}];
-        persist();showToast('\u2713 '+( form.salon||form.name)+' ajouté');modal=null;render();
+        if(!form.name.trim()&&!form.salon.trim()){showToast('Indiquez au moins un nom ou un salon','err');return;}
+        let kd=form.kd_nr.trim();
+        if(kd&&eids.has(kd)){showToast('Numéro déjà existant','err');return;}
+        if(!kd){
+          // Génère un numéro temporaire unique pour les prospects sans N° client
+          do{kd='P'+Math.floor(10000+Math.random()*89999);}while(eids.has(kd));
+        }
+        extra=[...extra,{...form,kd_nr:kd,_manual:true,_prospect:!form.kd_nr.trim()}];
+        persist();showToast('\u2713 '+(form.salon||form.name)+' ajouté'+(form.kd_nr.trim()?'':' (prospect, N° '+kd+')'));modal=null;render();
       }},'✓ Ajouter')
     ));
     sheet.appendChild(body);
@@ -636,7 +642,7 @@ function renderModal(m,wkDates,cm,ac,td){
       let list=all_;
       if(q){
         const ql=q.toLowerCase();
-        list=list.filter(c=>c.name.toLowerCase().includes(ql)||c.vorname?.toLowerCase().includes(ql)||c.salon?.toLowerCase().includes(ql)||c.ort?.toLowerCase().includes(ql)||c.kd_nr?.includes(ql));
+        list=list.filter(c=>(c.name||'').toLowerCase().includes(ql)||c.vorname?.toLowerCase().includes(ql)||c.salon?.toLowerCase().includes(ql)||c.ort?.toLowerCase().includes(ql)||c.kd_nr?.includes(ql));
         list=list.slice(0,30);
       } else {
         list=[]; // show nothing until search to avoid huge list
@@ -652,7 +658,7 @@ function renderModal(m,wkDates,cm,ac,td){
         return;
       }
       if(list.length===0){
-        resultsEl.appendChild(h('div',{style:{textAlign:'center',color:'#334155',fontSize:12,padding:'16px 0'}},'Aucun client trouvé'));
+        resultsEl.appendChild(h('div',{style:{textAlign:'center',color:'#334155',fontSize:12,padding:'10px 0'}},'Aucun client trouvé'));
         return;
       }
       list.forEach(c=>{
@@ -676,6 +682,48 @@ function renderModal(m,wkDates,cm,ac,td){
     }
     searchInp.oninput=e=>{q=e.target.value;renderAddResults();};
     renderAddResults();
+
+    // Séparateur + bouton pour créer un nouveau prospect directement et l'ajouter à ce jour
+    body.appendChild(h('div',{style:{display:'flex',alignItems:'center',gap:8,margin:'4px 0'}},
+      h('div',{style:{flex:1,height:1,background:'#1e293b'}}),h('span',{style:{fontSize:10,color:'#475569'}},'OU'),h('div',{style:{flex:1,height:1,background:'#1e293b'}})));
+
+    const prospectToggle=h('button',{className:'bg',style:{width:'100%',padding:'11px',fontWeight:600,fontSize:13,borderColor:'#22c55e44',color:'#4ade80'}},
+      '➕ Créer un nouveau prospect pour ce jour');
+    body.appendChild(prospectToggle);
+
+    const prospectForm=h('div',{style:{display:'none',flexDirection:'column',gap:10,marginTop:8,background:'#060d1a',border:'1px solid #1e293b',borderRadius:10,padding:'12px'}});
+    body.appendChild(prospectForm);
+
+    prospectToggle.onclick=()=>{
+      const isOpen=prospectForm.style.display==='flex';
+      prospectForm.style.display=isOpen?'none':'flex';
+      prospectToggle.textContent=isOpen?'➕ Créer un nouveau prospect pour ce jour':'✕ Annuler la création';
+    };
+
+    const pf={name:'',salon:'',ort:'',tel:''};
+    const mkPF=(label,key,ph)=>{
+      const w=h('div',null,h('div',{className:'fl'},label));
+      const inp=h('input',{type:'text',value:pf[key],placeholder:ph,className:'fi',oninput:e=>{pf[key]=e.target.value;}});
+      w.appendChild(inp);return w;
+    };
+    prospectForm.appendChild(h('div',{style:{fontSize:11,color:'#4ade80',fontWeight:600}},'📋 Nouveau prospect — nom ou salon requis'));
+    prospectForm.appendChild(mkPF('Nom du salon','salon','ex: Coiffure Dupont'));
+    prospectForm.appendChild(mkPF('Nom du contact','name','Nom (optionnel si salon rempli)'));
+    prospectForm.appendChild(mkPF('Ville','ort','ex: Sion'));
+    prospectForm.appendChild(mkPF('Téléphone','tel','027 XXX XX XX (optionnel)'));
+    prospectForm.appendChild(h('button',{className:'bp',style:{padding:'11px',fontSize:13,marginTop:2},
+      onClick:()=>{
+        if(!pf.name.trim()&&!pf.salon.trim()){showToast('Indiquez au moins un nom ou un salon','err');return;}
+        if((sch[d]||[]).length>=MAX){showToast('Maximum '+MAX+' visites ce jour !','err');return;}
+        const eids=new Set(allC().map(c=>c.kd_nr));
+        let kd;do{kd='P'+Math.floor(10000+Math.random()*89999);}while(eids.has(kd));
+        const newClient={kd_nr:kd,sek:'102',name:pf.name.trim(),vorname:'',salon:pf.salon.trim(),strasse:'',plz:'',ort:pf.ort.trim(),tel:pf.tel.trim(),ca_2025:'0',_manual:true,_prospect:true};
+        extra=[...extra,newClient];
+        sch[d]=[...(sch[d]||[]),kd];
+        persist();
+        showToast('✓ '+(pf.salon||pf.name)+' créé et ajouté à '+dayLabel);
+        modal=null;render();
+      }},'✓ Créer et ajouter à '+dayLabel));
 
     sheet.appendChild(body);
   }
