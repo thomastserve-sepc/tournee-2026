@@ -54,37 +54,10 @@ const RDV_FIXES = {
   "2026-07-10": [{h:"9h30", lieu:"Evolution Coiffure MC (Morgane) — Sion"},{h:"10h30", lieu:"A Vos Tifs — Sierre"}],
 };
 
-const PRELOAD_SCHEDULE = {
-  // ── Semaine 1 : 30 juin – 3 juillet ──────────────────────────────────────
-  // Mar 30/06 : Villeneuve + Corseaux + Roche + Clarens + Vevey + Bouveret
-  "2026-06-30": ["31618","11836","15487","29601","30459","24549","31812","16476","18754","14353","30063","27249","31610","31704"],
-  // Mer 01/07 : RDV Carmelo → Sion + Conthey + Vétroz + Grimisuat + Uvrier
-  "2026-07-01": ["26508","23735","16632","30834","27260","30574","23943","30468","20749","31794","19526","31635","18022","10762"],
-  // Jeu 02/07 : Sierre + Salgesch + Haute-Nendaz + Blignoud
-  "2026-07-02": ["23460","28301","10775","31172","29944","17925","30726","10759","29741","30839","26276","23977","30425","20795"],
-  // Ven 03/07 : RDV Rebelles → Lutry + Pully + Lausanne + Coiffure Sonia
-  "2026-07-03": ["20785","30091","27820","10712","30952","26833","31681","30905","18532","24365","19810","21861","26478","19699"],
+const PRELOAD_SCHEDULE = {"2026-06-30": ["31618", "11836", "15487", "29601", "30459", "16476", "18754", "14353", "30063", "27249", "31601", "P19822", "30826", "29958", "30324"], "2026-07-01": ["26508", "23735", "16632", "30834", "27260", "30574", "23943", "30468", "20749", "31794", "19526", "31635", "18022", "10762"], "2026-07-02": ["23460", "28301", "10775", "31172", "29944", "17925", "30726", "10759", "29741", "30839", "26276", "23977", "30425", "20795"], "2026-07-03": ["20785", "30091", "27820", "10712", "30952", "26833", "31681", "30905", "18532", "24365", "19810", "21861", "26478", "19699"], "2026-07-07": ["21683", "24042", "30896", "30737", "26350", "31094", "31679", "31661", "31680", "30291", "26404", "31522", "31242", "30779"], "2026-07-08": ["21987", "31674", "30655", "31792", "31903", "23533", "30657", "31587", "22330", "31802", "13753", "14389", "31744", "27023"], "2026-07-09": ["14297", "12744", "12145", "22380", "30793", "23608", "30777", "31352", "30168", "31740", "31779", "27677", "28717", "24898"], "2026-07-10": ["24035", "27254", "27551", "24793", "10758", "24335", "31690", "10778", "31620", "31630", "31724", "21386", "30141", "24047"], "2026-07-14": ["10410", "29777", "27576", "26732", "21177", "12166", "31549", "20974", "30066", "29955", "31738", "30863", "13018", "11736"], "2026-07-15": ["27182", "31519", "31842", "21347", "30154", "30292", "19433", "17910", "31685", "30080", "24968", "30677", "23439", "10608"], "2026-07-16": ["13249", "31655", "20588", "16651", "31535", "31260", "28145", "31220", "20521", "18248", "26593", "31747", "29751", "30639"], "2026-07-17": ["12234", "24559", "30921", "29738", "30048", "27620", "31658", "21077", "31048", "18527", "16607", "20265", "19581", "31317"], "2026-08-11": ["20197", "20911", "30459", "31877", "22310", "20974", "29777", "31903", "23265", "27006", "10410", "19408", "30063", "30066"], "2026-08-12": ["13249", "23943", "30574", "31624", "21386", "26508", "19526", "23735", "24035", "30137", "31655", "31794", "29751", "29941"], "2026-08-13": ["28425", "10775", "24559", "31931", "16607", "23460", "12234", "18527", "29944", "10758", "24335", "26276", "23977", "25836"], "2026-08-14": ["23197", "31869", "21861", "24365", "26837", "17825", "27820", "10712", "29685", "31929", "30896", "31933", "17849", "13753"], "2026-08-18": ["26257", "16622", "31674", "30655", "21987", "30503", "31802", "31601", "30657", "23208", "13310", "31896", "31491", "19329"], "2026-08-19": ["10945", "18607", "29737", "19137", "21105", "20588", "25385", "14297", "27774", "30793", "25216", "31378", "24895", "10941"], "2026-08-20": ["20472", "31747", "31465", "20795", "31156", "20278", "14294", "27260", "31727", "30932", "16651", "18248", "10759", "24047"], "2026-08-21": ["31208", "21683", "24042", "31855", "18532", "24800", "13496", "31055", "31682", "17260", "26350", "24037", "20131", "15000"], "2026-08-25": ["31132", "31549", "25015", "21177", "31884", "25044", "31943", "12166", "31058", "31775", "27482", "23495", "30158", "30003"], "2026-08-26": ["27620", "30921", "29738", "28301", "30726", "19581", "10778", "17692", "23407", "31525", "28393", "23649", "31172", "28595"], "2026-08-27": ["18022", "31452", "21108", "30506", "30799", "30178", "30855", "27921", "17900", "21436", "30114", "10338", "30168", "31731"], "2026-08-28": ["20785", "28174", "30292", "23479", "19810", "30737", "17910", "13594", "31879", "27233", "31519", "26362", "26833", "30091"], "2026-09-01": ["20718", "31739", "31618", "18479", "25289", "14364", "22330", "31889", "24549", "31037", "18754", "26312", "31902", "30324"], "2026-09-02": ["28549", "30382", "10790", "23815", "21269", "20268", "30834", "30069", "31905", "20749", "31724", "30468", "24793", "31891"], "2026-09-03": ["30869", "23410", "30863", "31744", "29955", "26732", "11736", "26252", "24881", "27586", "26202", "11252", "27576", "21509"], "2026-09-04": ["26706", "27942", "30839", "20265", "24205", "31761", "23934", "31658", "31662", "30048", "17925", "18788", "23078", "30425"], "2026-09-08": ["30664", "31679", "26529", "14542", "26469", "28568", "31208", "21683", "24042", "31855", "18532", "24800", "13496", "31055"], "2026-09-09": ["29730", "26092", "30808", "31701", "29946", "10762", "23608", "29658", "22380", "10945", "18607", "29737", "19137", "21105"], "2026-09-10": ["31161", "28145", "26593", "31914", "22364", "23737", "20521", "30824", "31448", "30190", "12464", "31020", "30141", "12137"], "2026-09-11": ["26478", "31524", "19433", "19699", "31609", "27182", "24968", "31859", "31860", "31892", "15552", "16487", "31850", "23533"], "2026-09-15": ["31774", "24207", "25656", "31941", "11836", "30529", "30810", "15487", "16476", "16358", "31211", "29958", "31728", "31644"], "2026-09-16": ["29741", "31620", "28425", "10775", "24559", "31931", "16607", "23460", "12234", "18527", "29944", "10758", "24335", "26276"], "2026-09-17": ["27822", "31631", "31599", "13018", "21143", "20004", "31610", "17665", "29728", "31419", "20197", "20911", "30459", "31877"], "2026-09-18": ["20588", "25385", "14297", "27774", "30793", "25216", "31378", "24895", "10941", "18022", "31452", "21108", "30506", "30799"]};
 
-  // ── Semaine 2 : 7 – 10 juillet ───────────────────────────────────────────
-  // Mar 07/07 : RDV Francine+Artifice+Evolution → Ursy + Servion + Chexbres + Crissier + Attalens + Châtel
-  "2026-07-07": ["21683","24042","30896","30737","26350","31094","31679","31661","31680","30291","26404","31522","31242","30779"],
-  // Mer 08/07 : RDV Gérard+Domino → Vevey + Montreux + Collombey + Lutry + Pully
-  "2026-07-08": ["21987","31674","30655","31792","31903","23533","30657","31587","22330","31802","13753","14389","31744","27023"],
-  // Jeu 09/07 : Martigny + Riddes + Saillon + Ardon + Leytron
-  "2026-07-09": ["14297","12744","12145","22380","30793","23608","30777","31352","30168","31740","31779","27677","28717","24898"],
-  // Ven 10/07 : RDV A Vos Tifs+Morgane → Sierre + Sion + Uvrier + Crans
-  "2026-07-10": ["24035","27254","27551","24793","10758","24335","31690","10778","31620","31630","31724","21386","30141","24047"],
+const ALT_SCHEDULE = {"2026-06-30": ["31618", "11836", "15487", "29601", "30459", "16476", "18754", "14353", "30063", "27249", "31601", "P19822", "30826", "29958", "30324"], "2026-07-01": ["26508", "23735", "16632", "30834", "27260", "30574", "23943", "30468", "20749", "31794", "19526", "31635", "18022", "10762"], "2026-07-02": ["23460", "28301", "10775", "31172", "29944", "17925", "30726", "10759", "29741", "30839", "26276", "23977", "30425", "20795"], "2026-07-03": ["20785", "30091", "27820", "10712", "30952", "26833", "31681", "30905", "18532", "24365", "19810", "21861", "26478", "19699"], "2026-07-07": ["21683", "24042", "30896", "30737", "26350", "31094", "31679", "31661", "31680", "30291", "26404", "31522", "31242", "30779"], "2026-07-08": ["21987", "31674", "30655", "31792", "31903", "23533", "30657", "31587", "22330", "31802", "13753", "14389", "31744", "27023"], "2026-07-09": ["14297", "12744", "12145", "22380", "30793", "23608", "30777", "31352", "30168", "31740", "31779", "27677", "28717", "24898"], "2026-07-10": ["24035", "27254", "27551", "24793", "10758", "24335", "31690", "10778", "31620", "31630", "31724", "21386", "30141", "24047"], "2026-07-14": ["10410", "29777", "27576", "26732", "21177", "12166", "31549", "20974", "30066", "29955", "31738", "30863", "13018", "11736"], "2026-07-15": ["27182", "31519", "31842", "21347", "30154", "30292", "19433", "17910", "31685", "30080", "24968", "30677", "23439", "10608"], "2026-07-16": ["13249", "31655", "20588", "16651", "31535", "31260", "28145", "31220", "20521", "18248", "26593", "31747", "29751", "30639"], "2026-07-17": ["12234", "24559", "30921", "29738", "30048", "27620", "31658", "21077", "31048", "18527", "16607", "20265", "19581", "31317"], "2026-08-11": ["23197", "31869", "21861", "24365", "26837", "17825", "27820", "10712", "29685", "31929", "30896", "31933", "17849", "13753"], "2026-08-12": ["20197", "20911", "30459", "31877", "22310", "20974", "29777", "31903", "23265", "27006", "10410", "19408", "30063", "30066"], "2026-08-13": ["13249", "23943", "30574", "31624", "21386", "26508", "19526", "23735", "24035", "30137", "31655", "31794", "29751", "29941"], "2026-08-14": ["28425", "10775", "24559", "31931", "16607", "23460", "12234", "18527", "29944", "10758", "24335", "26276", "23977", "25836"], "2026-08-18": ["31208", "21683", "24042", "31855", "18532", "24800", "13496", "31055", "31682", "17260", "26350", "24037", "20131", "15000"], "2026-08-19": ["26257", "16622", "31674", "30655", "21987", "30503", "31802", "31601", "30657", "23208", "13310", "31896", "31491", "19329"], "2026-08-20": ["10945", "18607", "29737", "19137", "21105", "20588", "25385", "14297", "27774", "30793", "25216", "31378", "24895", "10941"], "2026-08-21": ["20472", "31747", "31465", "20795", "31156", "20278", "14294", "27260", "31727", "30932", "16651", "18248", "10759", "24047"], "2026-08-25": ["20785", "28174", "30292", "23479", "19810", "30737", "17910", "13594", "31879", "27233", "31519", "26362", "26833", "30091"], "2026-08-26": ["31132", "31549", "25015", "21177", "31884", "25044", "31943", "12166", "31058", "31775", "27482", "23495", "30158", "30003"], "2026-08-27": ["27620", "30921", "29738", "28301", "30726", "19581", "10778", "17692", "23407", "31525", "28393", "23649", "31172", "28595"], "2026-08-28": ["18022", "31452", "21108", "30506", "30799", "30178", "30855", "27921", "17900", "21436", "30114", "10338", "30168", "31731"], "2026-09-01": ["26706", "27942", "30839", "20265", "24205", "31761", "23934", "31658", "31662", "30048", "17925", "18788", "23078", "30425"], "2026-09-02": ["20718", "31739", "31618", "18479", "25289", "14364", "22330", "31889", "24549", "31037", "18754", "26312", "31902", "30324"], "2026-09-03": ["28549", "30382", "10790", "23815", "21269", "20268", "30834", "30069", "31905", "20749", "31724", "30468", "24793", "31891"], "2026-09-04": ["30869", "23410", "30863", "31744", "29955", "26732", "11736", "26252", "24881", "27586", "26202", "11252", "27576", "21509"], "2026-09-08": ["26478", "31524", "19433", "19699", "31609", "27182", "24968", "31859", "31860", "31892", "15552", "16487", "31850", "23533"], "2026-09-09": ["30664", "31679", "26529", "14542", "26469", "28568", "31208", "21683", "24042", "31855", "18532", "24800", "13496", "31055"], "2026-09-10": ["29730", "26092", "30808", "31701", "29946", "10762", "23608", "29658", "22380", "10945", "18607", "29737", "19137", "21105"], "2026-09-11": ["31161", "28145", "26593", "31914", "22364", "23737", "20521", "30824", "31448", "30190", "12464", "31020", "30141", "12137"], "2026-09-15": ["20588", "25385", "14297", "27774", "30793", "25216", "31378", "24895", "10941", "18022", "31452", "21108", "30506", "30799"], "2026-09-16": ["31774", "24207", "25656", "31941", "11836", "30529", "30810", "15487", "16476", "16358", "31211", "29958", "31728", "31644"], "2026-09-17": ["29741", "31620", "28425", "10775", "24559", "31931", "16607", "23460", "12234", "18527", "29944", "10758", "24335", "26276"], "2026-09-18": ["27822", "31631", "31599", "13018", "21143", "20004", "31610", "17665", "29728", "31419", "20197", "20911", "30459", "31877"]};
 
-  // ── Semaine 3 : 14 – 17 juillet ──────────────────────────────────────────
-  // Mar 14/07 : Aigle + Bex + Monthey + Collombey
-  "2026-07-14": ["10410","29777","27576","26732","21177","12166","31549","20974","30066","29955","31738","30863","13018","11736"],
-  // Mer 15/07 : Lausanne + Renens + Prilly
-  "2026-07-15": ["27182","31519","31842","21347","30154","30292","19433","17910","31685","30080","24968","30677","23439","10608"],
-  // Jeu 16/07 : Sion reste + Conthey + Aproz + Vétroz
-  "2026-07-16": ["13249","31655","20588","16651","31535","31260","28145","31220","20521","18248","26593","31747","29751","30639"],
-  // Ven 17/07 : Sierre reste + Crans + Miège + Noës
-  "2026-07-17": ["12234","24559","30921","29738","30048","27620","31658","21077","31048","18527","16607","20265","19581","31317"],
-};
 
 
 const SK='tv3_sa',DK='td3_sa',SCK='ts3_sa',EK='te3_sa',HK='th3_sa';
@@ -307,7 +280,26 @@ function renderWeek(wkDates,cm,td,wkCA){
   const total=wkDates.reduce((s,d)=>s+(sch[d]||[]).length,0);
   const wkLabel=wkOff===0?'Semaine en cours':wkOff===1?'Semaine prochaine':wkOff===-1?'Sem. précédente':`Sem. ${wkOff>0?'+':''}${wkOff}`;
 
-  wrap.appendChild(h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#0f172a',borderRadius:10,padding:'9px 12px',border:'1px solid #1e293b',marginBottom:8}},
+  // Vérifie si une proposition alternative existe pour cette semaine
+  const hasAlt=wkDates.some(d=>ALT_SCHEDULE[d]&&ALT_SCHEDULE[d].length>0);
+  // Vérifie si on affiche déjà l'alternative (les jours de la semaine viennent de ALT_SCHEDULE)
+  const isUsingAlt=hasAlt&&wkDates.every(d=>!sch[d]||JSON.stringify(sch[d])===JSON.stringify(ALT_SCHEDULE[d]));
+
+  function switchToAlt(){
+    // Basculer entre planning standard et alternatif pour cette semaine
+    wkDates.forEach(d=>{
+      if(isUsingAlt){
+        // Revenir au planning standard
+        if(PRELOAD_SCHEDULE[d]) sch[d]=[...PRELOAD_SCHEDULE[d]];
+      } else {
+        // Passer à l'alternatif
+        if(ALT_SCHEDULE[d]) sch[d]=[...ALT_SCHEDULE[d]];
+      }
+    });
+    persist();render();
+  }
+
+  wrap.appendChild(h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#0f172a',borderRadius:10,padding:'9px 12px',border:'1px solid #1e293b',marginBottom:hasAlt?4:8}},
     h('button',{className:'bg',style:{padding:'6px 14px',fontWeight:700},onClick:()=>{wkOff--;render()}},'←'),
     h('div',{style:{textAlign:'center'}},
       h('div',{style:{fontWeight:700,fontSize:13}},wkLabel,'  ',h('span',{style:{fontSize:10,color:'#6366f1',fontWeight:400}},'Lun: maison')),
@@ -315,6 +307,14 @@ function renderWeek(wkDates,cm,td,wkCA){
     ),
     h('button',{className:'bg',style:{padding:'6px 14px',fontWeight:700},onClick:()=>{wkOff++;render()}},'→')
   ));
+
+  // Bouton "Autre proposition" si une alternative existe
+  if(hasAlt){
+    wrap.appendChild(h('button',{
+      style:{width:'100%',padding:'8px',marginBottom:8,borderRadius:9,border:'1px dashed '+(isUsingAlt?'#22c55e':'#8b5cf6'),background:isUsingAlt?'rgba(34,197,94,.08)':'rgba(139,92,246,.08)',color:isUsingAlt?'#4ade80':'#a78bfa',fontSize:12,fontWeight:600,cursor:'pointer'},
+      onClick:switchToAlt
+    },isUsingAlt?'↩ Revenir au planning proposé':'🔄 Autre proposition pour cette semaine'));
+  }
 
   const todayC=(sch[td]||[]).map(id=>cm[id]).filter(Boolean);
   if(wkDates.includes(td)&&todayC.length>0){
@@ -351,6 +351,13 @@ function renderWeek(wkDates,cm,td,wkCA){
     dh.appendChild(h('div',{style:{fontSize:9,fontWeight:700,color:bar,marginTop:1}},cnt+'/'+MAX+' '+(cnt>=MAX?'✓':cnt>=10?'':'\u26A0\uFE0F')));
     dh.appendChild(h('div',{style:{background:'#1e293b',borderRadius:999,height:3,overflow:'hidden',margin:'2px 0'}},h('div',{style:{width:Math.min((cnt/MAX)*100,100)+'%',height:'100%',background:bar}})));
     if(dayCA>0)dh.appendChild(h('div',{style:{fontSize:9,color:'#22c55e',fontWeight:600}},dayCA.toLocaleString('fr-CH')+' CHF'));
+    // Bouton changer zone — visible uniquement si pas dans le passé et qu'il y a un planning de base
+    if(!isPast&&PRELOAD_SCHEDULE[d]){
+      dh.appendChild(h('button',{
+        style:{background:'rgba(139,92,246,.12)',border:'1px dashed #8b5cf655',color:'#a78bfa',borderRadius:5,padding:'2px 5px',fontSize:8,fontWeight:600,cursor:'pointer',marginTop:2,width:'100%'},
+        onClick:e=>{e.stopPropagation();modal={type:'swapday',date:d,dayLabel:WDAYS[i],dayIdx:i,wkDates};render();}
+      },'↺ Changer zone'));
+    }
     col.appendChild(dh);
     dc.forEach(c=>{
       const v=vis[c.kd_nr],cfg=SC[v?.status||'none'],amt=parseFloat(v?.amount)||0;
@@ -736,9 +743,171 @@ function renderModal(m,wkDates,cm,ac,td){
 
     sheet.appendChild(body);
   }
+
+  else if(m.type==='swapday'){
+    const d=m.date, dayLabel=m.dayLabel, dayIdx=m.dayIdx, wkDates=m.wkDates;
+
+    // Zones et leurs villes (pour savoir dans quelle zone sont les RDV fixes)
+    const ZONE_INFO = {
+      'RIVIERA':   {label:'Riviera Vaudoise',cities:['Villeneuve VD','Villeneuve','Corseaux','Blonay','Clarens','La Tour-de-Peilz','Vevey','Montreux','Roche VD','St-Légier-Chiésaz','Paudex'],color:'#6366f1'},
+      'LAUSANNE':  {label:'Lausanne / Vaud Ouest',cities:['Lausanne','Lutry','Pully','Crissier','Chavannes-Renens','Bussigny','Renens VD','Prilly','Etagnières','Eclépens','Ecublens VD','Bussigny-Lausanne'],color:'#8b5cf6'},
+      'FRIBOURG':  {label:'Fribourg / Glâne',cities:['Ursy','Châtel-St-Denis','Attalens','Bossonnens','Servion','Chexbres','Bulle','Oron-la-Ville','Siviriez','Moudon'],color:'#06b6d4'},
+      'CHABLAIS':  {label:'Aigle / Bex / Chablais',cities:['Aigle','Bex','Collombey','Vouvry','Bouveret','Monthey','St-Maurice','Muraz (Collombey)','Troistorrents','Champéry'],color:'#f59e0b'},
+      'MARTIGNY':  {label:'Martigny / Valais bas',cities:['Martigny','Saxon','Saillon','Riddes','Ardon','Aproz','Fully','Leytron','Charrat','Martigny-Croix','Sembrancher'],color:'#ef4444'},
+      'SION':      {label:'Sion / Valais Central',cities:['Sion','Conthey','Vétroz','Savièse','Grimisuat','Uvrier','Bramois','Haute-Nendaz','Basse-Nendaz'],color:'#22c55e'},
+      'SIERRE':    {label:'Sierre / Crans-Montana',cities:['Sierre','Crans-Montana','Crans-sur-Sierre','Grône','Salgesch','Chippis','Blignoud (Ayent)','Blignoud','Miège','Chalais','Crans-Montana 1'],color:'#f97316'},
+    };
+
+    // Zones voisines (pour "autour des secteurs")
+    const ZONE_NEIGHBORS = {
+      'RIVIERA':  ['LAUSANNE','CHABLAIS','FRIBOURG'],
+      'LAUSANNE': ['RIVIERA','FRIBOURG'],
+      'FRIBOURG': ['LAUSANNE','RIVIERA'],
+      'CHABLAIS': ['RIVIERA','MARTIGNY'],
+      'MARTIGNY': ['CHABLAIS','SION'],
+      'SION':     ['MARTIGNY','SIERRE','CHABLAIS'],
+      'SIERRE':   ['SION','MARTIGNY'],
+    };
+
+    // Détecter la zone actuelle du jour
+    function detectZone(date_){
+      const ids=sch[date_]||[];
+      const cm_=cMap();
+      const zoneCounts={};
+      ids.forEach(id=>{
+        const c=cm_[id];
+        if(!c)return;
+        for(const[z,info] of Object.entries(ZONE_INFO)){
+          if(info.cities.includes(c.ort)){zoneCounts[z]=(zoneCounts[z]||0)+1;break;}
+        }
+      });
+      return Object.entries(zoneCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
+    }
+
+    // Détecter les zones des RDV fixes et des jours adjacents de la semaine
+    function detectAdjacentZones(){
+      const zones=new Set();
+      // RDV fixes de ce jour
+      const rdvs=RDV_FIXES[d]||[];
+      rdvs.forEach(r=>{
+        // Essai de détecter la zone depuis le lieu du RDV
+        const lieu=r.lieu.toLowerCase();
+        if(lieu.includes('sion')||lieu.includes('vétroz')||lieu.includes('conthey'))zones.add('SION');
+        if(lieu.includes('sierre')||lieu.includes('crans'))zones.add('SIERRE');
+        if(lieu.includes('martigny')||lieu.includes('riddes')||lieu.includes('saillon'))zones.add('MARTIGNY');
+        if(lieu.includes('lausanne')||lieu.includes('lutry')||lieu.includes('pully'))zones.add('LAUSANNE');
+        if(lieu.includes('vevey')||lieu.includes('villeneuve')||lieu.includes('clarens')||lieu.includes('montreux'))zones.add('RIVIERA');
+        if(lieu.includes('aigle')||lieu.includes('bex')||lieu.includes('collombey'))zones.add('CHABLAIS');
+        if(lieu.includes('ursy')||lieu.includes('châtel')||lieu.includes('bulle'))zones.add('FRIBOURG');
+      });
+      // Zones des jours adjacents de la même semaine
+      wkDates.forEach(dd=>{if(dd!==d)zones.add(detectZone(dd));});
+      zones.delete(null);zones.delete(undefined);
+      return zones;
+    }
+
+    const currentZone=detectZone(d);
+    const adjacentZones=detectAdjacentZones();
+    const rdvs=RDV_FIXES[d]||[];
+    const hasRdv=rdvs.length>0;
+
+    // Fonction pour charger une zone dans ce jour (top 14 CA)
+    function loadZoneForDay(zoneName){
+      const info=ZONE_INFO[zoneName];
+      if(!info)return;
+      const cm_=cMap();
+      const allC_=activeC();
+      const pool=allC_.filter(c=>info.cities.includes(c.ort)||c.ort.includes(zoneName))
+        .sort((a,b)=>(parseInt(b.ca_2026)||parseInt(b.ca_2025)||0)-(parseInt(a.ca_2026)||parseInt(a.ca_2025)||0));
+      // Si RDV fixe, garder les clients du RDV (déjà planifiés) et compléter avec la zone
+      const existingWithRdv=(sch[d]||[]).filter(id=>{
+        // Garder ceux qui sont dans la zone RDV
+        const c=cm_[id];
+        return c&&info.cities.includes(c.ort);
+      });
+      const alreadyIds=new Set(existingWithRdv);
+      const fill=pool.filter(c=>!alreadyIds.has(c.kd_nr)).slice(0,MAX-existingWithRdv.length);
+      sch[d]=[...existingWithRdv,...fill.map(c=>c.kd_nr)];
+      persist();
+      showToast('✓ Zone '+info.label+' chargée pour '+dayLabel);
+      modal=null;render();
+    }
+
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}},
+        h('div',null,
+          h('div',{style:{fontWeight:700,fontSize:16}},'↺ Changer la zone'),
+          h('div',{style:{fontSize:11,color:'#8b5cf6'}},dayLabel+' '+fmtFR(d)),
+          currentZone?h('div',{style:{fontSize:10,color:'#475569',marginTop:2}},'Zone actuelle : '+ZONE_INFO[currentZone]?.label):'',
+          hasRdv?h('div',{style:{fontSize:10,color:'#f59e0b',marginTop:2}},'⭐ RDV fixe ce jour — les clients autour sont prioritaires'):''),
+        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕')
+      )));
+
+    const body=h('div',{className:'sheet-b'});
+
+    // Zones recommandées (voisines des RDV ou des autres jours)
+    const recommended=new Set();
+    if(adjacentZones.size>0){
+      adjacentZones.forEach(z=>{
+        if(z&&z!==currentZone){
+          // Ajouter la zone elle-même et ses voisines
+          recommended.add(z);
+          (ZONE_NEIGHBORS[z]||[]).forEach(n=>recommended.add(n));
+        }
+      });
+    }
+    recommended.delete(currentZone);
+
+    if(recommended.size>0){
+      body.appendChild(h('div',{style:{fontSize:11,color:'#a78bfa',fontWeight:600,marginBottom:4}},'🎯 Zones recommandées (proches de vos RDV ou jours adjacents) :'));
+      [...recommended].filter(z=>ZONE_INFO[z]).forEach(zoneName=>{
+        const info=ZONE_INFO[zoneName];
+        const cm_=cMap();
+        const allC_=activeC();
+        const pool=allC_.filter(c=>info.cities.includes(c.ort));
+        const topCA=pool.slice(0,3).map(c=>sal(c)).join(', ');
+        body.appendChild(h('div',{
+          style:{background:'rgba(139,92,246,.1)',border:'1px solid '+info.color+'44',borderRadius:10,padding:'11px 14px',cursor:'pointer',marginBottom:6},
+          onClick:()=>loadZoneForDay(zoneName)
+        },
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+            h('div',null,
+              h('div',{style:{fontWeight:600,fontSize:13,color:info.color}},info.label),
+              h('div',{style:{fontSize:10,color:'#64748b',marginTop:2}},pool.length+' clients · top: '+topCA)
+            ),
+            h('span',{style:{fontSize:20,color:info.color}},'+')
+          )
+        ));
+      });
+    }
+
+    body.appendChild(h('div',{style:{fontSize:11,color:'#475569',fontWeight:600,margin:'8px 0 4px'}},'📍 Toutes les zones disponibles :'));
+    Object.entries(ZONE_INFO).filter(([z])=>z!==currentZone).forEach(([zoneName,info])=>{
+      const allC_=activeC();
+      const pool=allC_.filter(c=>info.cities.includes(c.ort));
+      const isReco=recommended.has(zoneName);
+      body.appendChild(h('div',{
+        style:{background:isReco?'rgba(139,92,246,.05)':'#060d1a',border:'1px solid '+(isReco?info.color+'33':'#1e293b'),borderRadius:9,padding:'9px 12px',cursor:'pointer',marginBottom:5,display:'flex',justifyContent:'space-between',alignItems:'center'},
+        onClick:()=>loadZoneForDay(zoneName)
+      },
+        h('div',null,
+          h('div',{style:{fontWeight:600,fontSize:12,color:info.color}},info.label),
+          h('div',{style:{fontSize:10,color:'#475569'}},pool.length+' clients disponibles')
+        ),
+        h('span',{style:{fontSize:16,color:'#334155'}},'+')
+      ));
+    });
+
+    // Bouton pour revenir au planning initial de ce jour
+    if(PRELOAD_SCHEDULE[d]){
+      body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'10px',fontWeight:600,marginTop:4,borderColor:'#22c55e44',color:'#4ade80'},
+        onClick:()=>{sch[d]=[...PRELOAD_SCHEDULE[d]];persist();showToast('✓ Planning initial restauré pour '+dayLabel);modal=null;render();}},'↩ Restaurer le planning initial de ce jour'));
+    }
+
+    sheet.appendChild(body);
+  }
   return ov;
 }
-
 render();
 </script>
 </body>
