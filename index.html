@@ -88,7 +88,7 @@ const PRELOAD_SCHEDULE = {
 
 
 const SK='tv3_sa',DK='td3_sa',SCK='ts3_sa',EK='te3_sa';
-const MAX=14;
+const MAX=20;
 const WDAYS=['Mardi','Mercredi','Jeudi','Vendredi'];
 const SC={
   visited:{l:'Visité',c:'#22c55e',bg:'#052e16',i:'\u2713'},
@@ -449,7 +449,9 @@ function renderModal(m,wkDates,cm,ac,td){
     body.appendChild(dr);
 
     const amtW=h('div',null,h('div',{className:'fl'},'Montant commande (CHF)'));
-    amtW.appendChild(h('input',{type:'number',value:v.amount||'',placeholder:'0.00',className:'fi',onChange:e=>{vis[c.kd_nr]={...vis[c.kd_nr],amount:e.target.value};persist();}}));
+    amtW.appendChild(h('input',{type:'number',value:v.amount||'',placeholder:'0.00',className:'fi',inputmode:'decimal',
+      oninput:e=>{vis[c.kd_nr]={...vis[c.kd_nr],amount:e.target.value};persist();},
+      onblur:()=>{render();}}));
     body.appendChild(amtW);
 
     const motif=h('div',null,h('div',{className:'fl'},'Motif'));
@@ -503,6 +505,8 @@ function renderModal(m,wkDates,cm,ac,td){
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'🔄 Synchronisation & Export'),h('div',{style:{fontSize:11,color:'#06b6d4'}},'Transférer entre appareils')),
         h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
     const body=h('div',{className:'sheet-b'});
+    body.appendChild(h('div',{style:{background:'rgba(245,158,11,.1)',border:'1px solid #f59e0b44',borderRadius:9,padding:'10px 12px',fontSize:12,color:'#fbbf24',fontWeight:600,lineHeight:1.5}},
+      '⚠️ Important : chaque appareil (iPad / PC) garde ses propres données. Rien ne se synchronise automatiquement — vous devez exporter puis importer manuellement après chaque session de travail.'));
     body.appendChild(h('div',{style:{background:'#060d1a',borderRadius:10,padding:'14px',border:'1px solid #1e293b',fontSize:12,color:'#94a3b8',lineHeight:1.8}},
       h('b',{style:{color:'#f1f5f9',display:'block',marginBottom:6}},'Comment synchroniser :'),
       '1️⃣  Sur cet appareil : appuyez sur ',h('b',null,'"Exporter sync"'),h('br'),
