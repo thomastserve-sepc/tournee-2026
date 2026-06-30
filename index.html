@@ -87,7 +87,7 @@ const PRELOAD_SCHEDULE = {
 };
 
 
-const SK='tv3_sa',DK='td3_sa',SCK='ts3_sa',EK='te3_sa';
+const SK='tv3_sa',DK='td3_sa',SCK='ts3_sa',EK='te3_sa',HK='th3_sa';
 const MAX=20;
 const WDAYS=['Mardi','Mercredi','Jeudi','Vendredi'];
 const SC={
@@ -107,7 +107,7 @@ function loadSch(){
   return m;
 }
 
-let vis=load(SK)||{},del=load(DK)||{},sch=loadSch(),extra=load(EK)||[];
+let vis=load(SK)||{},del=load(DK)||{},sch=loadSch(),extra=load(EK)||[],hist=load(HK)||[];
 let view='week',wkOff=0,modal=null,toast=null,tTimer=null;
 let srch='',fCity='Toutes',fStat='Tous',fSek='Tous';
 
@@ -123,7 +123,43 @@ function getWkDates(){const mon=wkMon(new Date()),tue=addD(mon,1+wkOff*7);return
 function allC(){const b=new Set(CR.map(c=>c.kd_nr));return[...CR,...extra.filter(c=>!b.has(c.kd_nr))]}
 function activeC(){return allC().filter(c=>!del[c.kd_nr])}
 function cMap(){const m={};allC().forEach(c=>{m[c.kd_nr]=c});return m}
-function persist(){save(SK,vis);save(DK,del);save(SCK,sch);save(EK,extra)}
+function persist(){save(SK,vis);save(DK,del);save(SCK,sch);save(EK,extra);save(HK,hist)}
+
+// Archive la visite en cours dans l'historique (pour cumul CA réel toutes visites confondues)
+// Appelé quand on quitte la fiche d'un client après avoir saisi une visite "visited" avec un montant
+function archiveCurrentVisit(kd_nr){
+  const v=vis[kd_nr];
+  if(!v||v.status!=='visited')return;
+  const amt=parseFloat(v.amount)||0;
+  if(amt<=0)return; // pas de commande, rien à archiver
+  // Vérifie si cette visite (même date+montant) n'est pas déjà archivée pour éviter doublons
+  const already=hist.find(h=>h.kd_nr===kd_nr&&h.visitDate===v.visitDate&&parseFloat(h.amount)===amt);
+  if(already)return;
+  hist.push({kd_nr,visitDate:v.visitDate,amount:v.amount,products:v.products||'',note:v.note||'',archivedAt:new Date().toISOString()});
+  persist();
+}
+// CA 2026 réel d'un client = somme de tout son historique + commande en cours si déjà 'visited'
+function clientCA2026(kd_nr){
+  const fromHist=hist.filter(h=>h.kd_nr===kd_nr).reduce((s,h)=>s+(parseFloat(h.amount)||0),0);
+  const cur=vis[kd_nr];
+  const curAmt=(cur&&cur.status==='visited')?(parseFloat(cur.amount)||0):0;
+  // Évite double-comptage si la visite courante a déjà été archivée à l'identique
+  const curAlreadyArchived=cur&&hist.find(h=>h.kd_nr===kd_nr&&h.visitDate===cur.visitDate&&parseFloat(h.amount)===curAmt);
+  return fromHist+(curAlreadyArchived?0:curAmt);
+}
+// CA 2026 total (tous clients) = historique + visites en cours non encore archivées
+function totalCA2026(filterFn){
+  let total=hist.filter(h=>!filterFn||filterFn(h.visitDate)).reduce((s,h)=>s+(parseFloat(h.amount)||0),0);
+  Object.entries(vis).forEach(([kd_nr,v])=>{
+    if(v.status!=='visited')return;
+    const amt=parseFloat(v.amount)||0;
+    if(amt<=0)return;
+    if(filterFn&&!filterFn(v.visitDate))return;
+    const alreadyArchived=hist.find(h=>h.kd_nr===kd_nr&&h.visitDate===v.visitDate&&parseFloat(h.amount)===amt);
+    if(!alreadyArchived)total+=amt;
+  });
+  return total;
+}
 
 function showToast(msg,type='ok'){
   if(tTimer)clearTimeout(tTimer);
@@ -132,7 +168,7 @@ function showToast(msg,type='ok'){
 }
 
 function exportSync(){
-  const data={vis,del,sch,extra,at:new Date().toISOString(),v:1};
+  const data={vis,del,sch,extra,hist,at:new Date().toISOString(),v:2};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`tournee_sync_${today()}.json`;a.click();
   showToast('Fichier sync exporté !');
@@ -144,9 +180,16 @@ function importSync(file){
       const d=JSON.parse(e.target.result);
       if(!d.v)throw new Error('Format invalide');
       vis=d.vis||{};del=d.del||{};extra=d.extra||[];
+      // Fusionne l'historique (pas de remplacement, pour ne jamais perdre de commandes archivées)
+      const importedHist=d.hist||[];
+      const existingKeys=new Set(hist.map(h=>h.kd_nr+'|'+h.visitDate+'|'+h.amount));
+      importedHist.forEach(h=>{
+        const key=h.kd_nr+'|'+h.visitDate+'|'+h.amount;
+        if(!existingKeys.has(key)){hist.push(h);existingKeys.add(key);}
+      });
       const m={...PRELOAD_SCHEDULE};
       if(d.sch)Object.keys(d.sch).forEach(dt=>{if(d.sch[dt]&&d.sch[dt].length)m[dt]=d.sch[dt]});
-      sch=m;persist();showToast(`Sync importée - ${Object.keys(vis).length} visites`);render();
+      sch=m;persist();showToast(`Sync importée - ${Object.keys(vis).length} visites, ${hist.length} commandes archivées`);render();
     }catch(err){showToast('Erreur: '+err.message,'err');}
   };r.readAsText(file);
 }
@@ -157,12 +200,12 @@ async function exportExcel(){
   script.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
   await new Promise((res,rej)=>{script.onload=res;script.onerror=rej;document.head.appendChild(script)});
   const X=window.XLSX,wb=X.utils.book_new(),cm=cMap(),dn=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-  const rows=[['SEK','N° Client','Nom','Prénom','Salon','Adresse','NPA','Ville','Tél','CA 2025','CA 2024','Diff','Statut','Date visite','Motif','Produits','Commande CHF','Notes','Prochaine action','Date relance','Planifié','Supprimé']];
+  const rows=[['SEK','N° Client','Nom','Prénom','Salon','Adresse','NPA','Ville','Tél','CA 2026 cumulé','Réf. CA 2025','CA 2024','Diff','Statut','Date visite','Motif','Produits','Commande CHF','Notes','Prochaine action','Date relance','Planifié','Supprimé']];
   allC().forEach(c=>{const v=vis[c.kd_nr]||{};const d=del[c.kd_nr];
     const sc=Object.entries(sch).filter(([,ids])=>ids.includes(c.kd_nr)).map(([dt])=>dt).join(', ');
-    rows.push([c.sek,c.kd_nr,c.name,c.vorname||'',c.salon||'',c.strasse||'',c.plz||'',c.ort||'',c.tel||'',parseInt(c.ca_2025)||0,parseInt(c.ca_2024)||0,parseInt(c.diff)||0,v.status||'',v.visitDate||'',v.reason||'',v.products||'',parseFloat(v.amount)||0,v.note||'',v.nextAction||'',v.followUpDate||'',sc,d?'Oui':'Non']);
+    rows.push([c.sek,c.kd_nr,c.name,c.vorname||'',c.salon||'',c.strasse||'',c.plz||'',c.ort||'',c.tel||'',clientCA2026(c.kd_nr),parseInt(c.ca_2025)||0,parseInt(c.ca_2024)||0,parseInt(c.diff)||0,v.status||'',v.visitDate||'',v.reason||'',v.products||'',parseFloat(v.amount)||0,v.note||'',v.nextAction||'',v.followUpDate||'',sc,d?'Oui':'Non']);
   });
-  const ws1=X.utils.aoa_to_sheet(rows);ws1['!cols']=[6,9,18,14,24,22,6,16,14,9,9,8,12,12,18,20,10,30,24,12,24,6].map(w=>({wch:w}));
+  const ws1=X.utils.aoa_to_sheet(rows);ws1['!cols']=[6,9,18,14,24,22,6,16,14,13,11,9,8,12,12,18,20,10,30,24,12,24,6].map(w=>({wch:w}));
   X.utils.book_append_sheet(wb,ws1,'Clients & Visites');
   const pr=[['Date','Jour','N° Client','Salon','Ville','Statut','CHF','Notes']];
   Object.entries(sch).sort(([a],[b])=>a.localeCompare(b)).forEach(([date,ids])=>{
@@ -171,6 +214,14 @@ async function exportExcel(){
       pr.push([date,djn,id,sal(c),c.ort,v.status||'planifié',parseFloat(v.amount)||0,v.note||'']);});
   });
   X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(pr),'Planning');
+  // Historique complet de toutes les commandes archivées (vrai CA 2026)
+  const hr=[['Date visite','N° Client','Salon','Ville','Montant CHF','Produits','Notes']];
+  [...hist].sort((a,b)=>(a.visitDate||'').localeCompare(b.visitDate||'')).forEach(h=>{
+    const c=cm[h.kd_nr];
+    hr.push([h.visitDate||'',h.kd_nr,c?sal(c):'?',c?c.ort:'',parseFloat(h.amount)||0,h.products||'',h.note||'']);
+  });
+  const wsH=X.utils.aoa_to_sheet(hr);wsH['!cols']=[12,9,24,16,12,24,30].map(w=>({wch:w}));
+  X.utils.book_append_sheet(wb,wsH,'Historique CA 2026');
   X.writeFile(wb,`Tournee_${today()}.xlsx`);showToast('Excel téléchargé !');
 }
 
@@ -202,8 +253,8 @@ function render(){
   if(modal){app.appendChild(renderModal(modal,wkDates,cm_,ac,td));}
 
   // Header
-  const todayCA=Object.values(vis).filter(v=>v.visitDate===td&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
-  const wkCA=Object.values(vis).filter(v=>wkDates.includes(v.visitDate)&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+  const todayCA=totalCA2026(d=>d===td);
+  const wkCA=totalCA2026(d=>wkDates.includes(d));
   const vc=Object.values(vis).filter(v=>v.status==='visited').length;
   const pct=ac.length>0?Math.round((vc/ac.length)*100):0;
 
@@ -258,7 +309,7 @@ function renderWeek(wkDates,cm,td,wkCA){
 
   const todayC=(sch[td]||[]).map(id=>cm[id]).filter(Boolean);
   if(wkDates.includes(td)&&todayC.length>0){
-    const dayCA=Object.values(vis).filter(v=>v.visitDate===td&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+    const dayCA=totalCA2026(d=>d===td);
     const strip=h('div',{style:{background:'rgba(99,102,241,.1)',borderRadius:10,padding:'9px 12px',border:'1px solid #6366f130',marginBottom:8}});
     strip.appendChild(h('div',{style:{fontWeight:700,fontSize:12,color:'#a5b4fc',marginBottom:6}},
       '\uD83D\uDCCD Aujourd\'hui — ',todayC.length,'/',MAX,' visites',
@@ -281,7 +332,7 @@ function renderWeek(wkDates,cm,td,wkCA){
     const dc=(sch[d]||[]).map(id=>cm[id]).filter(Boolean);
     const isT=d===td,isPast=d<td,cnt=dc.length;
     const bar=cnt>=MAX?'#22c55e':cnt>=10?'#f59e0b':cnt>0?'#ef4444':'#1e293b';
-    const dayCA=Object.values(vis).filter(v=>v.visitDate===d&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+    const dayCA=totalCA2026(dt=>dt===d);
     const rdvL=RDV_FIXES[d];
     const col=h('div',{className:'day-col'+(isT?' today':''),style:{opacity:isPast?.75:1}});
     const dh=h('div',{style:{textAlign:'center',marginBottom:2}},
@@ -375,15 +426,15 @@ function renderList(ac){
 
 function renderStats(wkDates,ac,td){
   const wrap=h('div',{style:{padding:'8px 10px'}});
-  const tCA=Object.values(vis).filter(v=>v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
-  const dCA=Object.values(vis).filter(v=>v.visitDate===td&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
-  const wCA=Object.values(vis).filter(v=>wkDates.includes(v.visitDate)&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+  const tCA=totalCA2026();
+  const dCA=totalCA2026(d=>d===td);
+  const wCA=totalCA2026(d=>wkDates.includes(d));
   const fups=ac.filter(c=>vis[c.kd_nr]?.followUpDate).sort((a,b)=>vis[a.kd_nr].followUpDate.localeCompare(vis[b.kd_nr].followUpDate));
   const kpis=[{l:"CA aujourd'hui",v:dCA.toLocaleString('fr-CH')+' CHF',i:'📍',c:'#22c55e'},{l:'CA semaine',v:wCA.toLocaleString('fr-CH')+' CHF',i:'📅',c:'#6366f1'},{l:'CA total saisi',v:tCA.toLocaleString('fr-CH')+' CHF',i:'💰',c:'#f59e0b'},{l:'Relances',v:fups.length,i:'↩',c:'#f87171'}];
   const g=h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}});
   kpis.forEach(k=>g.appendChild(h('div',{style:{background:'#0f172a',borderRadius:10,padding:'11px 12px',border:'1px solid #1e293b',borderLeft:'3px solid '+k.c}},h('div',{style:{fontSize:18,marginBottom:2}},k.i),h('div',{style:{fontWeight:800,fontSize:17,color:k.c}},k.v),h('div',{style:{fontSize:10,color:'#475569',marginTop:2}},k.l))));
   wrap.appendChild(g);
-  const wkBars=wkDates.map(d=>({d,label:['Mar','Mer','Jeu','Ven'][wkDates.indexOf(d)],ca:Object.values(vis).filter(v=>v.visitDate===d&&v.status==='visited').reduce((s,v)=>s+(parseFloat(v.amount)||0),0)}));
+  const wkBars=wkDates.map(d=>({d,label:['Mar','Mer','Jeu','Ven'][wkDates.indexOf(d)],ca:totalCA2026(dt=>dt===d)}));
   const maxCA=Math.max(...wkBars.map(x=>x.ca),1);
   const chart=h('div',{style:{background:'#0f172a',borderRadius:10,padding:'12px',border:'1px solid #1e293b',marginBottom:10}});
   chart.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:10}},'💵 CA par jour'));
@@ -423,7 +474,7 @@ function renderModal(m,wkDates,cm,ac,td){
     sheet.appendChild(hd);
     const body=h('div',{className:'sheet-b'});
     body.appendChild(h('div',{style:{display:'flex',gap:6}},
-      ...[{l:'CA 2025',v:ca.toLocaleString()+' CHF',c:'#a5b4fc'},{l:'Diff',v:(diff>=0?'▲':'▼')+Math.abs(diff).toLocaleString(),c:diff>=0?'#4ade80':'#f87171'}].map(s=>
+      ...[{l:'CA 2026 cumulé',v:clientCA2026(c.kd_nr).toLocaleString()+' CHF',c:'#22c55e'},{l:'Réf. 2025',v:ca.toLocaleString()+' CHF',c:'#64748b'}].map(s=>
         h('div',{style:{flex:1,background:'#060d1a',borderRadius:8,padding:'7px',textAlign:'center',border:'1px solid #1e293b'}},h('div',{style:{fontSize:9,color:'#475569',marginBottom:1}},s.l),h('div',{style:{fontWeight:700,fontSize:12,color:s.c}},s.v)))));
     if(c.tel||c.strasse){
       const ct=h('div',{style:{background:'#060d1a',borderRadius:9,padding:'9px 11px',border:'1px solid #1e293b'}});
@@ -436,7 +487,7 @@ function renderModal(m,wkDates,cm,ac,td){
     ['visited','absent','closed','callback'].forEach(k=>{
       const cfg=SC[k],active=(v.status||'none')===k;
       stBtns.appendChild(h('button',{style:{padding:'8px 12px',borderRadius:9,border:'2px solid '+(active?cfg.c:'#1e293b'),background:active?cfg.c+'18':'transparent',color:active?cfg.c:'#475569',cursor:'pointer',fontWeight:600,fontSize:12},
-        onClick:()=>{vis[c.kd_nr]={...v,status:k,visitDate:v.visitDate||today()};persist();modal={type:'visit',client:c};render();}},cfg.i+' '+cfg.l));
+        onClick:()=>{vis[c.kd_nr]={...v,status:k,visitDate:v.visitDate||today()};persist();archiveCurrentVisit(c.kd_nr);modal={type:'visit',client:c};render();}},cfg.i+' '+cfg.l));
     });
     body.appendChild(h('div',null,h('div',{className:'fl'},'Statut'),stBtns));
 
@@ -451,7 +502,7 @@ function renderModal(m,wkDates,cm,ac,td){
     const amtW=h('div',null,h('div',{className:'fl'},'Montant commande (CHF)'));
     amtW.appendChild(h('input',{type:'number',value:v.amount||'',placeholder:'0.00',className:'fi',inputmode:'decimal',
       oninput:e=>{vis[c.kd_nr]={...vis[c.kd_nr],amount:e.target.value};persist();},
-      onblur:()=>{render();}}));
+      onblur:()=>{archiveCurrentVisit(c.kd_nr);render();}}));
     body.appendChild(amtW);
 
     const motif=h('div',null,h('div',{className:'fl'},'Motif'));
@@ -538,7 +589,7 @@ function renderModal(m,wkDates,cm,ac,td){
     body.appendChild(mkF('Adresse','strasse','text','Rue et numéro'));
     body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'90px 1fr',gap:10}},mkF('NPA','plz','text','1950'),mkF('Localité','ort','text','Sion')));
     body.appendChild(mkF('Téléphone','tel','tel','027 XXX XX XX'));
-    body.appendChild(mkF('CA 2025 (CHF)','ca_2025','number','0'));
+    body.appendChild(mkF('Réf. CA 2025 (CHF)','ca_2025','number','0'));
     body.appendChild(h('div',{style:{display:'flex',gap:8}},
       h('button',{className:'bg',style:{flex:1,padding:'11px',fontWeight:600},onClick:()=>{modal=null;render();}},'Annuler'),
       h('button',{className:'bp',style:{flex:2,padding:'11px',fontSize:14},onClick:()=>{
