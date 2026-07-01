@@ -655,6 +655,10 @@ function renderModal(m,wkDates,cm,ac,td){
         // 7. Sauvegarder le pending
         localStorage.setItem('crm_pending',JSON.stringify(pending));
 
+        // 7. Sauvegarder la session pour éviter le login dans le CRM
+        const sessionData = JSON.stringify({readonly: false, expires: Date.now() + 8*60*60*1000});
+        localStorage.setItem('crm_session_active', sessionData);
+
         // 8. Stocker l'id du client pour que le CRM l'ouvre directement
         localStorage.setItem('crm_open_client',crmClient.id);
 
