@@ -4,39 +4,40 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Tournée 2026">
-<meta name="theme-color" content="#0a0f1e">
+<meta name="theme-color" content="#f8fafc">
 <title>Plan de Tournée 2026</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,'Inter',sans-serif;background:#0a0f1e;color:#f1f5f9;min-height:100vh;overscroll-behavior:none}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#334155;border-radius:4px}
-input,select,textarea{font-family:inherit;font-size:16px!important;color-scheme:dark}
+body{font-family:-apple-system,'Inter',sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh;overscroll-behavior:none}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+input,select,textarea{font-family:inherit;font-size:16px!important;color-scheme:light;background:#fff;color:#1e293b}
 @keyframes su{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes fi{from{opacity:0}to{opacity:1}}
 .card{transition:transform .12s;cursor:pointer;-webkit-user-select:none}
 .card:active{transform:scale(.98)}
 .bp{background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;cursor:pointer;border-radius:10px;font-weight:600;transition:.15s;font-size:14px}
-.bg{background:transparent;border:1px solid #334155;color:#94a3b8;cursor:pointer;border-radius:8px;transition:.15s;font-size:13px}
-.bg:active{background:rgba(99,102,241,.15);border-color:#6366f1;color:#a5b4fc}
-.bd{background:transparent;border:1px solid #ef444433;color:#f87171;cursor:pointer;border-radius:7px;font-size:12px;padding:4px 9px}
+.bg{background:#fff;border:1px solid #e2e8f0;color:#64748b;cursor:pointer;border-radius:8px;transition:.15s;font-size:13px}
+.bg:active{background:#eff6ff;border-color:#6366f1;color:#6366f1}
+.bd{background:#fff;border:1px solid #fecaca;color:#ef4444;cursor:pointer;border-radius:7px;font-size:12px;padding:4px 9px}
 .chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
 .r-visited{box-shadow:0 0 0 3px #22c55e}.r-absent{box-shadow:0 0 0 3px #f59e0b}
-.r-closed{box-shadow:0 0 0 3px #ef4444}.r-callback{box-shadow:0 0 0 3px #8b5cf6}.r-none{box-shadow:0 0 0 2px #334155}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
-.sheet{background:#0f172a;border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:93vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.6);border-top:1px solid #1e293b}
-.sheet-h{padding:0 18px 12px;border-bottom:1px solid #1e293b;position:sticky;top:0;background:#0f172a;z-index:1}
+.r-closed{box-shadow:0 0 0 3px #ef4444}.r-callback{box-shadow:0 0 0 3px #8b5cf6}.r-none{box-shadow:0 0 0 2px #e2e8f0}
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:93vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.15);border-top:1px solid #e2e8f0}
+.sheet-h{padding:0 18px 12px;border-bottom:1px solid #f1f5f9;position:sticky;top:0;background:#fff;z-index:1}
 .sheet-b{padding:14px 18px 40px;display:flex;flex-direction:column;gap:14px}
-.fl{font-size:10px;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
-.fi{width:100%;background:#060d1a;border:1px solid #1e293b;color:#f1f5f9;padding:10px 12px;border-radius:9px;outline:none}
-.day-col{background:#0f172a;border-radius:10px;border:1px solid #1e293b;padding:8px 6px;display:flex;flex-direction:column;gap:3px;min-height:110px}
-.day-col.today{border-color:#6366f140;background:rgba(99,102,241,.06)}
-.rdv-tag{font-size:9px;background:rgba(245,158,11,.15);color:#f59e0b;border-radius:4px;padding:2px 4px;font-weight:600;margin:1px 0;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl{font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.fi{width:100%;background:#f8fafc;border:1px solid #e2e8f0;color:#1e293b;padding:10px 12px;border-radius:9px;outline:none}
+.fi:focus{border-color:#6366f1;background:#fff}
+.day-col{background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:8px 6px;display:flex;flex-direction:column;gap:3px;min-height:110px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.day-col.today{border-color:#6366f1;background:#fafaff;box-shadow:0 1px 6px rgba(99,102,241,.15)}
+.rdv-tag{font-size:9px;background:#fef3c7;color:#92400e;border-radius:4px;padding:2px 4px;font-weight:600;margin:1px 0;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cc{border-radius:5px;padding:4px 5px;cursor:pointer;display:flex;align-items:center;gap:3px;font-size:10px;border:1px solid transparent;-webkit-user-select:none}
 .cc:active{opacity:.7}
-.nav-bar{display:flex;background:#0f172a;border-top:1px solid #1e293b;position:fixed;bottom:0;left:0;right:0;z-index:90;padding-bottom:env(safe-area-inset-bottom,10px)}
-.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px 8px;cursor:pointer;font-size:10px;color:#64748b;border:none;background:none}
+.nav-bar{display:flex;background:#fff;border-top:1px solid #e2e8f0;position:fixed;bottom:0;left:0;right:0;z-index:90;padding-bottom:env(safe-area-inset-bottom,10px);box-shadow:0 -2px 10px rgba(0,0,0,.06)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px 8px;cursor:pointer;font-size:10px;color:#94a3b8;border:none;background:none}
 .nb.on{color:#6366f1}
 .nb .ic{font-size:20px}
 </style>
@@ -94,15 +95,15 @@ const ALT_SCHEDULE = {"2026-06-30": ["31618", "11836", "15487", "29601", "30459"
 
 
 
-const SK='tv3_sa',DK='td3_sa',SCK='ts3_sa',EK='te3_sa',HK='th3_sa';
+const SK='tv3_sa',DK='td3_sa',SCK='ts3_sa',EK='te3_sa',HK='th3_sa',BK='bk3_sa';
 const MAX=20;
 const WDAYS=['Mardi','Mercredi','Jeudi','Vendredi'];
 const SC={
-  visited:{l:'Visité',c:'#22c55e',bg:'#052e16',i:'\u2713'},
-  absent:{l:'Client absent',c:'#f59e0b',bg:'#451a03',i:'~'},
-  closed:{l:'Salon fermé',c:'#ef4444',bg:'#450a0a',i:'\u2715'},
-  callback:{l:'À rappeler',c:'#8b5cf6',bg:'#2e1065',i:'\u21a9'},
-  none:{l:'Non visité',c:'#64748b',bg:'#0f172a',i:'\u25cb'}
+  visited:{l:'Visité',c:'#22c55e',bg:'#dcfce7',i:'\u2713'},
+  absent:{l:'Client absent',c:'#f59e0b',bg:'#fef9c3',i:'~'},
+  closed:{l:'Salon fermé',c:'#ef4444',bg:'#fee2e2',i:'\u2715'},
+  callback:{l:'À rappeler',c:'#8b5cf6',bg:'#ede9fe',i:'\u21a9'},
+  none:{l:'Non visité',c:'#64748b',bg:'#f8fafc',i:'\u25cb'}
 };
 const RV=['Présentation produits','Suivi commande','Relance client','Introduction nouveauté','Fidélisation','Autre'];
 
@@ -114,7 +115,7 @@ function loadSch(){
   return m;
 }
 
-let vis=load(SK)||{},del=load(DK)||{},sch=loadSch(),extra=load(EK)||[],hist=load(HK)||[];
+let vis=load(SK)||{},del=load(DK)||{},sch=loadSch(),extra=load(EK)||[],hist=load(HK)||[],book=load(BK)||{};
 let view='week',wkOff=0,modal=null,toast=null,tTimer=null;
 let srch='',fCity='Toutes',fStat='Tous',fSek='Tous';
 
@@ -130,7 +131,7 @@ function getWkDates(){const mon=wkMon(new Date()),tue=addD(mon,1+wkOff*7);return
 function allC(){const b=new Set(CR.map(c=>c.kd_nr));return[...CR,...extra.filter(c=>!b.has(c.kd_nr))]}
 function activeC(){return allC().filter(c=>!del[c.kd_nr])}
 function cMap(){const m={};allC().forEach(c=>{m[c.kd_nr]=c});return m}
-function persist(){save(SK,vis);save(DK,del);save(SCK,sch);save(EK,extra);save(HK,hist)}
+function persist(){save(SK,vis);save(DK,del);save(SCK,sch);save(EK,extra);save(HK,hist);save(BK,book)}
 
 // Archive la visite en cours dans l'historique (pour cumul CA réel toutes visites confondues)
 // Appelé quand on quitte la fiche d'un client après avoir saisi une visite "visited" avec un montant
@@ -184,7 +185,7 @@ function showToast(msg,type='ok'){
 }
 
 function exportSync(){
-  const data={vis,del,sch,extra,hist,at:new Date().toISOString(),v:2};
+  const data={vis,del,sch,extra,hist,book,at:new Date().toISOString(),v:2};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`tournee_sync_${today()}.json`;a.click();
   showToast('Fichier sync exporté !');
@@ -195,7 +196,7 @@ function importSync(file){
     try{
       const d=JSON.parse(e.target.result);
       if(!d.v)throw new Error('Format invalide');
-      vis=d.vis||{};del=d.del||{};extra=d.extra||[];
+      vis=d.vis||{};del=d.del||{};extra=d.extra||[];book=d.book||{};
       // Fusionne l'historique (pas de remplacement, pour ne jamais perdre de commandes archivées)
       const importedHist=d.hist||[];
       const existingKeys=new Set(hist.map(h=>h.kd_nr+'|'+h.visitDate+'|'+Math.round(parseFloat(h.amount)||0)));
@@ -241,7 +242,230 @@ async function exportExcel(){
   X.writeFile(wb,`Tournee_${today()}.xlsx`);showToast('Excel téléchargé !');
 }
 
-// ── RENDER ─────────────────────────────────────────────────────────────────────
+// ── SYSTÈME D'IMPRESSION ──────────────────────────────────────────────────────
+function printPlanning(){
+  const wkDates=getWkDates();
+  const cm=cMap();
+  const dayNames=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  let html=`<html><head><meta charset="UTF-8"><title>Planning Tournée</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:15mm}
+    h1{font-size:16px;margin-bottom:4px}
+    .sub{font-size:11px;color:#666;margin-bottom:12px}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .day{border:1px solid #ccc;border-radius:6px;padding:8px;page-break-inside:avoid}
+    .day-head{font-weight:bold;font-size:12px;border-bottom:1px solid #eee;padding-bottom:5px;margin-bottom:6px}
+    .day-date{font-size:10px;color:#666;margin-bottom:2px}
+    .rdv-tag{font-size:9px;background:#fef3c7;border-radius:3px;padding:1px 4px;display:inline-block;margin:2px 0}
+    .client{padding:4px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:flex-start}
+    .client:last-child{border-bottom:none}
+    .c-name{font-weight:500;font-size:10px}
+    .c-city{font-size:9px;color:#666}
+    .c-right{text-align:right;font-size:9px}
+    .c-ca{color:#16a34a;font-weight:bold}
+    .c-book{color:#0891b2}
+    .status{font-size:9px;padding:1px 4px;border-radius:3px;display:inline-block;margin-top:1px}
+    .s-v{background:#dcfce7;color:#166534}.s-a{background:#fef9c3;color:#854d0e}.s-c{background:#fee2e2;color:#991b1b}.s-cb{background:#ede9fe;color:#4c1d95}
+    .day-total{font-size:10px;font-weight:bold;color:#16a34a;margin-top:6px;text-align:right}
+    .footer{margin-top:12px;font-size:9px;color:#999;border-top:1px solid #eee;padding-top:6px}
+    @media print{body{margin:10mm}.grid{gap:6px}}
+  </style></head><body>
+  <h1>Plan de Tournée — ${fmtFR(wkDates[0])} → ${fmtFR(wkDates[3])}</h1>
+  <div class="sub">Thomas · DICOPAR SA · Imprimé le ${new Date().toLocaleDateString('fr-CH')}</div>
+  <div class="grid">`;
+  wkDates.forEach(d=>{
+    const ids=sch[d]||[];
+    const dayCA=totalCA2026(dt=>dt===d);
+    const rdvs=RDV_FIXES[d]||[];
+    html+=`<div class="day">
+      <div class="day-head">${dayNames[new Date(d+'T00:00:00').getDay()]}</div>
+      <div class="day-date">${fmtFR(d)} · ${ids.length} clients</div>
+      ${rdvs.map(r=>`<div class="rdv-tag">⭐ ${r.h} ${r.lieu}</div>`).join('')}`;
+    ids.forEach(id=>{
+      const c=cm[id];if(!c)return;
+      const v=vis[id]||{};
+      const st=v.status;
+      const amt=parseFloat(v.amount)||0;
+      const hasBook=!!book[id];
+      const stLabel=st==='visited'?'Visité':st==='absent'?'Absent':st==='closed'?'Fermé':st==='callback'?'Rappel':'';
+      const stClass=st==='visited'?'s-v':st==='absent'?'s-a':st==='closed'?'s-c':st==='callback'?'s-cb':'';
+      html+=`<div class="client">
+        <div>
+          <div class="c-name">${sal(c)}</div>
+          <div class="c-city">${c.ort||''}${hasBook?' · 📖✅':''}</div>
+          ${stLabel?`<span class="status ${stClass}">${stLabel}</span>`:''}
+        </div>
+        <div class="c-right">
+          ${amt>0?`<div class="c-ca">${amt.toLocaleString('fr-CH')} CHF</div>`:''}
+          ${v.products?`<div style="font-size:8px;color:#666;max-width:70px;word-break:break-word">${v.products}</div>`:''}
+        </div>
+      </div>`;
+    });
+    if(dayCA>0)html+=`<div class="day-total">Total: ${dayCA.toLocaleString('fr-CH')} CHF</div>`;
+    html+=`</div>`;
+  });
+  html+=`</div><div class="footer">DICOPAR SA · SEK 102/112 · Plan de Tournée 2026</div></body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();w.print();
+}
+
+function printStats(){
+  const wkDates=getWkDates();
+  const ac=activeC();
+  const tCA=totalCA2026();
+  const dCA=totalCA2026(d=>d===today());
+  const wCA=totalCA2026(d=>wkDates.includes(d));
+  const vc=Object.values(vis).filter(v=>v.status==='visited').length;
+  const bookCount=Object.keys(book).length;
+  const bookPct=ac.length>0?Math.round((bookCount/ac.length)*100):0;
+  const pct=ac.length>0?Math.round((vc/ac.length)*100):0;
+  const fups=ac.filter(c=>vis[c.kd_nr]?.followUpDate);
+  const topClients=[...ac].filter(c=>clientCA2026(c.kd_nr)>0).sort((a,b)=>clientCA2026(b.kd_nr)-clientCA2026(a.kd_nr)).slice(0,20);
+  let html=`<html><head><meta charset="UTF-8"><title>Rapport CA</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:15mm}
+    h1{font-size:16px;margin-bottom:4px}h2{font-size:13px;margin:14px 0 6px;border-bottom:1px solid #eee;padding-bottom:3px}
+    .sub{font-size:11px;color:#666;margin-bottom:14px}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+    .kpi{border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center}
+    .kpi-val{font-size:20px;font-weight:bold;color:#6366f1}
+    .kpi-lbl{font-size:9px;color:#666;margin-top:3px}
+    table{width:100%;border-collapse:collapse;font-size:10px}
+    th{background:#f8fafc;text-align:left;padding:5px 8px;font-size:9px;color:#666;border-bottom:1px solid #e2e8f0;text-transform:uppercase}
+    td{padding:5px 8px;border-bottom:1px solid #f0f0f0}
+    .ca{color:#16a34a;font-weight:bold}
+    .prog-bar{background:#e2e8f0;border-radius:999px;height:6px;margin-top:3px}
+    .prog-fill{background:#6366f1;height:100%;border-radius:999px}
+    @media print{body{margin:10mm}}
+  </style></head><body>
+  <h1>Rapport CA & Statistiques</h1>
+  <div class="sub">Thomas · DICOPAR SA · ${new Date().toLocaleDateString('fr-CH')}</div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-val">${tCA.toLocaleString('fr-CH')}</div><div class="kpi-lbl">CA 2026 saisi (CHF)</div></div>
+    <div class="kpi"><div class="kpi-val">${wCA.toLocaleString('fr-CH')}</div><div class="kpi-lbl">CA semaine (CHF)</div></div>
+    <div class="kpi"><div class="kpi-val">${pct}%</div><div class="kpi-lbl">Clients visités (${vc}/${ac.length})</div></div>
+    <div class="kpi"><div class="kpi-val">${bookPct}%</div><div class="kpi-lbl">Catalogues remis (${bookCount})</div></div>
+  </div>
+  <div style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px"><span>Progression tournée</span><span><b>${vc}</b> visités · <b>${fups.length}</b> relances · <b>${bookCount}</b> catalogues</span></div>
+    <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+  </div>
+  <h2>Top 20 clients — CA 2026 saisi</h2>
+  <table><thead><tr><th>#</th><th>Salon</th><th>Ville</th><th>SEK</th><th>CA 2026 saisi</th><th>Catalogue</th></tr></thead><tbody>
+  ${topClients.map((c,i)=>`<tr><td>${i+1}</td><td>${sal(c)}</td><td>${c.ort||''}</td><td>${c.sek}</td><td class="ca">${clientCA2026(c.kd_nr).toLocaleString('fr-CH')} CHF</td><td>${book[c.kd_nr]?'📖✅':''}</td></tr>`).join('')}
+  </tbody></table>
+  ${fups.length>0?`<h2>Clients à relancer (${fups.length})</h2><table><thead><tr><th>Salon</th><th>Ville</th><th>Statut</th><th>Date relance</th></tr></thead><tbody>${fups.map(c=>`<tr><td>${sal(c)}</td><td>${c.ort||''}</td><td>${SC[vis[c.kd_nr]?.status||'none']?.l||''}</td><td>${fmtFR(vis[c.kd_nr].followUpDate)}</td></tr>`).join('')}</tbody></table>`:''}
+  </body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();w.print();
+}
+
+function printClientList(){
+  const ac=activeC();
+  const sorted=[...ac].sort((a,b)=>(a.ort||'').localeCompare(b.ort||''));
+  let html=`<html><head><meta charset="UTF-8"><title>Liste Clients</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:10px;color:#000;margin:12mm}
+    h1{font-size:15px;margin-bottom:3px}
+    .sub{font-size:10px;color:#666;margin-bottom:10px}
+    table{width:100%;border-collapse:collapse;font-size:9px}
+    th{background:#f8fafc;text-align:left;padding:4px 6px;font-size:8px;color:#666;border-bottom:1px solid #ccc;text-transform:uppercase}
+    td{padding:4px 6px;border-bottom:1px solid #f0f0f0}
+    .ca{color:#16a34a;font-weight:bold;text-align:right}
+    .s-v{color:#166534}.s-a{color:#854d0e}.s-c{color:#991b1b}.s-cb{color:#4c1d95}
+    @media print{body{margin:8mm}table{font-size:8px}}
+  </style></head><body>
+  <h1>Liste Clients — DICOPAR SEK 102/112</h1>
+  <div class="sub">Thomas · ${ac.length} clients actifs · ${new Date().toLocaleDateString('fr-CH')}</div>
+  <table><thead><tr><th>N°</th><th>Salon</th><th>Nom</th><th>Ville</th><th>SEK</th><th>Téléphone</th><th>Statut</th><th>CA 2026</th><th>CA 2025</th><th>📖</th></tr></thead><tbody>
+  ${sorted.map(c=>{const v=vis[c.kd_nr]||{};const st=v.status||'none';const cfg=SC[st];const stClass=st==='visited'?'s-v':st==='absent'?'s-a':st==='closed'?'s-c':st==='callback'?'s-cb':'';
+    return`<tr><td>${c.kd_nr}</td><td>${sal(c)}</td><td>${c.vorname?c.vorname+' ':''  }${c.name}</td><td>${c.ort||''}</td><td>${c.sek}</td><td>${c.tel||''}</td><td class="${stClass}">${cfg.l}</td><td class="ca">${clientCA2026(c.kd_nr)>0?clientCA2026(c.kd_nr).toLocaleString('fr-CH')+' CHF':''}</td><td style="text-align:right">${parseInt(c.ca_2025)>0?parseInt(c.ca_2025).toLocaleString('fr-CH')+' CHF':''}</td><td>${book[c.kd_nr]?'✅':''}</td></tr>`;
+  }).join('')}
+  </tbody></table></body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();w.print();
+}
+
+function printProducts(){
+  const cm=cMap();
+  const entries=[];
+  // Depuis hist (commandes archivées)
+  hist.forEach(h_=>{
+    if(!h_.products||!h_.amount)return;
+    const c=cm[h_.kd_nr];
+    entries.push({date:h_.visitDate,salon:c?sal(c):'Prospect',ort:c?c.ort||'':'',kd_nr:h_.kd_nr,products:h_.products,amount:parseFloat(h_.amount)||0});
+  });
+  // Depuis vis (visites en cours non encore archivées)
+  Object.entries(vis).forEach(([kd_nr,v])=>{
+    if(!v.products||!v.amount||v.status!=='visited')return;
+    const already=hist.some(h_=>h_.kd_nr===kd_nr&&h_.visitDate===v.visitDate&&Math.abs(parseFloat(h_.amount)-(parseFloat(v.amount)||0))<0.01);
+    if(already)return;
+    const c=cm[kd_nr];
+    entries.push({date:v.visitDate,salon:c?sal(c):'Client',ort:c?c.ort||'':'',kd_nr,products:v.products,amount:parseFloat(v.amount)||0});
+  });
+  entries.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const totalCA=entries.reduce((s,e)=>s+e.amount,0);
+  let html=`<html><head><meta charset="UTF-8"><title>Produits vendus</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:10px;color:#000;margin:12mm}
+    h1{font-size:15px;margin-bottom:3px}
+    .sub{font-size:10px;color:#666;margin-bottom:10px}
+    table{width:100%;border-collapse:collapse;font-size:9px}
+    th{background:#f8fafc;text-align:left;padding:4px 6px;font-size:8px;color:#666;border-bottom:1px solid #ccc;text-transform:uppercase}
+    td{padding:4px 6px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+    .ca{color:#16a34a;font-weight:bold;text-align:right;white-space:nowrap}
+    .total{font-weight:bold;font-size:11px;border-top:2px solid #ccc;padding-top:5px}
+    @media print{body{margin:8mm}}
+  </style></head><body>
+  <h1>Liste des produits vendus 2026</h1>
+  <div class="sub">Thomas · DICOPAR SA · ${entries.length} commandes · Total: ${totalCA.toLocaleString('fr-CH')} CHF · Imprimé le ${new Date().toLocaleDateString('fr-CH')}</div>
+  <table><thead><tr><th>Date</th><th>Salon</th><th>Ville</th><th>Produits commandés</th><th>Montant CHF</th></tr></thead><tbody>
+  ${entries.map(e=>`<tr><td style="white-space:nowrap">${fmtFR(e.date)}</td><td>${e.salon}</td><td>${e.ort}</td><td>${e.products}</td><td class="ca">${e.amount.toLocaleString('fr-CH')}</td></tr>`).join('')}
+  <tr><td colspan="4" class="total">TOTAL</td><td class="ca total">${totalCA.toLocaleString('fr-CH')} CHF</td></tr>
+  </tbody></table></body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();w.print();
+}
+
+function printClientFiche(c){
+  if(!c)return;
+  const v=vis[c.kd_nr]||{};
+  const ca2026=clientCA2026(c.kd_nr);
+  const allHist=hist.filter(h_=>h_.kd_nr===c.kd_nr);
+  let html=`<html><head><meta charset="UTF-8"><title>Fiche ${sal(c)}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:15mm}
+    h1{font-size:16px;margin-bottom:2px}h2{font-size:12px;margin:12px 0 5px;border-bottom:1px solid #eee;padding-bottom:2px;color:#4338ca}
+    .sub{font-size:10px;color:#666;margin-bottom:12px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+    .info-box{border:1px solid #e2e8f0;border-radius:5px;padding:8px}
+    .info-lbl{font-size:8px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+    .info-val{font-size:11px;font-weight:500}
+    table{width:100%;border-collapse:collapse;font-size:10px}
+    th{background:#f8fafc;text-align:left;padding:4px 6px;font-size:8px;color:#666;border-bottom:1px solid #ccc;text-transform:uppercase}
+    td{padding:4px 6px;border-bottom:1px solid #f0f0f0}
+    .ca{color:#16a34a;font-weight:bold}
+    .total{font-weight:bold;border-top:2px solid #ccc}
+  </style></head><body>
+  <h1>${sal(c)}</h1>
+  <div class="sub">${c.vorname?c.vorname+' ':''}${c.name} · N° ${c.kd_nr} · SEK ${c.sek} · Fiche imprimée le ${new Date().toLocaleDateString('fr-CH')}</div>
+  <div class="info-grid">
+    <div class="info-box"><div class="info-lbl">Adresse</div><div class="info-val">${c.strasse||'—'}<br>${c.plz||''} ${c.ort||''}</div></div>
+    <div class="info-box"><div class="info-lbl">Contact</div><div class="info-val">${c.tel||'—'}${c.tel2?'<br>'+c.tel2:''}</div></div>
+    <div class="info-box"><div class="info-lbl">CA 2026 saisi</div><div class="info-val" style="color:#16a34a;font-weight:bold">${ca2026>0?ca2026.toLocaleString('fr-CH')+' CHF':'—'}</div></div>
+    <div class="info-box"><div class="info-lbl">CA 2025 référence</div><div class="info-val">${parseInt(c.ca_2025)>0?parseInt(c.ca_2025).toLocaleString('fr-CH')+' CHF':'—'}</div></div>
+    <div class="info-box"><div class="info-lbl">Statut visite</div><div class="info-val">${SC[v.status||'none']?.l||'Non visité'}</div></div>
+    <div class="info-box"><div class="info-lbl">Catalogue reçu</div><div class="info-val">${book[c.kd_nr]?'📖 ✅ Oui':'Non'}</div></div>
+  </div>
+  ${v.note?`<h2>Notes</h2><p>${v.note}</p>`:''}
+  ${v.nextAction?`<h2>Prochaine action</h2><p>${v.nextAction}${v.followUpDate?' — '+fmtFR(v.followUpDate):''}</p>`:''}
+  ${allHist.length>0?`<h2>Historique des commandes</h2><table><thead><tr><th>Date</th><th>Produits</th><th>Montant</th></tr></thead><tbody>
+  ${allHist.map(h_=>`<tr><td>${fmtFR(h_.date||h_.visitDate)}</td><td>${h_.products||'—'}</td><td class="ca">${parseFloat(h_.amount).toLocaleString('fr-CH')} CHF</td></tr>`).join('')}
+  <tr><td colspan="2" class="total">Total</td><td class="ca total">${allHist.reduce((s,h_)=>s+(parseFloat(h_.amount)||0),0).toLocaleString('fr-CH')} CHF</td></tr>
+  </tbody></table>`:'<h2>Historique</h2><p style="color:#999">Aucune commande enregistrée</p>'}
+  </body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();w.print();
+}
+
+function openPrintMenu(){
+  modal={type:'print'};render();
+}
 function h(tag,attrs,...ch){
   const el=document.createElement(tag);
   if(attrs)Object.entries(attrs).forEach(([k,v])=>{
@@ -275,19 +499,20 @@ function render(){
   const vc=Object.values(vis).filter(v=>v.status==='visited').length;
   const pct=ac.length>0?Math.round((vc/ac.length)*100):0;
 
-  app.appendChild(h('div',{style:{background:'linear-gradient(135deg,#0f172a,#0a0f1e)',borderBottom:'1px solid #1e293b',padding:'env(safe-area-inset-top,0px) 12px 0',position:'sticky',top:0,zIndex:100}},
+  app.appendChild(h('div',{style:{background:'#fff',borderBottom:'1px solid #e2e8f0',padding:'env(safe-area-inset-top,0px) 12px 0',position:'sticky',top:0,zIndex:100}},
     h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:52}},
       h('div',{style:{display:'flex',alignItems:'center',gap:8}},
         h('div',{style:{width:30,height:30,background:'linear-gradient(135deg,#6366f1,#8b5cf6)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}},'\u2702\uFE0F'),
         h('div',null,
           h('div',{style:{fontWeight:700,fontSize:14}},'Tournée 2026'),
-          h('div',{style:{fontSize:10,color:'#475569'}},ac.length,' clients · ',pct,'% visités · ',
+          h('div',{style:{fontSize:10,color:'#64748b'}},ac.length,' clients · ',pct,'% visités · ',
             h('span',{style:{color:'#22c55e'}},todayCA.toLocaleString('fr-CH'),' CHF auj.'))
         )
       ),
       h('div',{style:{display:'flex',gap:5}},
         h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11},onClick:()=>{modal={type:'sync'};render()}},'🔄'),
-        h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11,color:'#22d3ee',borderColor:'#06b6d444'},onClick:exportExcel},'📤')
+        h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11,color:'#0891b2',borderColor:'#06b6d444'},onClick:exportExcel},'📤'),
+        h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11,color:'#f472b6',borderColor:'#ec489944'},onClick:openPrintMenu},'🖨️')
       )
     )
   ));
@@ -334,11 +559,11 @@ function renderWeek(wkDates,cm,td,wkCA){
     persist();render();
   }
 
-  wrap.appendChild(h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#0f172a',borderRadius:10,padding:'9px 12px',border:'1px solid #1e293b',marginBottom:hasAlt?4:8}},
+  wrap.appendChild(h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#fff',borderRadius:10,padding:'9px 12px',border:'1px solid #e2e8f0',marginBottom:hasAlt?4:8}},
     h('button',{className:'bg',style:{padding:'6px 14px',fontWeight:700},onClick:()=>{wkOff--;render()}},'←'),
     h('div',{style:{textAlign:'center'}},
       h('div',{style:{fontWeight:700,fontSize:13}},wkLabel,'  ',h('span',{style:{fontSize:10,color:'#6366f1',fontWeight:400}},'Lun: maison')),
-      h('div',{style:{fontSize:10,color:'#64748b'}},fmtFR(wkDates[0]),' → ',fmtFR(wkDates[3]),' · ',h('b',{style:{color:'#f1f5f9'}},total),' planifiées · ',h('b',{style:{color:'#22c55e'}},wkCA.toLocaleString('fr-CH'),' CHF'))
+      h('div',{style:{fontSize:10,color:'#94a3b8'}},fmtFR(wkDates[0]),' → ',fmtFR(wkDates[3]),' · ',h('b',{style:{color:'#1e293b'}},total),' planifiées · ',h('b',{style:{color:'#22c55e'}},wkCA.toLocaleString('fr-CH'),' CHF'))
     ),
     h('button',{className:'bg',style:{padding:'6px 14px',fontWeight:700},onClick:()=>{wkOff++;render()}},'→')
   ));
@@ -354,14 +579,14 @@ function renderWeek(wkDates,cm,td,wkCA){
   const todayC=(sch[td]||[]).map(id=>cm[id]).filter(Boolean);
   if(wkDates.includes(td)&&todayC.length>0){
     const dayCA=totalCA2026(d=>d===td);
-    const strip=h('div',{style:{background:'rgba(99,102,241,.1)',borderRadius:10,padding:'9px 12px',border:'1px solid #6366f130',marginBottom:8}});
-    strip.appendChild(h('div',{style:{fontWeight:700,fontSize:12,color:'#a5b4fc',marginBottom:6}},
+    const strip=h('div',{style:{background:'#eff6ff',borderRadius:10,padding:'9px 12px',border:'1px solid #c7d2fe',marginBottom:8}});
+    strip.appendChild(h('div',{style:{fontWeight:700,fontSize:12,color:'#6366f1',marginBottom:6}},
       '\uD83D\uDCCD Aujourd\'hui — ',todayC.length,'/',MAX,' visites',
       dayCA>0?h('span',{style:{color:'#22c55e',marginLeft:8}},'· '+dayCA.toLocaleString('fr-CH')+' CHF'):''));
     const chips=h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}});
     todayC.forEach(c=>{
       const v=vis[c.kd_nr],cfg=SC[v?.status||'none'];
-      chips.appendChild(h('div',{className:'card',style:{background:'#0f172a',borderRadius:7,padding:'5px 9px',fontSize:11,display:'flex',alignItems:'center',gap:5,border:'1px solid #1e293b'},onClick:()=>{modal={type:'visit',client:c};render()}},
+      chips.appendChild(h('div',{className:'card',style:{background:'#fff',borderRadius:7,padding:'5px 9px',fontSize:11,display:'flex',alignItems:'center',gap:5,border:'1px solid #e2e8f0'},onClick:()=>{modal={type:'visit',client:c};render()}},
         h('span',{style:{width:6,height:6,borderRadius:'50%',background:cfg.c,display:'inline-block'}}),
         h('b',null,sal(c)),
         v?.status==='visited'?h('span',{style:{color:'#22c55e'}},'✓'):'',
@@ -380,16 +605,16 @@ function renderWeek(wkDates,cm,td,wkCA){
     const rdvL=RDV_FIXES[d];
     const col=h('div',{className:'day-col'+(isT?' today':''),style:{opacity:isPast?.75:1}});
     const dh=h('div',{style:{textAlign:'center',marginBottom:2}},
-      h('div',{style:{fontWeight:700,fontSize:11,color:isT?'#a5b4fc':'#64748b'}},WDAYS[i]),
-      h('div',{style:{fontSize:9,color:isT?'#6366f1':'#475569'}},fmtFR(d)));
+      h('div',{style:{fontWeight:700,fontSize:11,color:isT?'#6366f1':'#94a3b8'}},WDAYS[i]),
+      h('div',{style:{fontSize:9,color:isT?'#6366f1':'#94a3b8'}},fmtFR(d)));
     if(rdvL)rdvL.forEach(r=>dh.appendChild(h('div',{className:'rdv-tag'},'\u2B50 '+r.h+' '+r.lieu)));
     dh.appendChild(h('div',{style:{fontSize:9,fontWeight:700,color:bar,marginTop:1}},cnt+'/'+MAX+' '+(cnt>=MAX?'✓':cnt>=10?'':'\u26A0\uFE0F')));
-    dh.appendChild(h('div',{style:{background:'#1e293b',borderRadius:999,height:3,overflow:'hidden',margin:'2px 0'}},h('div',{style:{width:Math.min((cnt/MAX)*100,100)+'%',height:'100%',background:bar}})));
+    dh.appendChild(h('div',{style:{background:'#e2e8f0',borderRadius:999,height:3,overflow:'hidden',margin:'2px 0'}},h('div',{style:{width:Math.min((cnt/MAX)*100,100)+'%',height:'100%',background:bar}})));
     if(dayCA>0)dh.appendChild(h('div',{style:{fontSize:9,color:'#22c55e',fontWeight:600}},dayCA.toLocaleString('fr-CH')+' CHF'));
     // Bouton changer zone — visible uniquement si pas dans le passé et qu'il y a un planning de base
     if(!isPast&&PRELOAD_SCHEDULE[d]){
       dh.appendChild(h('button',{
-        style:{background:'rgba(139,92,246,.12)',border:'1px dashed #8b5cf655',color:'#a78bfa',borderRadius:5,padding:'2px 5px',fontSize:8,fontWeight:600,cursor:'pointer',marginTop:2,width:'100%'},
+        style:{background:'rgba(139,92,246,.12)',border:'1px dashed #8b5cf655',color:'#7c3aed',borderRadius:5,padding:'2px 5px',fontSize:8,fontWeight:600,cursor:'pointer',marginTop:2,width:'100%'},
         onClick:e=>{e.stopPropagation();modal={type:'swapday',date:d,dayLabel:WDAYS[i],dayIdx:i,wkDates};render();}
       },'↺ Changer zone'));
     }
@@ -397,23 +622,25 @@ function renderWeek(wkDates,cm,td,wkCA){
     dc.forEach(c=>{
       const v=vis[c.kd_nr],cfg=SC[v?.status||'none'],amt=parseFloat(v?.amount)||0;
       const hasRdvToday=(RDV_FIXES[d]||[]).some(r=>r.kd_nr===c.kd_nr);
+      const hasBook=!!book[c.kd_nr];
       col.appendChild(h('div',{className:'cc',style:{background:hasRdvToday?'rgba(245,158,11,.12)':cfg.bg,borderColor:hasRdvToday?'#f59e0b66':cfg.c+'33'},onClick:()=>{modal={type:'visit',client:c};render()}},
         h('span',{style:{color:hasRdvToday?'#f59e0b':cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},hasRdvToday?'⭐':cfg.i),
         h('div',{style:{flex:1,minWidth:0}},
-          h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#e2e8f0',fontSize:9}},sal(c)),
-          h('div',{style:{color:'#475569',fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':''))),
-        h('span',{style:{color:'#334155',cursor:'pointer',fontSize:13,lineHeight:1,flexShrink:0,padding:'0 2px'},
+          h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#1e293b',fontSize:9}},
+            sal(c), hasBook?h('span',{style:{marginLeft:3,fontSize:9}},' 📖✅'):''),
+          h('div',{style:{color:'#94a3b8',fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':''))),
+        h('span',{style:{color:'#94a3b8',cursor:'pointer',fontSize:13,lineHeight:1,flexShrink:0,padding:'0 2px'},
           onClick:e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render()}},'×')
       ));
     });
     if(!cnt)col.appendChild(h('div',{style:{textAlign:'center',color:'#1e293b',fontSize:9,margin:'auto 0',padding:'6px 0'}},'— vide —'));
-    col.appendChild(h('button',{style:{background:'rgba(99,102,241,.1)',border:'1px dashed #6366f155',color:'#a5b4fc',borderRadius:6,padding:'5px 4px',fontSize:9,fontWeight:600,cursor:'pointer',marginTop:2},
+    col.appendChild(h('button',{style:{background:'#eff6ff',border:'1px dashed #6366f155',color:'#6366f1',borderRadius:6,padding:'5px 4px',fontSize:9,fontWeight:600,cursor:'pointer',marginTop:2},
       onClick:()=>{modal={type:'addday',date:d,dayLabel:WDAYS[i]};render();}},'+ Ajouter visite'));
     col.appendChild(h('div',{style:{textAlign:'center',fontSize:8,fontWeight:700,marginTop:2,color:cnt>=MAX?'#22c55e':'#ef4444'}},cnt>=MAX?'✓ OK':cnt>0?'\u26A0\uFE0F -'+(MAX-cnt):''));
     grid.appendChild(col);
   });
   wrap.appendChild(grid);
-  wrap.appendChild(h('div',{style:{background:'#0f172a',borderRadius:9,padding:'7px 12px',border:'1px solid #1e293b',fontSize:10,color:'#475569',marginTop:7,display:'flex',justifyContent:'space-between'}},
+  wrap.appendChild(h('div',{style:{background:'#fff',borderRadius:9,padding:'7px 12px',border:'1px solid #e2e8f0',fontSize:10,color:'#64748b',marginTop:7,display:'flex',justifyContent:'space-between'}},
     'Appuyez pour ouvrir la fiche · × pour retirer',
     h('span',{style:{color:total>=MAX*4?'#22c55e':'#f59e0b',fontWeight:600}},total+'/'+(MAX*4))));
   return wrap;
@@ -422,20 +649,20 @@ function renderWeek(wkDates,cm,td,wkCA){
 function renderList(ac){
   const wrap=h('div',{style:{padding:'8px 10px'}});
   const searchInp=h('input',{type:'search',placeholder:'\uD83D\uDD0D  Rechercher…',value:srch,
-    style:{width:'100%',background:'#0f172a',border:'1px solid #334155',color:'#f1f5f9',padding:'9px 12px',borderRadius:9,outline:'none',marginBottom:8,display:'block'},
+    style:{width:'100%',background:'#fff',border:'1px solid #e2e8f0',color:'#1e293b',padding:'9px 12px',borderRadius:9,outline:'none',marginBottom:8,display:'block'},
     oninput:e=>{srch=e.target.value;updateListResults();}
   });
   wrap.appendChild(searchInp);
   const cities=['Toutes',...Array.from(new Set(ac.map(c=>c.ort).filter(Boolean))).sort()];
   const fr=h('div',{style:{display:'flex',gap:6,marginBottom:8,overflowX:'auto'}});
   [[fCity,cities,v=>{fCity=v;updateListResults();}],[fStat,['Tous',...Object.entries(SC).map(([k,c])=>k)],v=>{fStat=v;updateListResults();},Object.fromEntries(Object.entries(SC).map(([k,c])=>[k,c.l]))],[fSek,['Tous','102','112'],v=>{fSek=v;updateListResults();}]].forEach(([val,opts,onCh,labels])=>{
-    const sel=h('select',{style:{background:'#0f172a',border:'1px solid #334155',color:'#f1f5f9',padding:'6px 8px',borderRadius:8,fontSize:12,flexShrink:0},onChange:e=>onCh(e.target.value)});
+    const sel=h('select',{style:{background:'#fff',border:'1px solid #e2e8f0',color:'#1e293b',padding:'6px 8px',borderRadius:8,fontSize:12,flexShrink:0},onChange:e=>onCh(e.target.value)});
     opts.forEach(o=>{const label=labels?labels[o]||o:o;const opt=h('option',{value:o},label==='Tous'?'Tous statuts':o==='Tous'?(labels?'Tous statuts':'Tous SEK'):label);if(o===val)opt.selected=true;sel.appendChild(opt);});
     fr.appendChild(sel);
   });
   wrap.appendChild(fr);
 
-  const countEl=h('div',{style:{fontSize:11,color:'#475569',marginBottom:6}});
+  const countEl=h('div',{style:{fontSize:11,color:'#64748b',marginBottom:6}});
   wrap.appendChild(countEl);
   const resultsEl=h('div',null);
   wrap.appendChild(resultsEl);
@@ -453,19 +680,21 @@ function renderList(ac){
   function renderCard(c){
     const v=vis[c.kd_nr],st=v?.status||'none',cfg=SC[st],amt=parseFloat(v?.amount)||0,ca=parseInt(c.ca_2025)||0;
     const nextRdv=getNextClientRdv(c.kd_nr); // RDV fixe à venir pour ce client
-    return h('div',{className:'card',style:{background:'#0f172a',borderRadius:11,padding:'10px 12px',border:'1px solid '+(nextRdv?'#f59e0b44':'#1e293b'),display:'flex',alignItems:'center',gap:10,marginBottom:6},onClick:()=>{modal={type:'visit',client:c};render()}},
+    const hasBook=!!book[c.kd_nr];
+    return h('div',{className:'card',style:{background:'#fff',borderRadius:11,padding:'10px 12px',border:'1px solid '+(nextRdv?'#f59e0b44':'#1e293b'),display:'flex',alignItems:'center',gap:10,marginBottom:6},onClick:()=>{modal={type:'visit',client:c};render()}},
       h('div',{style:{position:'relative',flexShrink:0}},
         h('div',{className:'r-'+st,style:{width:38,height:38,borderRadius:10,background:'linear-gradient(135deg,#4f46e5,#7c3aed)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff'}},ini(c.name,c.vorname)),
-        nextRdv?h('div',{style:{position:'absolute',top:-5,right:-5,fontSize:13,lineHeight:1}},'⭐'):''
+        nextRdv?h('div',{style:{position:'absolute',top:-5,right:-5,fontSize:13,lineHeight:1}},'⭐'):'',
+        hasBook?h('div',{style:{position:'absolute',bottom:-5,right:-5,fontSize:11,lineHeight:1}},'📖✅'):''
       ),
       h('div',{style:{flex:1,minWidth:0}},
         h('div',{style:{fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},sal(c)),
-        h('div',{style:{fontSize:11,color:'#64748b'}},cname(c),' · ',c.ort),
-        nextRdv?h('div',{style:{fontSize:10,color:'#f59e0b',fontWeight:600}},'⭐ RDV '+nextRdv.h+' · '+fmtFR(nextRdv.date)):'',
-        v?.note?h('div',{style:{fontSize:10,color:'#475569',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},'📝 '+v.note):''
+        h('div',{style:{fontSize:11,color:'#94a3b8'}},cname(c),' · ',c.ort),
+        nextRdv?h('div',{style:{fontSize:10,color:'#d97706',fontWeight:600}},'⭐ RDV '+nextRdv.h+' · '+fmtFR(nextRdv.date)):'',
+        v?.note?h('div',{style:{fontSize:10,color:'#64748b',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},'📝 '+v.note):''
       ),
       h('div',{style:{textAlign:'right',flexShrink:0}},
-        amt>0?h('div',{style:{fontSize:12,fontWeight:700,color:'#22c55e'}},amt.toLocaleString('fr-CH')+' CHF'):h('div',{style:{fontSize:10,color:'#334155'}},'réf. '+(parseInt(c.ca_2026)||ca).toLocaleString()),
+        amt>0?h('div',{style:{fontSize:12,fontWeight:700,color:'#22c55e'}},amt.toLocaleString('fr-CH')+' CHF'):h('div',{style:{fontSize:10,color:'#94a3b8'}},'réf. '+(parseInt(c.ca_2026)||ca).toLocaleString()),
         h('div',{style:{marginTop:3}},h('span',{className:'chip',style:{background:cfg.bg,color:cfg.c}},cfg.i+' '+cfg.l))
       )
     );
@@ -487,29 +716,31 @@ function renderStats(wkDates,ac,td){
   const dCA=totalCA2026(d=>d===td);
   const wCA=totalCA2026(d=>wkDates.includes(d));
   const fups=ac.filter(c=>vis[c.kd_nr]?.followUpDate).sort((a,b)=>vis[a.kd_nr].followUpDate.localeCompare(vis[b.kd_nr].followUpDate));
-  const kpis=[{l:"CA aujourd'hui",v:dCA.toLocaleString('fr-CH')+' CHF',i:'📍',c:'#22c55e'},{l:'CA semaine',v:wCA.toLocaleString('fr-CH')+' CHF',i:'📅',c:'#6366f1'},{l:'CA total saisi',v:tCA.toLocaleString('fr-CH')+' CHF',i:'💰',c:'#f59e0b'},{l:'Relances',v:fups.length,i:'↩',c:'#f87171'}];
+  const bookCount=Object.keys(book).length;
+  const bookPct=ac.length>0?Math.round((bookCount/ac.length)*100):0;
+  const kpis=[{l:"CA aujourd'hui",v:dCA.toLocaleString('fr-CH')+' CHF',i:'📍',c:'#22c55e'},{l:'CA semaine',v:wCA.toLocaleString('fr-CH')+' CHF',i:'📅',c:'#6366f1'},{l:'CA total saisi',v:tCA.toLocaleString('fr-CH')+' CHF',i:'💰',c:'#f59e0b'},{l:'Relances',v:fups.length,i:'↩',c:'#f87171'},{l:'Catalogues remis',v:bookCount+' · '+bookPct+'%',i:'📖',c:'#22d3ee'}];
   const g=h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}});
-  kpis.forEach(k=>g.appendChild(h('div',{style:{background:'#0f172a',borderRadius:10,padding:'11px 12px',border:'1px solid #1e293b',borderLeft:'3px solid '+k.c}},h('div',{style:{fontSize:18,marginBottom:2}},k.i),h('div',{style:{fontWeight:800,fontSize:17,color:k.c}},k.v),h('div',{style:{fontSize:10,color:'#475569',marginTop:2}},k.l))));
+  kpis.forEach(k=>g.appendChild(h('div',{style:{background:'#fff',borderRadius:10,padding:'11px 12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',borderLeft:'3px solid '+k.c}},h('div',{style:{fontSize:18,marginBottom:2}},k.i),h('div',{style:{fontWeight:800,fontSize:17,color:k.c}},k.v),h('div',{style:{fontSize:10,color:'#64748b',marginTop:2}},k.l))));
   wrap.appendChild(g);
   const wkBars=wkDates.map(d=>({d,label:['Mar','Mer','Jeu','Ven'][wkDates.indexOf(d)],ca:totalCA2026(dt=>dt===d)}));
   const maxCA=Math.max(...wkBars.map(x=>x.ca),1);
-  const chart=h('div',{style:{background:'#0f172a',borderRadius:10,padding:'12px',border:'1px solid #1e293b',marginBottom:10}});
+  const chart=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',marginBottom:10}});
   chart.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:10}},'💵 CA par jour'));
   const bars=h('div',{style:{display:'flex',gap:6,alignItems:'flex-end',height:70}});
   wkBars.forEach(({d,label,ca})=>{
     const isT=d===td,pct=ca>0?Math.round((ca/maxCA)*100):0;
     bars.appendChild(h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
       h('div',{style:{fontSize:9,fontWeight:700,color:ca>0?'#22c55e':'#334155'}},ca>0?ca.toLocaleString('fr-CH'):'—'),
-      h('div',{style:{width:'100%',background:'#1e293b',borderRadius:5,height:45,display:'flex',alignItems:'flex-end',overflow:'hidden'}},h('div',{style:{width:'100%',height:pct+'%',background:isT?'#22c55e':'#6366f1',minHeight:ca>0?3:0}})),
+      h('div',{style:{width:'100%',background:'#e2e8f0',borderRadius:5,height:45,display:'flex',alignItems:'flex-end',overflow:'hidden'}},h('div',{style:{width:'100%',height:pct+'%',background:isT?'#22c55e':'#6366f1',minHeight:ca>0?3:0}})),
       h('div',{style:{fontSize:9,color:isT?'#a5b4fc':'#475569',fontWeight:isT?700:400}},label)));
   });
   chart.appendChild(bars);wrap.appendChild(chart);
   if(fups.length){
-    const rel=h('div',{style:{background:'#0f172a',borderRadius:10,padding:'12px',border:'1px solid #f59e0b33'}});
-    rel.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:8,color:'#f59e0b'}},'📅 Relances à effectuer'));
-    fups.slice(0,6).forEach(c=>rel.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#060d1a',borderRadius:8,padding:'8px 10px',marginBottom:5},onClick:()=>{modal={type:'visit',client:c};render()}},
-      h('div',null,h('div',{style:{fontWeight:600,fontSize:12}},sal(c)),h('div',{style:{fontSize:10,color:'#475569'}},c.ort)),
-      h('div',{style:{color:'#f59e0b',fontWeight:700,fontSize:11}},fmtFR(vis[c.kd_nr].followUpDate)))));
+    const rel=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #fde68a'}});
+    rel.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:8,color:'#d97706'}},'📅 Relances à effectuer'));
+    fups.slice(0,6).forEach(c=>rel.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#f8fafc',borderRadius:8,padding:'8px 10px',marginBottom:5},onClick:()=>{modal={type:'visit',client:c};render()}},
+      h('div',null,h('div',{style:{fontWeight:600,fontSize:12}},sal(c)),h('div',{style:{fontSize:10,color:'#64748b'}},c.ort)),
+      h('div',{style:{color:'#d97706',fontWeight:700,fontSize:11}},fmtFR(vis[c.kd_nr].followUpDate)))));
     wrap.appendChild(rel);
   }
   return wrap;
@@ -519,7 +750,7 @@ function renderModal(m,wkDates,cm,ac,td){
   const ov=h('div',{className:'overlay',onClick:e=>{if(e.target===ov){modal=null;render();}}});
   const sheet=h('div',{className:'sheet'});
   ov.appendChild(sheet);
-  const handle=h('div',{style:{width:36,height:4,background:'#334155',borderRadius:2,margin:'10px auto 0',flexShrink:0}});
+  const handle=h('div',{style:{width:36,height:4,background:'#cbd5e1',borderRadius:2,margin:'10px auto 0',flexShrink:0}});
   sheet.appendChild(handle);
 
   if(m.type==='visit'){
@@ -532,22 +763,22 @@ function renderModal(m,wkDates,cm,ac,td){
             clientRdv?h('span',{style:{fontSize:18}},'⭐'):'',
             h('div',{style:{fontWeight:700,fontSize:16}},sal(c))),
           h('div',{style:{fontSize:11,color:'#6366f1',marginTop:1}},cname(c),' · ',c.ort,' · SEK ',c.sek),
-          clientRdv?h('div',{style:{fontSize:11,color:'#f59e0b',fontWeight:600,marginTop:3}},'⭐ RDV '+clientRdv.h+' — '+fmtFR(clientRdv.date)):''
+          clientRdv?h('div',{style:{fontSize:11,color:'#d97706',fontWeight:600,marginTop:3}},'⭐ RDV '+clientRdv.h+' — '+fmtFR(clientRdv.date)):''
         ),
         h('div',{style:{display:'flex',gap:5}},
-          h('button',{style:{background:'rgba(245,158,11,.15)',border:'1px solid #f59e0b44',color:'#fbbf24',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'},
+          h('button',{style:{background:'#fef3c7',border:'1px solid #f59e0b44',color:'#d97706',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'},
             title:'Gérer RDV',onClick:()=>{modal={type:'rdv',client:c};render();}},'⭐'),
-          h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕')
+          h('button',{style:{background:'#f1f5f9',border:'none',color:'#fff',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕')
         )
       ));
     sheet.appendChild(hd);
     const body=h('div',{className:'sheet-b'});
     body.appendChild(h('div',{style:{display:'flex',gap:6}},
       ...[{l:'CA 2026 cumulé',v:clientCA2026(c.kd_nr).toLocaleString()+' CHF',c:'#22c55e'},{l:'Réf. CA 2026 fichier',v:(parseInt(c.ca_2026)||0).toLocaleString()+' CHF',c:'#6366f1'},{l:'CA 2025',v:(parseInt(c.ca_2025)||0).toLocaleString()+' CHF',c:'#64748b'}].map(s=>
-        h('div',{style:{flex:1,background:'#060d1a',borderRadius:8,padding:'7px',textAlign:'center',border:'1px solid #1e293b'}},h('div',{style:{fontSize:9,color:'#475569',marginBottom:1}},s.l),h('div',{style:{fontWeight:700,fontSize:12,color:s.c}},s.v)))));
+        h('div',{style:{flex:1,background:'#f8fafc',borderRadius:8,padding:'7px',textAlign:'center',border:'1px solid #e2e8f0'}},h('div',{style:{fontSize:9,color:'#64748b',marginBottom:1}},s.l),h('div',{style:{fontWeight:700,fontSize:12,color:s.c}},s.v)))));
     if(c.tel||c.strasse){
-      const ct=h('div',{style:{background:'#060d1a',borderRadius:9,padding:'9px 11px',border:'1px solid #1e293b'}});
-      if(c.strasse)ct.appendChild(h('div',{style:{fontSize:12,color:'#64748b'}},'📍 '+c.strasse+', '+c.plz+' '+c.ort));
+      const ct=h('div',{style:{background:'#f8fafc',borderRadius:9,padding:'9px 11px',border:'1px solid #e2e8f0'}});
+      if(c.strasse)ct.appendChild(h('div',{style:{fontSize:12,color:'#94a3b8'}},'📍 '+c.strasse+', '+c.plz+' '+c.ort));
       if(c.tel){const a=h('a',{href:'tel:'+c.tel.replace(/\s/g,''),style:{fontSize:12,color:'#6366f1',textDecoration:'none',display:'block'}},'📞 '+c.tel);ct.appendChild(a);}
       if(c.tel2){const a=h('a',{href:'tel:'+c.tel2.replace(/\s/g,''),style:{fontSize:12,color:'#6366f1',textDecoration:'none',display:'block'}},'📞 '+c.tel2);ct.appendChild(a);}
       body.appendChild(ct);
@@ -671,17 +902,33 @@ function renderModal(m,wkDates,cm,ac,td){
     }
 
     body.appendChild(h('div',{style:{display:'flex',gap:8}},
-      c.strasse?h('a',{href:'https://maps.apple.com/?address='+encodeURIComponent(c.strasse+' '+c.plz+' '+c.ort),target:'_blank',style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:5,background:'rgba(99,102,241,.1)',border:'1px solid rgba(99,102,241,.25)',color:'#a5b4fc',padding:'10px',borderRadius:9,textDecoration:'none',fontSize:12,fontWeight:600}},'🗺️ Plans Apple'):'',
-      h('button',{className:'bg',style:{flex:1,padding:'10px',fontSize:12,fontWeight:600,borderColor:'#22c55e40',color:'#4ade80'},onClick:()=>{modal={type:'schedule',client:c};render();}},'📅 Planning')
+      c.strasse?h('a',{href:'https://maps.apple.com/?address='+encodeURIComponent(c.strasse+' '+c.plz+' '+c.ort),target:'_blank',style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:5,background:'#eff6ff',border:'1px solid rgba(99,102,241,.25)',color:'#6366f1',padding:'10px',borderRadius:9,textDecoration:'none',fontSize:12,fontWeight:600}},'🗺️ Plans Apple'):'',
+      h('button',{className:'bg',style:{flex:1,padding:'10px',fontSize:12,fontWeight:600,borderColor:'#22c55e40',color:'#16a34a'},onClick:()=>{modal={type:'schedule',client:c};render();}},'📅 Planning')
     ));
+
+    // Bouton Book
+    const hasBook=!!book[c.kd_nr];
+    body.appendChild(h('button',{
+      style:{width:'100%',padding:'11px',marginBottom:6,borderRadius:10,
+        border:'1px solid '+(hasBook?'#22c55e':'#334155'),
+        background:hasBook?'rgba(34,197,94,.1)':'transparent',
+        color:hasBook?'#4ade80':'#64748b',fontWeight:600,fontSize:13,cursor:'pointer',
+        display:'flex',alignItems:'center',justifyContent:'center',gap:8},
+      onClick:()=>{
+        if(book[c.kd_nr]){delete book[c.kd_nr];}
+        else{book[c.kd_nr]={at:new Date().toISOString().slice(0,10)};}
+        persist();modal={type:'visit',client:c};render();
+      }
+    },hasBook?'📖 ✅ Catalogue reçu — appuyer pour annuler':'📖 Marquer catalogue reçu'));
 
     // Bouton CRM — envoie les données et ouvre le CRM directement sur le client
     body.appendChild(h('button',{
-      style:{width:'100%',padding:'11px',marginBottom:6,borderRadius:10,border:'1px solid #f59e0b44',background:'rgba(245,158,11,.08)',color:'#fbbf24',fontWeight:600,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8},
+      style:{width:'100%',padding:'11px',marginBottom:6,borderRadius:10,border:'1px solid #f59e0b44',background:'rgba(245,158,11,.08)',color:'#d97706',fontWeight:600,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8},
       onClick:sendToCRM
     },'📋 Enregistrer & ouvrir dans le CRM'));
 
     body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'12px',fontSize:14},onClick:()=>{modal=null;showToast('Visite enregistrée \u2713');}},'💾 Enregistrer & fermer'));
+    body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'10px',fontSize:12,marginTop:5,borderColor:'#fbcfe8',color:'#db2777'},onClick:()=>{modal=null;render();setTimeout(()=>printClientFiche(c),100);}},'🖨️ Imprimer la fiche client'));
     sheet.appendChild(body);
 
   } else if(m.type==='schedule'){
@@ -689,7 +936,7 @@ function renderModal(m,wkDates,cm,ac,td){
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'📅 Ajouter au planning'),h('div',{style:{fontSize:11,color:'#6366f1'}},sal(c))),
-        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal={type:'visit',client:c};render();}},'←'))));
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal={type:'visit',client:c};render();}},'←'))));
     const body=h('div',{className:'sheet-b'});
     const td_=today();
     wkDates.forEach((d,i)=>{
@@ -702,38 +949,60 @@ function renderModal(m,wkDates,cm,ac,td){
         }},
         h('div',{style:{display:'flex',alignItems:'center',gap:8}},
           h('span',{style:{fontWeight:600,fontSize:13,color:isT?'#6366f1':hasTh?'#22c55e':'#94a3b8'}},WDAYS[i]),
-          h('span',{style:{fontSize:11,color:'#475569'}},fmtFR(d)),
+          h('span',{style:{fontSize:11,color:'#64748b'}},fmtFR(d)),
           isT?h('span',{style:{fontSize:9,color:'#6366f1',fontWeight:700}},"AUJ."):'',
           hasTh?h('span',{style:{fontSize:9,color:'#22c55e',fontWeight:700}},'✓ PLANIFIÉ'):''),
         h('span',{style:{fontSize:11,color:full?'#ef4444':'#64748b',fontWeight:600}},cnt+'/'+MAX)));
     });
     sheet.appendChild(body);
 
+  } else if(m.type==='print'){
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'🖨️ Impression'),
+          h('div',{style:{fontSize:11,color:'#f472b6'}},'Choisissez ce que vous voulez imprimer')),
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#fff',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
+    const body=h('div',{className:'sheet-b'});
+    [{label:'📅 Planning de la semaine',sub:'4 jours · clients · statuts · CA',fn:printPlanning,c:'#6366f1'},
+     {label:'📊 Rapport CA & statistiques',sub:'KPIs · top 20 clients · relances',fn:printStats,c:'#22c55e'},
+     {label:'👥 Liste complète des clients',sub:'Tous les clients avec statuts et CA',fn:printClientList,c:'#f59e0b'},
+     {label:'🛍️ Produits vendus',sub:'Toutes les commandes avec produits et montants',fn:printProducts,c:'#06b6d4'},
+    ].forEach(({label,sub,fn,c:col})=>{
+      body.appendChild(h('button',{
+        style:{width:'100%',padding:'13px 14px',borderRadius:11,border:'1px solid '+col+'44',background:col+'10',
+          color:col,fontWeight:600,fontSize:13,cursor:'pointer',display:'flex',flexDirection:'column',
+          alignItems:'flex-start',gap:3,marginBottom:8,textAlign:'left'},
+        onClick:()=>{modal=null;render();setTimeout(fn,100);}
+      },label,h('span',{style:{fontSize:10,color:'#64748b',fontWeight:400}},sub)));
+    });
+    body.appendChild(h('div',{style:{fontSize:11,color:'#64748b',textAlign:'center',padding:'4px 0'}},
+      '💡 Une prévisualisation s\'ouvrira avant l\'impression'));
+    sheet.appendChild(body);
   } else if(m.type==='sync'){
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'🔄 Synchronisation & Export'),h('div',{style:{fontSize:11,color:'#06b6d4'}},'Transférer entre appareils')),
-        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
     const body=h('div',{className:'sheet-b'});
-    body.appendChild(h('div',{style:{background:'rgba(245,158,11,.1)',border:'1px solid #f59e0b44',borderRadius:9,padding:'10px 12px',fontSize:12,color:'#fbbf24',fontWeight:600,lineHeight:1.5}},
+    body.appendChild(h('div',{style:{background:'#fffbeb',border:'1px solid #f59e0b44',borderRadius:9,padding:'10px 12px',fontSize:12,color:'#d97706',fontWeight:600,lineHeight:1.5}},
       '⚠️ Important : chaque appareil (iPad / PC) garde ses propres données. Rien ne se synchronise automatiquement — vous devez exporter puis importer manuellement après chaque session de travail.'));
-    body.appendChild(h('div',{style:{background:'#060d1a',borderRadius:10,padding:'14px',border:'1px solid #1e293b',fontSize:12,color:'#94a3b8',lineHeight:1.8}},
-      h('b',{style:{color:'#f1f5f9',display:'block',marginBottom:6}},'Comment synchroniser :'),
+    body.appendChild(h('div',{style:{background:'#f8fafc',borderRadius:10,padding:'14px',border:'1px solid #e2e8f0',fontSize:12,color:'#94a3b8',lineHeight:1.8}},
+      h('b',{style:{color:'#1e293b',display:'block',marginBottom:6}},'Comment synchroniser :'),
       '1️⃣  Sur cet appareil : appuyez sur ',h('b',null,'"Exporter sync"'),h('br'),
       '2️⃣  Partagez le fichier .json via AirDrop, iCloud Drive, email…',h('br'),
       '3️⃣  Sur l\'autre appareil : ouvrir ce fichier HTML → ',h('b',null,'"Importer sync"'),h('br'),h('br'),
       h('span',{style:{color:'#22c55e'}},'✅ '),Object.keys(vis).length+' visites · '+Object.keys(sch).filter(d=>sch[d]?.length).length+' jours planifiés'));
     body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'13px',fontSize:14},onClick:()=>{exportSync();}},'📤 Exporter sync (.json)'));
-    const impLbl=h('label',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'13px',borderRadius:10,border:'2px dashed #06b6d444',background:'rgba(6,182,212,.06)',color:'#22d3ee',fontWeight:600,fontSize:14,cursor:'pointer'}},'📥 Importer sync (.json)',h('input',{type:'file',accept:'.json',style:{display:'none'},onChange:e=>{const f=e.target.files[0];if(f){importSync(f);modal=null;}}}));
+    const impLbl=h('label',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'13px',borderRadius:10,border:'2px dashed #a5f3fc',background:'#ecfeff',color:'#0891b2',fontWeight:600,fontSize:14,cursor:'pointer'}},'📥 Importer sync (.json)',h('input',{type:'file',accept:'.json',style:{display:'none'},onChange:e=>{const f=e.target.files[0];if(f){importSync(f);modal=null;}}}));
     body.appendChild(impLbl);
-    body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'12px',fontWeight:600,fontSize:13,color:'#22d3ee',borderColor:'#06b6d444'},onClick:exportExcel},'📊 Exporter Excel complet'));
+    body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'12px',fontWeight:600,fontSize:13,color:'#0891b2',borderColor:'#06b6d444'},onClick:exportExcel},'📊 Exporter Excel complet'));
     sheet.appendChild(body);
 
   } else if(m.type==='newclient'){
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'➕ Nouveau client'),h('div',{style:{fontSize:11,color:'#22c55e'}},'Les visites existantes sont conservées')),
-        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
     const body=h('div',{className:'sheet-b'});
     const form={kd_nr:'',sek:'102',name:'',vorname:'',salon:'',strasse:'',plz:'',ort:'',tel:'',ca_2025:'0'};
     const eids=new Set(allC().map(c=>c.kd_nr));
@@ -742,7 +1011,7 @@ function renderModal(m,wkDates,cm,ac,td){
       const inp=h('input',{type,value:form[key]||'',placeholder:ph,className:'fi',onInput:e=>{form[key]=e.target.value;}});
       w.appendChild(inp);return w;
     };
-    body.appendChild(h('div',{style:{background:'rgba(99,102,241,.08)',border:'1px solid #6366f130',borderRadius:9,padding:'9px 12px',fontSize:11,color:'#a5b4fc'}},
+    body.appendChild(h('div',{style:{background:'#f5f3ff',border:'1px solid #c7d2fe',borderRadius:9,padding:'9px 12px',fontSize:11,color:'#6366f1'}},
       '💡 Pour un prospect, le numéro client n\u2019est pas obligatoire — il sera généré automatiquement. Seul le nom ou le salon est requis.'));
     body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},mkF('N° Client (optionnel)','kd_nr','text','laisser vide si prospect'),mkF('Secteur','sek','text','102 ou 112')));
     body.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},mkF('Nom','name','text','Nom'),mkF('Prénom','vorname','text','Prénom')));
@@ -773,12 +1042,12 @@ function renderModal(m,wkDates,cm,ac,td){
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'➕ Visite imprévue'),
           h('div',{style:{fontSize:11,color:'#6366f1'}},dayLabel+' '+fmtFR(d))),
-        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
     const body=h('div',{className:'sheet-b'});
 
     const dayCount=(sch[d]||[]).length;
     if(dayCount>=MAX){
-      body.appendChild(h('div',{style:{background:'rgba(239,68,68,.12)',border:'1px solid #ef444444',borderRadius:9,padding:'10px 12px',fontSize:12,color:'#f87171',fontWeight:600}},
+      body.appendChild(h('div',{style:{background:'#fef2f2',border:'1px solid #ef444444',borderRadius:9,padding:'10px 12px',fontSize:12,color:'#dc2626',fontWeight:600}},
         '⚠️ Ce jour est déjà à '+dayCount+'/'+MAX+' visites — il faut d\u2019abord en retirer une.'));
     }
 
@@ -786,7 +1055,7 @@ function renderModal(m,wkDates,cm,ac,td){
 
     const searchWrap=h('div',null);
     const searchInp=h('input',{type:'search',placeholder:'\uD83D\uDD0D  Nom, salon, ville…',value:'',
-      style:{width:'100%',background:'#060d1a',border:'1px solid #1e293b',color:'#f1f5f9',padding:'10px 12px',borderRadius:9,outline:'none'},
+      style:{width:'100%',background:'#f8fafc',border:'1px solid #e2e8f0',color:'#1e293b',padding:'10px 12px',borderRadius:9,outline:'none'},
     });
     searchWrap.appendChild(searchInp);
     body.appendChild(searchWrap);
@@ -813,11 +1082,11 @@ function renderModal(m,wkDates,cm,ac,td){
       const {list,already}=buildAddResults();
       resultsEl.innerHTML='';
       if(!q){
-        resultsEl.appendChild(h('div',{style:{textAlign:'center',color:'#334155',fontSize:12,padding:'16px 0'}},'Tapez un nom pour rechercher…'));
+        resultsEl.appendChild(h('div',{style:{textAlign:'center',color:'#94a3b8',fontSize:12,padding:'16px 0'}},'Tapez un nom pour rechercher…'));
         return;
       }
       if(list.length===0){
-        resultsEl.appendChild(h('div',{style:{textAlign:'center',color:'#334155',fontSize:12,padding:'10px 0'}},'Aucun client trouvé'));
+        resultsEl.appendChild(h('div',{style:{textAlign:'center',color:'#94a3b8',fontSize:12,padding:'10px 0'}},'Aucun client trouvé'));
         return;
       }
       list.forEach(c=>{
@@ -834,7 +1103,7 @@ function renderModal(m,wkDates,cm,ac,td){
           h('div',{style:{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#4f46e5,#7c3aed)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',flexShrink:0}},ini(c.name,c.vorname)),
           h('div',{style:{flex:1,minWidth:0}},
             h('div',{style:{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},sal(c)),
-            h('div',{style:{fontSize:10,color:'#64748b'}},cname(c),' · ',c.ort)),
+            h('div',{style:{fontSize:10,color:'#94a3b8'}},cname(c),' · ',c.ort)),
           isAlready?h('span',{style:{fontSize:9,color:'#22c55e',fontWeight:700,flexShrink:0}},'✓ DÉJÀ'):h('span',{style:{fontSize:14,color:'#6366f1',flexShrink:0}},'+')
         ));
       });
@@ -844,13 +1113,13 @@ function renderModal(m,wkDates,cm,ac,td){
 
     // Séparateur + bouton pour créer un nouveau prospect directement et l'ajouter à ce jour
     body.appendChild(h('div',{style:{display:'flex',alignItems:'center',gap:8,margin:'4px 0'}},
-      h('div',{style:{flex:1,height:1,background:'#1e293b'}}),h('span',{style:{fontSize:10,color:'#475569'}},'OU'),h('div',{style:{flex:1,height:1,background:'#1e293b'}})));
+      h('div',{style:{flex:1,height:1,background:'#e2e8f0'}}),h('span',{style:{fontSize:10,color:'#64748b'}},'OU'),h('div',{style:{flex:1,height:1,background:'#e2e8f0'}})));
 
-    const prospectToggle=h('button',{className:'bg',style:{width:'100%',padding:'11px',fontWeight:600,fontSize:13,borderColor:'#22c55e44',color:'#4ade80'}},
+    const prospectToggle=h('button',{className:'bg',style:{width:'100%',padding:'11px',fontWeight:600,fontSize:13,borderColor:'#bbf7d0',color:'#16a34a'}},
       '➕ Créer un nouveau prospect pour ce jour');
     body.appendChild(prospectToggle);
 
-    const prospectForm=h('div',{style:{display:'none',flexDirection:'column',gap:10,marginTop:8,background:'#060d1a',border:'1px solid #1e293b',borderRadius:10,padding:'12px'}});
+    const prospectForm=h('div',{style:{display:'none',flexDirection:'column',gap:10,marginTop:8,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:10,padding:'12px'}});
     body.appendChild(prospectForm);
 
     prospectToggle.onclick=()=>{
@@ -865,7 +1134,7 @@ function renderModal(m,wkDates,cm,ac,td){
       const inp=h('input',{type:'text',value:pf[key],placeholder:ph,className:'fi',oninput:e=>{pf[key]=e.target.value;}});
       w.appendChild(inp);return w;
     };
-    prospectForm.appendChild(h('div',{style:{fontSize:11,color:'#4ade80',fontWeight:600}},'📋 Nouveau prospect — nom ou salon requis'));
+    prospectForm.appendChild(h('div',{style:{fontSize:11,color:'#16a34a',fontWeight:600}},'📋 Nouveau prospect — nom ou salon requis'));
     prospectForm.appendChild(mkPF('Nom du salon','salon','ex: Coiffure Dupont'));
     prospectForm.appendChild(mkPF('Nom du contact','name','Nom (optionnel si salon rempli)'));
     prospectForm.appendChild(mkPF('Ville','ort','ex: Sion'));
@@ -895,7 +1164,7 @@ function renderModal(m,wkDates,cm,ac,td){
       'RIVIERA':   {label:'Riviera Vaudoise',cities:['Villeneuve VD','Villeneuve','Corseaux','Blonay','Clarens','La Tour-de-Peilz','Vevey','Montreux','Roche VD','St-Légier-Chiésaz','Paudex'],color:'#6366f1'},
       'LAUSANNE':  {label:'Lausanne / Vaud Ouest',cities:['Lausanne','Lutry','Pully','Crissier','Chavannes-Renens','Bussigny','Renens VD','Prilly','Etagnières','Eclépens','Ecublens VD','Bussigny-Lausanne'],color:'#8b5cf6'},
       'FRIBOURG':  {label:'Fribourg / Glâne',cities:['Ursy','Châtel-St-Denis','Attalens','Bossonnens','Servion','Chexbres','Bulle','Oron-la-Ville','Siviriez','Moudon'],color:'#06b6d4'},
-      'CHABLAIS':  {label:'Aigle / Bex / Chablais',cities:['Aigle','Bex','Collombey','Vouvry','Bouveret','Monthey','St-Maurice','Muraz (Collombey)','Troistorrents','Champéry'],color:'#f59e0b'},
+      'CHABLAIS':  {label:'Aigle / Bex / Chablais',cities:['Aigle','Bex','Collombey','Vouvry','Bouveret','Monthey','St-Maurice','Muraz (Collombey)','Troistorrents','Champéry'],color:'#d97706'},
       'MARTIGNY':  {label:'Martigny / Valais bas',cities:['Martigny','Saxon','Saillon','Riddes','Ardon','Aproz','Fully','Leytron','Charrat','Martigny-Croix','Sembrancher'],color:'#ef4444'},
       'SION':      {label:'Sion / Valais Central',cities:['Sion','Conthey','Vétroz','Savièse','Grimisuat','Uvrier','Bramois','Haute-Nendaz','Basse-Nendaz'],color:'#22c55e'},
       'SIERRE':    {label:'Sierre / Crans-Montana',cities:['Sierre','Crans-Montana','Crans-sur-Sierre','Grône','Salgesch','Chippis','Blignoud (Ayent)','Blignoud','Miège','Chalais','Crans-Montana 1'],color:'#f97316'},
@@ -981,9 +1250,9 @@ function renderModal(m,wkDates,cm,ac,td){
         h('div',null,
           h('div',{style:{fontWeight:700,fontSize:16}},'↺ Changer la zone'),
           h('div',{style:{fontSize:11,color:'#8b5cf6'}},dayLabel+' '+fmtFR(d)),
-          currentZone?h('div',{style:{fontSize:10,color:'#475569',marginTop:2}},'Zone actuelle : '+ZONE_INFO[currentZone]?.label):'',
-          hasRdv?h('div',{style:{fontSize:10,color:'#f59e0b',marginTop:2}},'⭐ RDV fixe ce jour — les clients autour sont prioritaires'):''),
-        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕')
+          currentZone?h('div',{style:{fontSize:10,color:'#64748b',marginTop:2}},'Zone actuelle : '+ZONE_INFO[currentZone]?.label):'',
+          hasRdv?h('div',{style:{fontSize:10,color:'#d97706',marginTop:2}},'⭐ RDV fixe ce jour — les clients autour sont prioritaires'):''),
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#fff',width:26,height:26,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕')
       )));
 
     const body=h('div',{className:'sheet-b'});
@@ -1002,7 +1271,7 @@ function renderModal(m,wkDates,cm,ac,td){
     recommended.delete(currentZone);
 
     if(recommended.size>0){
-      body.appendChild(h('div',{style:{fontSize:11,color:'#a78bfa',fontWeight:600,marginBottom:4}},'🎯 Zones recommandées (proches de vos RDV ou jours adjacents) :'));
+      body.appendChild(h('div',{style:{fontSize:11,color:'#7c3aed',fontWeight:600,marginBottom:4}},'🎯 Zones recommandées (proches de vos RDV ou jours adjacents) :'));
       [...recommended].filter(z=>ZONE_INFO[z]).forEach(zoneName=>{
         const info=ZONE_INFO[zoneName];
         const cm_=cMap();
@@ -1010,7 +1279,7 @@ function renderModal(m,wkDates,cm,ac,td){
         const pool=allC_.filter(c=>info.cities.includes(c.ort));
         const topCA=pool.slice(0,3).map(c=>sal(c)).join(', ');
         body.appendChild(h('div',{
-          style:{background:'rgba(139,92,246,.1)',border:'1px solid '+info.color+'44',borderRadius:10,padding:'11px 14px',cursor:'pointer',marginBottom:6},
+          style:{background:'#f5f3ff',border:'1px solid '+info.color+'44',borderRadius:10,padding:'11px 14px',cursor:'pointer',marginBottom:6},
           onClick:()=>loadZoneForDay(zoneName)
         },
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
@@ -1024,7 +1293,7 @@ function renderModal(m,wkDates,cm,ac,td){
       });
     }
 
-    body.appendChild(h('div',{style:{fontSize:11,color:'#475569',fontWeight:600,margin:'8px 0 4px'}},'📍 Toutes les zones disponibles :'));
+    body.appendChild(h('div',{style:{fontSize:11,color:'#64748b',fontWeight:600,margin:'8px 0 4px'}},'📍 Toutes les zones disponibles :'));
     Object.entries(ZONE_INFO).filter(([z])=>z!==currentZone).forEach(([zoneName,info])=>{
       const allC_=activeC();
       const pool=allC_.filter(c=>info.cities.includes(c.ort));
@@ -1035,15 +1304,15 @@ function renderModal(m,wkDates,cm,ac,td){
       },
         h('div',null,
           h('div',{style:{fontWeight:600,fontSize:12,color:info.color}},info.label),
-          h('div',{style:{fontSize:10,color:'#475569'}},pool.length+' clients disponibles')
+          h('div',{style:{fontSize:10,color:'#64748b'}},pool.length+' clients disponibles')
         ),
-        h('span',{style:{fontSize:16,color:'#334155'}},'+')
+        h('span',{style:{fontSize:16,color:'#94a3b8'}},'+')
       ));
     });
 
     // Bouton pour revenir au planning initial de ce jour
     if(PRELOAD_SCHEDULE[d]){
-      body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'10px',fontWeight:600,marginTop:4,borderColor:'#22c55e44',color:'#4ade80'},
+      body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'10px',fontWeight:600,marginTop:4,borderColor:'#bbf7d0',color:'#16a34a'},
         onClick:()=>{sch[d]=[...PRELOAD_SCHEDULE[d]];persist();showToast('✓ Planning initial restauré pour '+dayLabel);modal=null;render();}},'↩ Restaurer le planning initial de ce jour'));
     }
 
@@ -1057,23 +1326,23 @@ function renderModal(m,wkDates,cm,ac,td){
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,
           h('div',{style:{fontWeight:700,fontSize:16}},'⭐ Gérer les RDV'),
-          h('div',{style:{fontSize:11,color:'#f59e0b'}},sal(c))),
-        h('button',{style:{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},
+          h('div',{style:{fontSize:11,color:'#d97706'}},sal(c))),
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#fff',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},
           onClick:()=>{modal={type:'visit',client:c};render();}},'←'))));
     const body=h('div',{className:'sheet-b'});
 
     // RDV existants pour ce client
     if(clientRdvDays.length>0){
-      body.appendChild(h('div',{style:{fontWeight:600,fontSize:13,color:'#f59e0b',marginBottom:6}},'RDV planifiés :'));
+      body.appendChild(h('div',{style:{fontWeight:600,fontSize:13,color:'#d97706',marginBottom:6}},'RDV planifiés :'));
       clientRdvDays.forEach(date=>{
         const rdvs=(RDV_FIXES[date]||[]).filter(r=>r.kd_nr===c.kd_nr);
         rdvs.forEach(rdv=>{
-          body.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(245,158,11,.1)',border:'1px solid #f59e0b33',borderRadius:9,padding:'10px 12px',marginBottom:5}},
+          body.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#fffbeb',border:'1px solid #fde68a',borderRadius:9,padding:'10px 12px',marginBottom:5}},
             h('div',null,
-              h('div',{style:{fontWeight:600,fontSize:13,color:'#fbbf24'}},'⭐ '+rdv.h+' — '+fmtFR(date)),
-              h('div',{style:{fontSize:11,color:'#f59e0b'}},rdv.lieu)
+              h('div',{style:{fontWeight:600,fontSize:13,color:'#d97706'}},'⭐ '+rdv.h+' — '+fmtFR(date)),
+              h('div',{style:{fontSize:11,color:'#d97706'}},rdv.lieu)
             ),
-            h('button',{style:{background:'rgba(239,68,68,.15)',border:'1px solid #ef444433',color:'#f87171',borderRadius:7,padding:'5px 10px',cursor:'pointer',fontSize:12},
+            h('button',{style:{background:'rgba(239,68,68,.15)',border:'1px solid #fecaca',color:'#dc2626',borderRadius:7,padding:'5px 10px',cursor:'pointer',fontSize:12},
               onClick:()=>{
                 // Supprimer ce RDV
                 const rdv2=RDV_FIXES;
@@ -1088,7 +1357,7 @@ function renderModal(m,wkDates,cm,ac,td){
         });
       });
     } else {
-      body.appendChild(h('div',{style:{fontSize:12,color:'#475569',marginBottom:8}},'Aucun RDV planifié pour ce client.'));
+      body.appendChild(h('div',{style:{fontSize:12,color:'#64748b',marginBottom:8}},'Aucun RDV planifié pour ce client.'));
     }
 
     // Formulaire ajout d'un nouveau RDV
