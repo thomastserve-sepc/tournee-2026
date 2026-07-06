@@ -729,6 +729,8 @@ function renderModal(m,wkDates,cm,ac,td){
     const daysRow=h('div',{style:{display:'flex',gap:4,flexWrap:'nowrap',marginBottom:8,touchAction:'none'}});
     const dayBtns={};
     let slideMode=null; // 'add' ou 'remove'
+    const getSheetScroll=()=>document.querySelector('.sheet')?.scrollTop||0;
+    const setSheetScroll=(v)=>{const s=document.querySelector('.sheet');if(s)s.scrollTop=v;};
     const refreshStatus=()=>{
       const h2=loadHours_();const ch=h2[c.kd_nr]||{days:[]};
       const days=ch.days||[];
@@ -737,6 +739,7 @@ function renderModal(m,wkDates,cm,ac,td){
       if(info)info.style.color=days.length>0?'#22c55e':'#94a3b8';
     };
     const toggleDay=(j,forceOn)=>{
+      const sc=getSheetScroll();
       const h2=loadHours_();const ch=h2[c.kd_nr]||{days:[],open:'09:00',close:'18:00'};
       const days=[...(ch.days||[])];
       const on=forceOn!==undefined?forceOn:!days.includes(j);
@@ -746,6 +749,7 @@ function renderModal(m,wkDates,cm,ac,td){
       const btn=dayBtns[j];
       if(btn){btn.style.background=on?'#eff6ff':'#fff';btn.style.borderColor=on?'#6366f1':'#e2e8f0';btn.style.color=on?'#6366f1':'#94a3b8';btn.style.fontWeight=on?'600':'400';}
       refreshStatus();
+      requestAnimationFrame(()=>setSheetScroll(sc));
     };
     JOURS.forEach(j=>{
       const isOn=(cHrs.days||[]).includes(j);
@@ -775,8 +779,11 @@ function renderModal(m,wkDates,cm,ac,td){
     const openInp=h('input',{type:'time',value:cHrs.open||'09:00',className:'fi',style:{flex:1}});
     const closeInp=h('input',{type:'time',value:cHrs.close||'18:00',className:'fi',style:{flex:1}});
     const saveTime_=()=>{
+      const sc=getSheetScroll();
       const h2=loadHours_();h2[c.kd_nr]={...(h2[c.kd_nr]||{days:[]}),open:openInp.value,close:closeInp.value};
       saveHours_(h2);syncHoursToCRM_(c.kd_nr,h2[c.kd_nr]);
+      refreshStatus();
+      requestAnimationFrame(()=>setSheetScroll(sc));
     };
     openInp.addEventListener('change',saveTime_);closeInp.addEventListener('change',saveTime_);
     timeRow.appendChild(h('span',{style:{fontSize:11,color:'#94a3b8'}},'De'));
