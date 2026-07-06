@@ -752,7 +752,7 @@ function renderModal(m,wkDates,cm,ac,td){
       const btn=h('button',{style:{flex:1,padding:'8px 2px',borderRadius:7,border:'1px solid '+(isOn?'#6366f1':'#e2e8f0'),background:isOn?'#eff6ff':'#fff',color:isOn?'#6366f1':'#94a3b8',cursor:'pointer',fontSize:11,fontWeight:isOn?600:400,textAlign:'center',minWidth:0}},j);
       dayBtns[j]=btn;
       // Tap simple
-      btn.addEventListener('click',e=>{e.stopPropagation();toggleDay(j);showToast('✓ '+j+' '+(!(cHrs.days||[]).includes(j)?'retiré':'ajouté'));});
+      btn.addEventListener('click',e=>{e.stopPropagation();toggleDay(j);});
       // Slide
       btn.addEventListener('touchstart',e=>{
         e.stopPropagation();
@@ -767,7 +767,7 @@ function renderModal(m,wkDates,cm,ac,td){
         const day=Object.entries(dayBtns).find(([,b])=>b===el)?.[0];
         if(day)toggleDay(day,slideMode==='add');
       },{passive:false});
-      btn.addEventListener('touchend',e=>{e.stopPropagation();slideMode=null;showToast('✓ Horaires sauvegardés');},{passive:true});
+      btn.addEventListener('touchend',e=>{e.stopPropagation();slideMode=null;},{passive:true});
       daysRow.appendChild(btn);
     });
     hoursBox.appendChild(daysRow);
@@ -776,7 +776,7 @@ function renderModal(m,wkDates,cm,ac,td){
     const closeInp=h('input',{type:'time',value:cHrs.close||'18:00',className:'fi',style:{flex:1}});
     const saveTime_=()=>{
       const h2=loadHours_();h2[c.kd_nr]={...(h2[c.kd_nr]||{days:[]}),open:openInp.value,close:closeInp.value};
-      saveHours_(h2);syncHoursToCRM_(c.kd_nr,h2[c.kd_nr]);showToast('✓ Horaires sauvegardés');
+      saveHours_(h2);syncHoursToCRM_(c.kd_nr,h2[c.kd_nr]);
     };
     openInp.addEventListener('change',saveTime_);closeInp.addEventListener('change',saveTime_);
     timeRow.appendChild(h('span',{style:{fontSize:11,color:'#94a3b8'}},'De'));
