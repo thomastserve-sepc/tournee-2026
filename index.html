@@ -45,6 +45,79 @@ const RDV_KEY='rdv_fixes_2026';
 function loadRdv(){try{const s=JSON.parse(localStorage.getItem(RDV_KEY)||'null');return s||JSON.parse(JSON.stringify(RDV_DEFAULTS));}catch{return JSON.parse(JSON.stringify(RDV_DEFAULTS));}}
 function saveRdv(r){localStorage.setItem(RDV_KEY,JSON.stringify(r));}
 let RDV_FIXES=loadRdv();
+const ZONE_INFO={
+  RIVIERA:{label:'Riviera Vaudoise',cities:['Villeneuve VD','Villeneuve','Corseaux','Blonay','Clarens','La Tour-de-Peilz','Vevey','Montreux','Roche VD','St-Légier-Chiésaz','Paudex'],color:'#6366f1'},
+  LAUSANNE:{label:'Lausanne / Vaud Ouest',cities:['Lausanne','Lutry','Pully','Crissier','Chavannes-Renens','Bussigny','Renens VD','Prilly','Ecublens VD','Etagnières'],color:'#8b5cf6'},
+  FRIBOURG:{label:'Fribourg / Glâne',cities:['Ursy','Châtel-St-Denis','Attalens','Bossonnens','Servion','Chexbres','Bulle','Oron-la-Ville','Siviriez','Moudon','Romont'],color:'#06b6d4'},
+  CHABLAIS:{label:'Aigle / Bex / Chablais',cities:['Aigle','Bex','Collombey','Vouvry','Bouveret','Monthey','St-Maurice','Muraz (Collombey)','Troistorrents','Ollon'],color:'#f59e0b'},
+  MARTIGNY:{label:'Martigny / Valais bas',cities:['Martigny','Saxon','Saillon','Riddes','Ardon','Aproz','Fully','Leytron','Charrat','Martigny-Croix','Sembrancher'],color:'#ef4444'},
+  SION:{label:'Sion / Valais Central',cities:['Sion','Conthey','Vétroz','Savièse','Grimisuat','Uvrier','Bramois','Haute-Nendaz','Basse-Nendaz'],color:'#22c55e'},
+  SIERRE:{label:'Sierre / Crans-Montana',cities:['Sierre','Crans-Montana','Crans-sur-Sierre','Grône','Salgesch','Chippis','Blignoud (Ayent)','Miège','Chalais'],color:'#f97316'},
+};
+const ZONE_NEIGHBORS={
+  RIVIERA:['LAUSANNE','CHABLAIS','FRIBOURG'],LAUSANNE:['RIVIERA','FRIBOURG'],
+  FRIBOURG:['LAUSANNE','RIVIERA'],CHABLAIS:['RIVIERA','MARTIGNY'],
+  MARTIGNY:['CHABLAIS','SION'],SION:['MARTIGNY','SIERRE','CHABLAIS'],SIERRE:['SION','MARTIGNY'],
+};
+const ZONE_CITY_MAP={
+  Sion:'SION',Sierre:'SIERRE',Martigny:'MARTIGNY',Lausanne:'LAUSANNE',
+  Vevey:'RIVIERA',Montreux:'RIVIERA',Lutry:'LAUSANNE',Pully:'LAUSANNE',
+  Aigle:'CHABLAIS',Bex:'CHABLAIS',Monthey:'CHABLAIS',Ursy:'FRIBOURG',
+  Servion:'FRIBOURG','Châtel-St-Denis':'FRIBOURG',Bulle:'FRIBOURG',
+};
+
+function detectZone(date_){
+  const cm_=cMap();const zoneCounts={};
+  (sch[date_]||[]).forEach(id=>{const c=cm_[id];if(!c)return;
+    for(const[z,info]of Object.entries(ZONE_INFO)){if(info.cities.includes(c.ort)){zoneCounts[z]=(zoneCounts[z]||0)+1;break;}}
+  });
+  return Object.entries(zoneCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
+}
+
+function loadZoneForDay(zoneName,date_,dayLabel){
+  const info=ZONE_INFO[zoneName];if(!info)return;
+  const ac_=activeC().filter(c=>!(vis[c.kd_nr]?.status==='visited'));
+  const pool=ac_.filter(c=>info.cities.includes(c.ort))
+    .sort((a,b)=>(parseInt(b.ca_2026)||parseInt(b.ca_2025)||0)-(parseInt(a.ca_2026)||parseInt(a.ca_2025)||0));
+  const rdvIds=(RDV_FIXES[date_]||[]).filter(r=>r.kd_nr).map(r=>r.kd_nr);
+  const fill=pool.filter(c=>!rdvIds.includes(c.kd_nr)).slice(0,MAX-rdvIds.length);
+  sch[date_]=[...rdvIds,...fill.map(c=>c.kd_nr)];
+  persist();showToast('✓ Zone '+info.label+' chargée pour '+dayLabel);modal=null;render();
+}
+
+function organizeAroundRdv(date_,dayLabel){
+  const rdvs=(RDV_FIXES[date_]||[]).filter(r=>r.kd_nr);
+  if(!rdvs.length){showToast('Aucun RDV client ce jour','warn');return;}
+  const cm_=cMap();const rdvCities=new Set();
+  rdvs.forEach(r=>{const c=cm_[r.kd_nr];if(c&&c.ort)rdvCities.add(c.ort);
+    const lieu=(r.lieu||'').toLowerCase();
+    Object.entries(ZONE_CITY_MAP).forEach(([city])=>{if(lieu.includes(city.toLowerCase()))rdvCities.add(city);});
+  });
+  const rdvZones=new Set([...rdvCities].map(c=>ZONE_CITY_MAP[c]).filter(Boolean));
+  const nearCities=new Set([...rdvCities]);
+  rdvZones.forEach(z=>{(ZONE_INFO[z]?.cities||[]).forEach(c=>nearCities.add(c));
+    (ZONE_NEIGHBORS[z]||[]).forEach(nz=>(ZONE_INFO[nz]?.cities||[]).forEach(c=>nearCities.add(c)));});
+  const existingIds=new Set(sch[date_]||[]);
+  const ac_=activeC().filter(c=>!existingIds.has(c.kd_nr)&&!(vis[c.kd_nr]?.status==='visited'));
+  const candidates=ac_.filter(c=>nearCities.has(c.ort)).sort((a,b)=>{
+    const az=rdvCities.has(a.ort)?2:1,bz=rdvCities.has(b.ort)?2:1;
+    return bz-az||(parseInt(b.ca_2026)||0)-(parseInt(a.ca_2026)||0);
+  });
+  const spots=MAX-(sch[date_]||[]).length;
+  if(spots<=0){showToast('Jour déjà plein','warn');return;}
+  const toAdd=candidates.slice(0,spots);
+  if(!toAdd.length){showToast('Pas de clients disponibles dans cette zone','warn');return;}
+  sch[date_]=[...(sch[date_]||[]),...toAdd.map(c=>c.kd_nr)];
+  persist();showToast('✓ '+toAdd.length+' clients ajoutés près des RDV');render();
+}
+
+function getClientRdvNext(kd_nr){
+  const td_=today();
+  const found=Object.entries(RDV_FIXES).filter(([d,rdvs])=>d>=td_&&rdvs.some(r=>r.kd_nr===kd_nr)).sort(([a],[b])=>a.localeCompare(b))[0];
+  if(!found)return null;
+  return{date:found[0],...found[1].find(r=>r.kd_nr===kd_nr)};
+}
+
 
 const SK='tv3_sa',DK='td3_sa',SCK='ts3_sa',EK='te3_sa',HK='th3_sa',BK='bk3_sa';
 const MAX=14;
@@ -229,17 +302,65 @@ function renderWeek(wkDates,cm,td,wCA){
       const v=vis[c.kd_nr],cfg=SC[v?.status||'none'],amt=parseFloat(v?.amount)||0;
       const rdvToday=(RDV_FIXES[d]||[]).find(r=>r.kd_nr===c.kd_nr);
       const hasBook=!!book[c.kd_nr];
-      col.appendChild(h('div',{className:'cc',style:{background:rdvToday?'#fef9c3':cfg.bg,borderColor:rdvToday?'#f59e0b':cfg.c+'33'},
-        onClick:()=>{modal={type:'visit',client:c};render();}},
-        h('span',{style:{color:rdvToday?'#d97706':cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},rdvToday?'⭐':cfg.i),
-        h('div',{style:{flex:1,minWidth:0}},
-          h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#1e293b',fontSize:9}},sal(c)+(hasBook?' 📖✅':'')),
-          h('div',{style:{color:'#94a3b8',fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},
-            rdvToday?rdvToday.h+' · ':''  ,c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':''))),
-        h('span',{style:{color:'#94a3b8',cursor:'pointer',fontSize:13,lineHeight:1,flexShrink:0,padding:'0 2px'},
-          onClick:e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render();}},'×')
-      ));
+      // Chip avec drag & drop (long press 500ms)
+      const chip_=h('div',{className:'cc',style:{background:rdvToday?'#fef9c3':cfg.bg,borderColor:rdvToday?'#f59e0b':cfg.c+'33',position:'relative',userSelect:'none',webkitUserSelect:'none'}});
+      chip_.appendChild(h('span',{style:{color:rdvToday?'#d97706':cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},rdvToday?'⭐':cfg.i));
+      const info_=h('div',{style:{flex:1,minWidth:0}});
+      info_.appendChild(h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#1e293b',fontSize:9}},sal(c)+(hasBook?' 📖✅':'')));
+      info_.appendChild(h('div',{style:{color:'#94a3b8',fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},(rdvToday?rdvToday.h+' · ':'')+c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':'')));
+      chip_.appendChild(info_);
+      chip_.appendChild(h('span',{style:{color:'#94a3b8',cursor:'pointer',fontSize:13,lineHeight:1,flexShrink:0,padding:'0 2px'},
+        onClick:e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render();}},'×'));
+      // Long press drag
+      let pressT=null,dragging=false,ghost=null;
+      chip_.addEventListener('click',()=>{if(!dragging){modal={type:'visit',client:c};render();}});
+      chip_.addEventListener('touchstart',e=>{dragging=false;
+        pressT=setTimeout(()=>{dragging=true;e.preventDefault();
+          ghost=document.createElement('div');
+          ghost.style.cssText='position:fixed;z-index:9999;opacity:.9;pointer-events:none;background:#fff;border:2px solid #6366f1;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;color:#1e293b;box-shadow:0 8px 24px rgba(0,0,0,.2)';
+          ghost.textContent=sal(c);document.body.appendChild(ghost);
+          chip_.style.opacity='0.3';
+        },500);
+      },{passive:true});
+      chip_.addEventListener('touchmove',e=>{if(!dragging||!ghost)return;e.preventDefault();
+        const t=e.touches[0];ghost.style.left=(t.clientX-50)+'px';ghost.style.top=(t.clientY-20)+'px';
+        document.querySelectorAll('[data-date]').forEach(col_=>{
+          const r_=col_.getBoundingClientRect();
+          col_.style.outline=(t.clientX>=r_.left&&t.clientX<=r_.right&&t.clientY>=r_.top&&t.clientY<=r_.bottom&&col_.dataset.date!==d)?'2px solid #6366f1':'';
+        });
+      },{passive:false});
+      chip_.addEventListener('touchend',e=>{
+        clearTimeout(pressT);if(!dragging)return;e.preventDefault();
+        if(ghost){ghost.remove();ghost=null;}chip_.style.opacity='';
+        document.querySelectorAll('[data-date]').forEach(col_=>{col_.style.outline='';});
+        const t=e.changedTouches[0];
+        const els=document.elementsFromPoint(t.clientX,t.clientY);
+        const tCol=els.find(el=>el.dataset&&el.dataset.date&&el.dataset.date!==d);
+        if(tCol){
+          const toD=tCol.dataset.date;
+          if((sch[toD]||[]).length>=MAX){showToast('Maximum '+MAX+' ce jour !','err');dragging=false;return;}
+          sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);
+          sch[toD]=[...(sch[toD]||[]),c.kd_nr];
+          persist();showToast('✓ '+sal(c)+' déplacé !');render();
+        }
+        dragging=false;
+      },{passive:false});
+      chip_.addEventListener('touchcancel',()=>{clearTimeout(pressT);if(ghost){ghost.remove();ghost=null;}chip_.style.opacity='';dragging=false;
+        document.querySelectorAll('[data-date]').forEach(col_=>{col_.style.outline='';});});
+      col.appendChild(chip_);
     });
+    // Boutons de gestion de zone
+    if(!isPast){
+      const btnRow=h('div',{style:{display:'flex',gap:3,marginTop:2}});
+      btnRow.appendChild(h('button',{style:{flex:1,background:'#f0f0ff',border:'1px dashed #c7d2fe',color:'#6366f1',borderRadius:5,padding:'2px 4px',fontSize:8,fontWeight:600,cursor:'pointer'},
+        onClick:e=>{e.stopPropagation();modal={type:'swapday',date:d,dayLabel:WDAYS[i],wkDates};render();}},'↺ Zone'));
+      const rdvsWithClient=(RDV_FIXES[d]||[]).filter(r=>r.kd_nr);
+      if(rdvsWithClient.length>0&&cnt<MAX){
+        btnRow.appendChild(h('button',{style:{flex:1,background:'#fef9c3',border:'1px solid #fde68a',color:'#d97706',borderRadius:5,padding:'2px 4px',fontSize:8,fontWeight:600,cursor:'pointer'},
+          onClick:e=>{e.stopPropagation();organizeAroundRdv(d,WDAYS[i]);}},'⭐ Compléter'));
+      }
+      col.appendChild(btnRow);
+    }
     if(!cnt)col.appendChild(h('div',{style:{textAlign:'center',color:'#cbd5e1',fontSize:9,padding:'6px 0'}},'— vide —'));
     grid.appendChild(col);
   });
@@ -380,7 +501,7 @@ function renderModal(m,wkDates,cm,ac,td){
         ),
         h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕')
       )));
-    const body=h('div',{className:'sheet-b'});
+    var body=h('div',{className:'sheet-b'});
 
     body.appendChild(h('div',{style:{display:'flex',gap:6}},
       ...[{l:'CA 2025',v:ca.toLocaleString()+' CHF',c:'#6366f1'},{l:'Diff',v:(parseInt(c.diff)||0)>=0?'▲':'▼',c:(parseInt(c.diff)||0)>=0?'#22c55e':'#ef4444'}].map(s=>
@@ -446,9 +567,26 @@ function renderModal(m,wkDates,cm,ac,td){
 
     body.appendChild(h('div',{style:{display:'flex',gap:8}},
       c.strasse?h('a',{href:'https://maps.apple.com/?address='+encodeURIComponent(c.strasse+' '+c.plz+' '+c.ort),target:'_blank',style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:5,background:'#eff6ff',border:'1px solid #c7d2fe',color:'#6366f1',padding:'10px',borderRadius:9,textDecoration:'none',fontSize:12,fontWeight:600}},'🗺️ Plans Apple'):'',
+      h('button',{style:{flex:1,padding:'10px',fontSize:12,fontWeight:600,background:'#fef9c3',border:'1px solid #fde68a',color:'#d97706',borderRadius:9,cursor:'pointer'},onClick:()=>{modal={type:'rdv',client:c};render();}},'⭐ Gérer RDV'),
       h('button',{className:'bg',style:{flex:1,padding:'10px',fontSize:12,fontWeight:600},onClick:()=>{modal={type:'schedule',client:c};render();}},'📅 Planning')
     ));
     body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'12px',fontSize:14},onClick:()=>{archiveCurrentVisit(c.kd_nr);modal=null;showToast('Visite enregistrée ✓');}},'💾 Enregistrer & fermer'));
+    // Bouton CRM
+    body.appendChild(h('button',{style:{width:'100%',padding:'11px',borderRadius:10,border:'1px solid #fde68a',background:'#fffbeb',color:'#d97706',fontWeight:600,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8},
+      onClick:()=>{
+        try{
+          const sessionData=JSON.stringify({readonly:false,expires:Date.now()+8*60*60*1000});
+          localStorage.setItem('crm_session_active',sessionData);
+          localStorage.setItem('crm_open_client','c_'+c.kd_nr);
+          const crmClients=JSON.parse(localStorage.getItem('crm_clients')||'[]');
+          if(!crmClients.find(x=>x.kdnr===c.kd_nr)){
+            crmClients.push({id:'c_'+c.kd_nr,kdnr:c.kd_nr,sek:c.sek,nom:c.name,prenom:c.vorname||'',salon:sal(c),rue:c.strasse||'',npa:c.plz||'',ville:c.ort||'',tel1:c.tel||'',ca26:parseInt(c.ca_2026)||0,ca25:parseInt(c.ca_2025)||0,statut:'Actif',comments:[],lastVisit:'',nbVisites:0});
+            localStorage.setItem('crm_clients',JSON.stringify(crmClients));
+          }
+          const a=document.createElement('a');a.href='https://thomastserve-sepc.github.io/CRM-2026/index.html';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);
+          showToast('✓ Ouverture du CRM...');
+        }catch(err){showToast('Erreur: '+err.message,'err');}
+      }},'📋 Ouvrir dans le CRM'));
     sheet.appendChild(body);
 
   } else if(m.type==='schedule'){
@@ -457,7 +595,7 @@ function renderModal(m,wkDates,cm,ac,td){
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'📅 Ajouter au planning'),h('div',{style:{fontSize:11,color:'#6366f1'}},sal(c))),
         h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal={type:'visit',client:c};render();}},'←'))));
-    const body=h('div',{className:'sheet-b'});
+    var body=h('div',{className:'sheet-b'});
     wkDates.forEach((d,i)=>{
       const cnt=(sch[d]||[]).length,full=cnt>=MAX,hasTh=(sch[d]||[]).includes(c.kd_nr),isT=d===td;
       body.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',borderRadius:9,border:'1px solid '+(hasTh?'#22c55e':'#e2e8f0'),background:hasTh?'#f0fdf4':'#f8fafc',cursor:full&&!hasTh?'not-allowed':'pointer',opacity:d<td?.6:1,marginBottom:5},
@@ -475,12 +613,86 @@ function renderModal(m,wkDates,cm,ac,td){
     });
     sheet.appendChild(body);
 
-  } else if(m.type==='sync'){
+  } else if(m.type==='swapday'){
+    const {date,dayLabel,wkDates}=m;
+    const currentZone=detectZone(date);
+    const rdvsWithClient=(RDV_FIXES[date]||[]).filter(r=>r.kd_nr);
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}},
+        h('div',null,
+          h('div',{style:{fontWeight:700,fontSize:16}},'↺ Changer la zone'),
+          h('div',{style:{fontSize:11,color:'#6366f1'}},(dayLabel||'')+' · Zone actuelle: '+(currentZone?ZONE_INFO[currentZone]?.label:'—')),
+          rdvsWithClient.length?h('div',{style:{fontSize:10,color:'#d97706',marginTop:2}},'⭐ RDV fixe ce jour — clients proches prioritaires'):''),
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
+    var body=h('div',{className:'sheet-b'});
+    // Zones recommandées
+    const recZones=new Set();
+    rdvsWithClient.forEach(r=>{const c=cMap()[r.kd_nr];if(c&&ZONE_CITY_MAP[c.ort])recZones.add(ZONE_CITY_MAP[c.ort]);});
+    if(recZones.size>0){
+      body.appendChild(h('div',{style:{fontSize:11,color:'#7c3aed',fontWeight:600,marginBottom:4}},'🎯 Zones recommandées :'));
+      [...recZones,...[...recZones].flatMap(z=>ZONE_NEIGHBORS[z]||[])].filter((z,i,a)=>a.indexOf(z)===i&&ZONE_INFO[z]&&z!==currentZone).forEach(z=>{
+        const info=ZONE_INFO[z];
+        body.appendChild(h('button',{style:{width:'100%',padding:'11px 14px',borderRadius:11,border:'2px solid '+info.color+'55',background:info.color+'10',color:info.color,fontWeight:600,fontSize:13,cursor:'pointer',marginBottom:6,textAlign:'left'},
+          onClick:()=>loadZoneForDay(z,date,dayLabel||'')},info.label));
+      });
+    }
+    body.appendChild(h('div',{style:{fontSize:11,color:'#64748b',fontWeight:600,marginBottom:4}},'📍 Toutes les zones :'));
+    Object.entries(ZONE_INFO).filter(([z])=>z!==currentZone).forEach(([z,info])=>{
+      body.appendChild(h('button',{style:{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid #e2e8f0',background:'#f8fafc',color:info.color,fontWeight:500,fontSize:12,cursor:'pointer',marginBottom:5,textAlign:'left'},
+        onClick:()=>loadZoneForDay(z,date,dayLabel||'')},info.label));
+    });
+    if(PRELOAD_SCHEDULE[date]){
+      body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'10px',fontWeight:600,color:'#22c55e',borderColor:'#bbf7d0'},
+        onClick:()=>{sch[date]=[...PRELOAD_SCHEDULE[date]];persist();showToast('Planning initial restauré');modal=null;render();}},'↩ Restaurer le planning initial'));
+    }
+    sheet.appendChild(body);
+
+  } else if(m.type==='rdv'){
+    const c=m.client;
+    const rdvDays=Object.entries(RDV_FIXES).filter(([,rdvs])=>rdvs.some(r=>r.kd_nr===c.kd_nr));
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'⭐ Gérer les RDV'),h('div',{style:{fontSize:11,color:'#d97706'}},sal(c))),
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},
+          onClick:()=>{modal={type:'visit',client:c};render();}},'←'))));
+    var body=h('div',{className:'sheet-b'});
+    if(rdvDays.length){
+      rdvDays.forEach(([date,rdvs])=>{
+        rdvs.filter(r=>r.kd_nr===c.kd_nr).forEach(rdv=>{
+          body.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#fef9c3',border:'1px solid #fde68a',borderRadius:9,padding:'10px 12px',marginBottom:5}},
+            h('div',null,h('div',{style:{fontWeight:600,fontSize:13,color:'#d97706'}},'⭐ '+rdv.h+' — '+fmtFR(date)),h('div',{style:{fontSize:11,color:'#92400e'}},rdv.lieu)),
+            h('button',{style:{background:'#fef2f2',border:'1px solid #fecaca',color:'#dc2626',borderRadius:7,padding:'5px 10px',cursor:'pointer',fontSize:12},
+              onClick:()=>{const r2=RDV_FIXES;if(r2[date]){r2[date]=r2[date].filter(r=>!(r.kd_nr===c.kd_nr&&r.h===rdv.h));if(!r2[date].length)delete r2[date];}
+                saveRdv(r2);RDV_FIXES=r2;showToast('RDV supprimé');modal={type:'rdv',client:c};render();}},'🗑️ Supprimer')));
+        });
+      });
+    } else {
+      body.appendChild(h('div',{style:{fontSize:12,color:'#94a3b8'}},'Aucun RDV planifié pour ce client.'));
+    }
+    body.appendChild(h('div',{style:{fontWeight:600,fontSize:13,marginTop:4}},'➕ Ajouter un RDV :'));
+    const dateInp=h('input',{type:'date',value:today(),className:'fi'});
+    const heureInp=h('input',{type:'time',value:'09:30',className:'fi'});
+    const lieuInp=h('input',{type:'text',value:sal(c)+' — '+c.ort,className:'fi'});
+    body.appendChild(h('div',null,h('div',{className:'fl'},'Date'),dateInp));
+    body.appendChild(h('div',null,h('div',{className:'fl'},'Heure'),heureInp));
+    body.appendChild(h('div',null,h('div',{className:'fl'},'Lieu / Objet'),lieuInp));
+    body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'11px',fontSize:13},
+      onClick:()=>{
+        const date=dateInp.value,heure=heureInp.value.replace(':','h'),lieu=lieuInp.value.trim()||sal(c);
+        if(!date){showToast('Choisissez une date','err');return;}
+        const r2=RDV_FIXES;if(!r2[date])r2[date]=[];
+        r2[date].push({h:heure,lieu,kd_nr:c.kd_nr});
+        r2[date].sort((a,b)=>a.h.localeCompare(b.h));
+        saveRdv(r2);RDV_FIXES=r2;showToast('⭐ RDV ajouté — '+heure+' le '+fmtFR(date));
+        modal={type:'rdv',client:c};render();
+      }},'⭐ Confirmer le RDV'));
+    body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'10px',marginTop:4},onClick:()=>{modal={type:'visit',client:c};render();}},'← Retour à la fiche'));
+    sheet.appendChild(body);
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'🔄 Synchronisation'),h('div',{style:{fontSize:11,color:'#0891b2'}},'Transférer les données entre appareils')),
         h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
-    const body=h('div',{className:'sheet-b'});
+    var body=h('div',{className:'sheet-b'});
     body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'13px',fontSize:14},onClick:()=>{exportSync();}},'📤 Exporter sync (.json)'));
     const impLbl=h('label',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'13px',borderRadius:10,border:'2px dashed #a5f3fc',background:'#ecfeff',color:'#0891b2',fontWeight:600,fontSize:14,cursor:'pointer'}},'📥 Importer sync (.json)',
       h('input',{type:'file',accept:'.json',style:{display:'none'},onChange:e=>{const f=e.target.files[0];if(f){importSync(f);modal=null;}}}));
@@ -493,7 +705,7 @@ function renderModal(m,wkDates,cm,ac,td){
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'🖨️ Impression'),h('div',{style:{fontSize:11,color:'#db2777'}},'Choisissez ce que vous voulez imprimer')),
         h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
-    const body=h('div',{className:'sheet-b'});
+    var body=h('div',{className:'sheet-b'});
     [{label:'📅 Planning de la semaine',fn:printPlanning},{label:'📊 Rapport CA & stats',fn:printStats},{label:'👥 Liste clients',fn:printClientList},{label:'🛍️ Produits vendus',fn:printProducts}].forEach(({label,fn})=>{
       body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'13px',fontSize:13,fontWeight:600,marginBottom:6},onClick:()=>{modal=null;render();setTimeout(fn,100);}},label));
     });
@@ -504,7 +716,7 @@ function renderModal(m,wkDates,cm,ac,td){
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'➕ Nouveau client')),
         h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
-    const body=h('div',{className:'sheet-b'});
+    var body=h('div',{className:'sheet-b'});
     const form={kd_nr:'',sek:'102',name:'',vorname:'',salon:'',strasse:'',plz:'',ort:'',tel:'',ca_2025:'0'};
     const eids=new Set(allC().map(c=>c.kd_nr));
     const mkF=(label,key,type='text',ph='')=>{
