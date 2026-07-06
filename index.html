@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -66,9 +66,55 @@ const s=load(SCK)||{},m={...PRELOAD_SCHEDULE};
 Object.keys(s).forEach(d=>{if(s[d]&&s[d].length)m[d]=s[d]});
 return m;
 }
+// Injecte automatiquement les clients avec RDV dans le planning du bon jour
+function injectRdvIntoSchedule(){
+  let changed=false;
+  Object.entries(RDV_FIXES).forEach(([date,rdvs])=>{
+    const validRdvs=rdvs.filter(r=>r.kd_nr);
+    if(!validRdvs.length)return;
+    if(!sch[date])sch[date]=[];
+    // 1. Insérer les clients RDV en tête, triés par heure
+    validRdvs.sort((a,b)=>a.h.localeCompare(b.h)).forEach(rdv=>{
+      if(!sch[date].includes(rdv.kd_nr)){
+        sch[date]=[rdv.kd_nr,...sch[date].filter(id=>id!==rdv.kd_nr)];
+        changed=true;
+      } else {
+        // S'assurer que les RDV sont bien en tête
+        const idx=sch[date].indexOf(rdv.kd_nr);
+        if(idx>validRdvs.indexOf(rdv)){
+          sch[date]=sch[date].filter(id=>id!==rdv.kd_nr);
+          sch[date]=[rdv.kd_nr,...sch[date]];
+          changed=true;
+        }
+      }
+    });
+  });
+  if(changed)persist();
+}
+
+// Retourne la ville/zone des RDV d'un jour pour suggérer des clients proches
+function getRdvZonesForDay(date){
+  const rdvs=RDV_FIXES[date]||[];
+  const zones=new Set();
+  const cm_=cMap();
+  rdvs.forEach(r=>{
+    if(r.kd_nr){
+      const c=cm_[r.kd_nr];
+      if(c&&c.ort)zones.add(c.ort);
+    }
+    // Extraire la ville depuis le lieu du RDV
+    const lieu=(r.lieu||'').toLowerCase();
+    const cities=['sion','sierre','martigny','lausanne','vevey','montreux','aigle','bex','monthey','fribourg','bulle','ursy','chexbres','lutry','pully','clarens','blonay'];
+    cities.forEach(city=>{if(lieu.includes(city))zones.add(city.charAt(0).toUpperCase()+city.slice(1));});
+  });
+  return zones;
+}
 let vis=load(SK)||{},del=load(DK)||{},sch=loadSch(),extra=load(EK)||[],hist=load(HK)||[],book=load(BK)||{};
+// Injecter les RDV dans le planning au démarrage
 let view='week',wkOff=0,modal=null,toast=null,tTimer=null;
 let srch='',fCity='Toutes',fStat='Tous',fSek='Tous';
+// Drag & drop state
+let dragState=null; // {kd_nr, fromDate, startY, el}
 function toStr(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
 function today(){return toStr(new Date())}
 function addD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
@@ -401,8 +447,62 @@ else el.setAttribute(k,v);
 ch.flat(9).forEach(c=>{if(c==null||c===false||c===undefined)return;el.appendChild(typeof c==='string'||typeof c==='number'?document.createTextNode(String(c)):c);});
 return el;
 }
+
+const ZONE_NEIGHBORS_MAP={
+  'Sion':['Conthey','Vétroz','Savièse','Grimisuat','Uvrier','Bramois','Haute-Nendaz','Basse-Nendaz','Aproz'],
+  'Sierre':['Crans-Montana','Crans-sur-Sierre','Grône','Salgesch','Chippis','Blignoud (Ayent)','Miège','Chalais','Noës'],
+  'Martigny':['Saxon','Saillon','Riddes','Ardon','Fully','Leytron','Charrat','Martigny-Croix','Sembrancher'],
+  'Lausanne':['Lutry','Pully','Crissier','Chavannes-Renens','Bussigny','Renens VD','Prilly','Ecublens VD'],
+  'Vevey':['La Tour-de-Peilz','Corseaux','Clarens','Blonay','St-Légier-Chiésaz'],
+  'Montreux':['Clarens','Villeneuve VD','Blonay'],
+  'Aigle':['Bex','Roche VD','Ollon'],
+  'Monthey':['Collombey','Vouvry','Muraz (Collombey)','Troistorrents'],
+  'Ursy':['Siviriez','Romont','Châtel-St-Denis'],
+  'Fribourg':['Bulle','Romont','Oron-la-Ville'],
+  'Servion':['Chexbres','Châtel-St-Denis','Attalens'],
+  'Lutry':['Pully','Lausanne','La Tour-de-Peilz'],
+};
+
+function organizeAroundRdv(date,dayLabel){
+  const rdvs=(RDV_FIXES[date]||[]).filter(r=>r.kd_nr);
+  if(!rdvs.length){showToast('Aucun RDV client sur ce jour','warn');return;}
+  const cm_=cMap(),ac_=activeC();
+  const rdvCities=new Set();
+  rdvs.forEach(r=>{
+    const c=cm_[r.kd_nr];if(c&&c.ort)rdvCities.add(c.ort);
+    const lieu=(r.lieu||'').toLowerCase();
+    Object.keys(ZONE_NEIGHBORS_MAP).forEach(city=>{if(lieu.includes(city.toLowerCase()))rdvCities.add(city);});
+  });
+  const nearCities=new Set([...rdvCities]);
+  rdvCities.forEach(city=>{(ZONE_NEIGHBORS_MAP[city]||[]).forEach(n=>nearCities.add(n));});
+  const existingIds=new Set(sch[date]||[]);
+  const candidates=ac_
+    .filter(c=>{
+      if(existingIds.has(c.kd_nr))return false; // déjà dans ce jour
+      if(!(nearCities.has(c.ort)||rdvCities.has(c.ort)))return false; // pas dans la zone
+      const v=vis[c.kd_nr];
+      if(v&&v.status==='visited')return false; // déjà visité cette tournée
+      return true;
+    })
+    .sort((a,b)=>{
+      const aClose=rdvCities.has(a.ort)?2:1;
+      const bClose=rdvCities.has(b.ort)?2:1;
+      if(aClose!==bClose)return bClose-aClose;
+      return (parseInt(b.ca_2026)||0)-(parseInt(a.ca_2026)||0);
+    });
+  const spots=MAX-(sch[date]||[]).length;
+  if(spots<=0){showToast('Le jour est déjà plein ('+MAX+' visites)','warn');return;}
+  const toAdd=candidates.slice(0,spots);
+  if(!toAdd.length){showToast('Pas d\'autres clients dans cette zone','warn');return;}
+  sch[date]=[...(sch[date]||[]),...toAdd.map(c=>c.kd_nr)];
+  persist();
+  showToast('✓ '+toAdd.length+' clients ajoutés près des RDV ('+[...new Set(toAdd.map(c=>c.ort))].slice(0,3).join(', ')+')');
+  render();
+}
+
 function render(){
-RDV_FIXES = loadRdv(); 
+RDV_FIXES = loadRdv();
+injectRdvIntoSchedule();
 const app=document.getElementById('app');
 const sc=app.querySelector('.ms')?.scrollTop||0;
 app.innerHTML='';
@@ -505,7 +605,7 @@ const isT=d===td,isPast=d<td,cnt=dc.length;
 const bar=cnt>=MAX?'#22c55e':cnt>=10?'#f59e0b':cnt>0?'#ef4444':'#1e293b';
 const dayCA=totalCA2026(dt=>dt===d);
 const rdvL=RDV_FIXES[d];
-const col=h('div',{className:'day-col'+(isT?' today':''),style:{opacity:isPast?.75:1}});
+const col=h('div',{className:'day-col'+(isT?' today':''),style:{opacity:isPast?.75:1},'data-date':d});
 const dh=h('div',{style:{textAlign:'center',marginBottom:2}},
 h('div',{style:{fontWeight:700,fontSize:11,color:isT?'#6366f1':'#94a3b8'}},WDAYS[i]),
 h('div',{style:{fontSize:9,color:isT?'#6366f1':'#94a3b8'}},fmtFR(d)));
@@ -518,21 +618,127 @@ dh.appendChild(h('button',{
 style:{background:'rgba(139,92,246,.12)',border:'1px dashed #8b5cf655',color:'#7c3aed',borderRadius:5,padding:'2px 5px',fontSize:8,fontWeight:600,cursor:'pointer',marginTop:2,width:'100%'},
 onClick:e=>{e.stopPropagation();modal={type:'swapday',date:d,dayLabel:WDAYS[i],dayIdx:i,wkDates};render();}
 },'↺ Changer zone'));
+// Bouton "Organiser autour des RDV" si ce jour a des RDV avec kd_nr
+const rdvsWithClient=(RDV_FIXES[d]||[]).filter(r=>r.kd_nr);
+if(rdvsWithClient.length>0&&cnt<MAX){
+dh.appendChild(h('button',{
+style:{background:'#fef9c3',border:'1px solid #fde68a',color:'#d97706',borderRadius:5,padding:'2px 5px',fontSize:8,fontWeight:600,cursor:'pointer',marginTop:2,width:'100%'},
+onClick:e=>{e.stopPropagation();organizeAroundRdv(d,WDAYS[i]);}
+},'⭐ Compléter autour des RDV'));
+}
 }
 col.appendChild(dh);
 dc.forEach(c=>{
 const v=vis[c.kd_nr],cfg=SC[v?.status||'none'],amt=parseFloat(v?.amount)||0;
-const hasRdvToday=(RDV_FIXES[d]||[]).some(r=>r.kd_nr===c.kd_nr);
+const rdvToday=(RDV_FIXES[d]||[]).find(r=>r.kd_nr===c.kd_nr);
+const hasRdvToday=!!rdvToday;
 const hasBook=!!book[c.kd_nr];
-col.appendChild(h('div',{className:'cc',style:{background:hasRdvToday?'rgba(245,158,11,.12)':cfg.bg,borderColor:hasRdvToday?'#f59e0b66':cfg.c+'33'},onClick:()=>{modal={type:'visit',client:c};render()}},
-h('span',{style:{color:hasRdvToday?'#f59e0b':cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},hasRdvToday?'⭐':cfg.i),
-h('div',{style:{flex:1,minWidth:0}},
-h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#1e293b',fontSize:9}},
-sal(c), hasBook?h('span',{style:{marginLeft:3,fontSize:9}},' 📖✅'):''),
-h('div',{style:{color:'#94a3b8',fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':''))),
-h('span',{style:{color:'#94a3b8',cursor:'pointer',fontSize:13,lineHeight:1,flexShrink:0,padding:'0 2px'},
-onClick:e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render()}},'×')
-));
+const chip=h('div',{className:'cc',style:{
+  background:hasRdvToday?'#fef9c3':cfg.bg,
+  borderColor:hasRdvToday?'#f59e0b':cfg.c+'33',
+  borderWidth:hasRdvToday?'1.5px':'1px',
+  position:'relative',transition:'transform .15s,opacity .15s',
+  userSelect:'none',webkitUserSelect:'none'
+}});
+// Contenu du chip
+chip.appendChild(h('span',{style:{color:hasRdvToday?'#d97706':cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},hasRdvToday?'⭐':cfg.i));
+const info=h('div',{style:{flex:1,minWidth:0}});
+const nameLine=h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#1e293b',fontSize:9}},sal(c));
+if(hasBook)nameLine.appendChild(h('span',{style:{marginLeft:3,fontSize:9}},' 📖✅'));
+info.appendChild(nameLine);
+// Ligne inférieure : ville + CA + heure RDV si applicable
+const subLine=h('div',{style:{fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}});
+if(hasRdvToday){
+  subLine.appendChild(h('span',{style:{color:'#d97706',fontWeight:600,marginRight:3}},rdvToday.h));
+}
+subLine.appendChild(h('span',{style:{color:'#94a3b8'}},c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':'')));
+info.appendChild(subLine);
+chip.appendChild(info);
+chip.appendChild(h('span',{style:{color:'#94a3b8',cursor:'pointer',fontSize:13,lineHeight:1,flexShrink:0,padding:'0 2px'},
+  onClick:e=>{e.stopPropagation();if(hasRdvToday){showToast('Client avec RDV — retirez d\'abord le RDV','warn');return;}sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render();}},'×'));
+
+// ── LONG PRESS DRAG & DROP ────────────────────────────────────────────────────
+let pressTimer=null;
+let isDragging=false;
+let ghost=null;
+
+chip.addEventListener('click',e=>{if(!isDragging)modal={type:'visit',client:c};if(!isDragging)render();});
+
+chip.addEventListener('touchstart',e=>{
+  isDragging=false;
+  pressTimer=setTimeout(()=>{
+    isDragging=true;
+    e.preventDefault();
+    // Créer un fantôme visuel
+    ghost=chip.cloneNode(true);
+    ghost.style.cssText=`position:fixed;z-index:9999;opacity:.85;pointer-events:none;width:${chip.offsetWidth}px;transform:scale(1.05);box-shadow:0 8px 24px rgba(0,0,0,.2);border-radius:8px;background:#fff;padding:5px;font-size:10px;font-weight:600;border:2px solid #6366f1`;
+    ghost.textContent=sal(c);
+    document.body.appendChild(ghost);
+    chip.style.opacity='0.3';
+    dragState={kd_nr:c.kd_nr,fromDate:d};
+    // Positionner le fantôme
+    const t=e.touches[0];
+    ghost.style.left=(t.clientX-40)+'px';
+    ghost.style.top=(t.clientY-20)+'px';
+    showToast('Déplacez vers un autre jour ↔','warn');
+  },500); // 500ms long press
+},{ passive: true });
+
+chip.addEventListener('touchmove',e=>{
+  if(!isDragging||!ghost)return;
+  e.preventDefault();
+  const t=e.touches[0];
+  ghost.style.left=(t.clientX-40)+'px';
+  ghost.style.top=(t.clientY-20)+'px';
+  // Highlight la colonne cible
+  document.querySelectorAll('.day-col').forEach(col=>{
+    const r=col.getBoundingClientRect();
+    if(t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom){
+      col.style.background='#eff6ff';
+      col.style.borderColor='#6366f1';
+    } else {
+      col.style.background='';
+      col.style.borderColor='';
+    }
+  });
+},{ passive: false });
+
+chip.addEventListener('touchend',e=>{
+  clearTimeout(pressTimer);
+  if(!isDragging){return;}
+  e.preventDefault();
+  if(ghost){ghost.remove();ghost=null;}
+  chip.style.opacity='';
+  // Reset highlight colonnes
+  document.querySelectorAll('.day-col').forEach(col=>{col.style.background='';col.style.borderColor='';});
+  if(!dragState)return;
+  // Trouver la colonne cible
+  const t=e.changedTouches[0];
+  const els=document.elementsFromPoint(t.clientX,t.clientY);
+  const targetCol=els.find(el=>el.dataset&&el.dataset.date&&el.dataset.date!==dragState.fromDate);
+  if(targetCol&&targetCol.dataset.date){
+    const toDate=targetCol.dataset.date;
+    if((sch[toDate]||[]).length>=MAX){showToast('Maximum '+MAX+' visites ce jour !','err');dragState=null;isDragging=false;return;}
+    // Déplacer
+    sch[dragState.fromDate]=(sch[dragState.fromDate]||[]).filter(id=>id!==dragState.kd_nr);
+    if(!sch[toDate])sch[toDate]=[];
+    sch[toDate]=[...sch[toDate],dragState.kd_nr];
+    persist();
+    showToast('✓ '+sal(c)+' déplacé !');
+    render();
+  }
+  dragState=null;isDragging=false;
+},{ passive: false });
+
+chip.addEventListener('touchcancel',()=>{
+  clearTimeout(pressTimer);
+  if(ghost){ghost.remove();ghost=null;}
+  chip.style.opacity='';
+  dragState=null;isDragging=false;
+  document.querySelectorAll('.day-col').forEach(col=>{col.style.background='';col.style.borderColor='';});
+});
+
+col.appendChild(chip);
 });
 if(!cnt)col.appendChild(h('div',{style:{textAlign:'center',color:'#1e293b',fontSize:9,margin:'auto 0',padding:'6px 0'}},'— vide —'));
 col.appendChild(h('button',{style:{background:'#eff6ff',border:'1px dashed #6366f155',color:'#6366f1',borderRadius:6,padding:'5px 4px',fontSize:9,fontWeight:600,cursor:'pointer',marginTop:2},
@@ -607,32 +813,280 @@ return wrap;
 }
 function renderStats(wkDates,ac,td){
 const wrap=h('div',{style:{padding:'8px 10px'}});
+const OBJ_MENSUEL=38000;
+const OBJ_HEBDO=9500; // 38000 / 4 semaines
 const tCA=totalCA2026();
 const dCA=totalCA2026(d=>d===td);
 const wCA=totalCA2026(d=>wkDates.includes(d));
 const fups=ac.filter(c=>vis[c.kd_nr]?.followUpDate).sort((a,b)=>vis[a.kd_nr].followUpDate.localeCompare(vis[b.kd_nr].followUpDate));
 const bookCount=Object.keys(book).length;
 const bookPct=ac.length>0?Math.round((bookCount/ac.length)*100):0;
-const kpis=[{l:"CA aujourd'hui",v:dCA.toLocaleString('fr-CH')+' CHF',i:'📍',c:'#22c55e'},{l:'CA semaine',v:wCA.toLocaleString('fr-CH')+' CHF',i:'📅',c:'#6366f1'},{l:'CA total saisi',v:tCA.toLocaleString('fr-CH')+' CHF',i:'💰',c:'#f59e0b'},{l:'Relances',v:fups.length,i:'↩',c:'#f87171'},{l:'Catalogues remis',v:bookCount+' · '+bookPct+'%',i:'📖',c:'#22d3ee'}];
+const vc=Object.values(vis).filter(v=>v.status==='visited').length;
+
+// ── CA MENSUEL : du 1er au dernier jour du mois courant ───────────────────────
+const moisActuel=td.slice(0,7); // YYYY-MM
+const caMonthNow=totalCA2026(d=>d&&d.slice(0,7)===moisActuel);
+const pctMois=Math.round((caMonthNow/OBJ_MENSUEL)*100);
+const evolMois=caMonthNow-OBJ_MENSUEL;
+// Jours restants dans le mois
+const now_=new Date(td+'T00:00:00');
+const lastDay=new Date(now_.getFullYear(),now_.getMonth()+1,0).getDate();
+const joursRestants=lastDay-now_.getDate();
+
+// ── CA PAR SEMAINE TOURNÉE (Mar→Ven) ─────────────────────────────────────────
+// Collecter toutes les dates de semaines depuis PRELOAD_SCHEDULE et ALT_SCHEDULE
+const allTourneeWeeks=new Set();
+Object.keys({...PRELOAD_SCHEDULE,...sch}).forEach(d=>{
+  // Trouver le mardi de cette semaine
+  const dt=new Date(d+'T00:00:00');
+  const dow=dt.getDay(); // 0=dim,1=lun,2=mar...
+  const diffToTue=dow===2?0:dow<2?(2-dow):(2-dow+7);
+  // En fait on veut le mardi de la semaine de tournée
+  // Une semaine de tournée commence le mardi
+  const tue=new Date(dt);
+  tue.setDate(dt.getDate()-(dow===2?0:dow>2?dow-2:dow+5));
+  allTourneeWeeks.add(toStr(tue));
+});
+
+// Calculer CA pour chaque semaine (Mar-Ven)
+const weeklyCA={};
+allTourneeWeeks.forEach(tue=>{
+  // Les 4 jours : Mar, Mer, Jeu, Ven
+  const days=Array.from({length:4},(_,i)=>{
+    const d=new Date(tue+'T00:00:00');d.setDate(d.getDate()+i);return toStr(d);
+  });
+  const ca=totalCA2026(d=>days.includes(d));
+  if(ca>0||days.some(d=>sch[d]&&sch[d].length>0)){
+    weeklyCA[tue]={ca,days};
+  }
+});
+
+// Aussi ajouter les semaines avec des données hist/vis même si pas dans le planning
+const allDatesWithData=new Set([
+  ...hist.map(h_=>h_.visitDate).filter(Boolean),
+  ...Object.values(vis).filter(v=>v.visitDate).map(v=>v.visitDate)
+]);
+allDatesWithData.forEach(d=>{
+  const dt=new Date(d+'T00:00:00');
+  const dow=dt.getDay();
+  const tue=new Date(dt);
+  tue.setDate(dt.getDate()-(dow===2?0:dow>2?dow-2:dow+5));
+  const tueStr=toStr(tue);
+  if(!weeklyCA[tueStr]){
+    const days=Array.from({length:4},(_,i)=>{
+      const dd=new Date(tue);dd.setDate(tue.getDate()+i);return toStr(dd);
+    });
+    const ca=totalCA2026(dd=>days.includes(dd));
+    weeklyCA[tueStr]={ca,days};
+  }
+});
+
+// KPIs
+const kpis=[
+  {l:"CA aujourd'hui",v:dCA.toLocaleString('fr-CH')+' CHF',i:'📍',c:'#22c55e'},
+  {l:'CA semaine en cours',v:wCA.toLocaleString('fr-CH')+' CHF',i:'📅',c:'#6366f1'},
+  {l:'CA '+moisActuel.slice(5)+'/'+moisActuel.slice(0,4),v:caMonthNow.toLocaleString('fr-CH')+' CHF',i:'📆',c:pctMois>=100?'#22c55e':pctMois>=75?'#f59e0b':'#ef4444'},
+  {l:'CA total 2026 saisi',v:tCA.toLocaleString('fr-CH')+' CHF',i:'💰',c:'#f59e0b'},
+  {l:'Catalogues remis',v:bookCount+' ('+bookPct+'%)',i:'📖',c:'#22d3ee'},
+  {l:'Relances à faire',v:fups.length,i:'↩',c:'#f87171'},
+];
 const g=h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}});
-kpis.forEach(k=>g.appendChild(h('div',{style:{background:'#fff',borderRadius:10,padding:'11px 12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',borderLeft:'3px solid '+k.c}},h('div',{style:{fontSize:18,marginBottom:2}},k.i),h('div',{style:{fontWeight:800,fontSize:17,color:k.c}},k.v),h('div',{style:{fontSize:10,color:'#64748b',marginTop:2}},k.l))));
+kpis.forEach(k=>g.appendChild(h('div',{style:{background:'#fff',borderRadius:10,padding:'11px 12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',borderLeft:'3px solid '+k.c}},
+  h('div',{style:{fontSize:18,marginBottom:2}},k.i),
+  h('div',{style:{fontWeight:800,fontSize:17,color:k.c}},k.v),
+  h('div',{style:{fontSize:10,color:'#64748b',marginTop:2}},k.l))));
 wrap.appendChild(g);
+
+// Objectif mensuel
+const objCard=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',marginBottom:10}});
+const moisNom=new Date(moisActuel+'-01T00:00:00').toLocaleDateString('fr-CH',{month:'long',year:'numeric'});
+objCard.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}},
+  h('div',null,
+    h('div',{style:{fontWeight:700,fontSize:13}},'🎯 Objectif — '+moisNom.charAt(0).toUpperCase()+moisNom.slice(1)),
+    h('div',{style:{fontSize:9,color:'#94a3b8'}},'Du 1er au '+lastDay+' · '+joursRestants+' jour'+(joursRestants>1?'s':'')+' restant'+(joursRestants>1?'s':''))
+  ),
+  h('span',{style:{fontWeight:800,fontSize:18,color:pctMois>=100?'#22c55e':pctMois>=75?'#f59e0b':'#ef4444'}},pctMois+'%')
+));
+const objTrack=h('div',{style:{background:'#e2e8f0',borderRadius:999,height:10,overflow:'hidden',marginBottom:8}});
+objTrack.appendChild(h('div',{style:{width:Math.min(pctMois,100)+'%',height:'100%',background:pctMois>=100?'#22c55e':pctMois>=75?'#f59e0b':'#ef4444',borderRadius:999}}));
+objCard.appendChild(objTrack);
+objCard.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:11}},
+  h('span',{style:{color:'#64748b'}},caMonthNow.toLocaleString('fr-CH')+' / 38 000 CHF'),
+  h('span',{style:{color:evolMois>=0?'#22c55e':'#ef4444',fontWeight:600}},
+    (evolMois>=0?'▲ +':'▼ ')+Math.abs(Math.round(evolMois)).toLocaleString('fr-CH')+' CHF')
+));
+wrap.appendChild(objCard);
+
+// CA par jour (semaine en cours)
+const wkBars=wkDates.map(d=>({d,label:['Mar','Mer','Jeu','Ven'][wkDates.indexOf(d)],ca:totalCA2026(dt=>dt===d)}));
+const maxCADay=Math.max(...wkBars.map(x=>x.ca),1);
+const chart=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',marginBottom:10}});
+chart.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:10}},'💵 CA par jour — semaine en cours'));
+const bars=h('div',{style:{display:'flex',gap:6,alignItems:'flex-end',height:70}});
+wkBars.forEach(({d,label,ca})=>{
+  const isT=d===td,pct=ca>0?Math.round((ca/maxCADay)*100):0;
+  bars.appendChild(h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
+    h('div',{style:{fontSize:9,fontWeight:700,color:ca>0?'#22c55e':'#cbd5e1'}},ca>0?ca.toLocaleString('fr-CH'):'—'),
+    h('div',{style:{width:'100%',background:'#e2e8f0',borderRadius:5,height:45,display:'flex',alignItems:'flex-end',overflow:'hidden'}},
+      h('div',{style:{width:'100%',height:pct+'%',background:isT?'#22c55e':'#6366f1',minHeight:ca>0?3:0}})),
+    h('div',{style:{fontSize:9,color:isT?'#6366f1':'#94a3b8',fontWeight:isT?700:400}},label)));
+});
+chart.appendChild(bars);
+wrap.appendChild(chart);
+
+// CA par semaine tournée
+const sortedWeeks=Object.entries(weeklyCA).sort(([a],[b])=>a.localeCompare(b));
+if(sortedWeeks.length>0){
+  const wkCard=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',marginBottom:10}});
+  wkCard.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:8}},'📊 CA par semaine de tournée'));
+  const tbl=h('div',{style:{display:'flex',flexDirection:'column',gap:0}});
+  sortedWeeks.forEach(([tue,{ca,days}])=>{
+    const ven=new Date(tue+'T00:00:00');ven.setDate(ven.getDate()+3);
+    const wkLabel=new Date(tue+'T00:00:00').toLocaleDateString('fr-CH',{day:'2-digit',month:'2-digit'})
+      +' → '+ven.toLocaleDateString('fr-CH',{day:'2-digit',month:'2-digit'});
+    const pctVsObj=Math.round((ca/OBJ_HEBDO)*100);
+    const isCurrentWk=wkDates[0]===tue;
+    const isFuture=tue>td;
+    const hasPlan=days.some(d=>sch[d]&&sch[d].length>0);
+    tbl.appendChild(h('div',{style:{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:'0.5px solid #f1f5f9'}},
+      h('div',{style:{fontSize:10,color:isCurrentWk?'#6366f1':isFuture?'#94a3b8':'#1e293b',minWidth:95,fontWeight:isCurrentWk?600:400}},
+        (isCurrentWk?'▶ ':isFuture?'→ ':'✓ ')+wkLabel),
+      h('div',{style:{flex:1,background:'#f1f5f9',borderRadius:999,height:5,overflow:'hidden'}},
+        ca>0?h('div',{style:{width:Math.min(pctVsObj,100)+'%',height:'100%',
+          background:pctVsObj>=100?'#22c55e':pctVsObj>=75?'#f59e0b':'#6366f1',borderRadius:999}}):''),
+      h('div',{style:{fontSize:10,fontWeight:600,color:ca>0?pctVsObj>=100?'#22c55e':'#1e293b':'#94a3b8',minWidth:70,textAlign:'right'}},
+        ca>0?ca.toLocaleString('fr-CH')+' CHF':(hasPlan?'Planifiée':'—')),
+      h('div',{style:{fontSize:9,color:pctVsObj>=100?'#22c55e':ca>0?'#f59e0b':'#cbd5e1',minWidth:32,textAlign:'right',fontWeight:600}},
+        ca>0?pctVsObj+'%':'')
+    ));
+  });
+  wkCard.appendChild(tbl);
+  wkCard.appendChild(h('div',{style:{fontSize:9,color:'#94a3b8',marginTop:6,textAlign:'right'}},'Objectif hebdomadaire : 9 500 CHF · Mensuel : 38 000 CHF'));
+  wrap.appendChild(wkCard);
+}
+
+// Progression tournée
+const pct=ac.length>0?Math.round((vc/ac.length)*100):0;
+const progCard=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',marginBottom:10}});
+progCard.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}},
+  h('div',{style:{fontWeight:700,fontSize:13}},'🏃 Progression de la tournée'),
+  h('span',{style:{fontWeight:800,fontSize:16,color:'#6366f1'}},pct+'%')));
+const pTrack=h('div',{style:{background:'#e2e8f0',borderRadius:999,height:6,overflow:'hidden',marginBottom:8}});
+pTrack.appendChild(h('div',{style:{width:pct+'%',height:'100%',background:'linear-gradient(90deg,#6366f1,#22c55e)',borderRadius:999}}));
+progCard.appendChild(pTrack);
+progCard.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}},
+  ...[{l:'Visités',v:vc,c:'#22c55e'},{l:'Absents',v:Object.values(vis).filter(v=>v.status==='absent').length,c:'#f59e0b'},{l:'Rappel',v:Object.values(vis).filter(v=>v.status==='callback').length,c:'#8b5cf6'},{l:'Restants',v:ac.length-vc,c:'#94a3b8'}]
+  .map(s=>h('div',{style:{background:'#f8fafc',borderRadius:9,padding:'7px',textAlign:'center'}},
+    h('div',{style:{fontSize:18,fontWeight:700,color:s.c}},s.v),
+    h('div',{style:{fontSize:9,color:'#94a3b8',marginTop:1}},s.l)))));
+wrap.appendChild(progCard);
+
+// Relances
+if(fups.length){
+const rel=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #fde68a',marginBottom:10}});
+rel.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:8,color:'#d97706'}},'📅 Relances à effectuer ('+fups.length+')'));
+fups.slice(0,6).forEach(c=>rel.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#f8fafc',borderRadius:8,padding:'8px 10px',marginBottom:5},onClick:()=>{modal={type:'visit',client:c};render()}},
+h('div',null,h('div',{style:{fontWeight:600,fontSize:12}},sal(c)),h('div',{style:{fontSize:10,color:'#64748b'}},c.ort)),
+h('div',{style:{color:'#d97706',fontWeight:700,fontSize:11}},fmtFR(vis[c.kd_nr].followUpDate)))));
+// KPIs principaux
+const kpis=[
+  {l:"CA aujourd'hui",v:dCA.toLocaleString('fr-CH')+' CHF',i:'📍',c:'#22c55e'},
+  {l:'CA semaine en cours',v:wCA.toLocaleString('fr-CH')+' CHF',i:'📅',c:'#6366f1'},
+  {l:'CA mois en cours',v:caMonthNow.toLocaleString('fr-CH')+' CHF',i:'📆',c:pctMois>=100?'#22c55e':pctMois>=75?'#f59e0b':'#ef4444'},
+  {l:'CA total 2026 saisi',v:tCA.toLocaleString('fr-CH')+' CHF',i:'💰',c:'#f59e0b'},
+  {l:'Catalogues remis',v:bookCount+' ('+bookPct+'%)',i:'📖',c:'#22d3ee'},
+  {l:'Relances à faire',v:fups.length,i:'↩',c:'#f87171'},
+];
+const g=h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}});
+kpis.forEach(k=>g.appendChild(h('div',{style:{background:'#fff',borderRadius:10,padding:'11px 12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',borderLeft:'3px solid '+k.c}},
+  h('div',{style:{fontSize:18,marginBottom:2}},k.i),
+  h('div',{style:{fontWeight:800,fontSize:17,color:k.c}},k.v),
+  h('div',{style:{fontSize:10,color:'#64748b',marginTop:2}},k.l))));
+wrap.appendChild(g);
+
+// Objectif mensuel
+const objCard=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',marginBottom:10}});
+objCard.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}},
+  h('div',{style:{fontWeight:700,fontSize:13}},'🎯 Objectif mensuel — 38 000 CHF'),
+  h('span',{style:{fontWeight:800,fontSize:16,color:pctMois>=100?'#22c55e':pctMois>=75?'#f59e0b':'#ef4444'}},pctMois+'%')
+));
+const objTrack=h('div',{style:{background:'#e2e8f0',borderRadius:999,height:8,overflow:'hidden',marginBottom:8}});
+objTrack.appendChild(h('div',{style:{width:Math.min(pctMois,100)+'%',height:'100%',background:pctMois>=100?'#22c55e':pctMois>=75?'#f59e0b':'#ef4444',borderRadius:999,transition:'width .5s'}}));
+objCard.appendChild(objTrack);
+objCard.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:11}},
+  h('span',{style:{color:'#64748b'}},caMonthNow.toLocaleString('fr-CH')+' CHF réalisés'),
+  h('span',{style:{color:evolMois>=0?'#22c55e':'#ef4444',fontWeight:600}},
+    (evolMois>=0?'+ ':'- ')+Math.abs(evolMois).toLocaleString('fr-CH')+' CHF '+(evolMois>=0?'au-dessus':'en dessous'))
+));
+wrap.appendChild(objCard);
+
+// CA par jour (semaine en cours)
 const wkBars=wkDates.map(d=>({d,label:['Mar','Mer','Jeu','Ven'][wkDates.indexOf(d)],ca:totalCA2026(dt=>dt===d)}));
 const maxCA=Math.max(...wkBars.map(x=>x.ca),1);
 const chart=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',marginBottom:10}});
-chart.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:10}},'💵 CA par jour'));
+chart.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:10}},'💵 CA par jour — semaine en cours'));
 const bars=h('div',{style:{display:'flex',gap:6,alignItems:'flex-end',height:70}});
 wkBars.forEach(({d,label,ca})=>{
-const isT=d===td,pct=ca>0?Math.round((ca/maxCA)*100):0;
-bars.appendChild(h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
-h('div',{style:{fontSize:9,fontWeight:700,color:ca>0?'#22c55e':'#334155'}},ca>0?ca.toLocaleString('fr-CH'):'—'),
-h('div',{style:{width:'100%',background:'#e2e8f0',borderRadius:5,height:45,display:'flex',alignItems:'flex-end',overflow:'hidden'}},h('div',{style:{width:'100%',height:pct+'%',background:isT?'#22c55e':'#6366f1',minHeight:ca>0?3:0}})),
-h('div',{style:{fontSize:9,color:isT?'#a5b4fc':'#475569',fontWeight:isT?700:400}},label)));
+  const isT=d===td,pct=ca>0?Math.round((ca/maxCA)*100):0;
+  bars.appendChild(h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
+    h('div',{style:{fontSize:9,fontWeight:700,color:ca>0?'#22c55e':'#cbd5e1'}},ca>0?ca.toLocaleString('fr-CH'):'—'),
+    h('div',{style:{width:'100%',background:'#e2e8f0',borderRadius:5,height:45,display:'flex',alignItems:'flex-end',overflow:'hidden'}},
+      h('div',{style:{width:'100%',height:pct+'%',background:isT?'#22c55e':'#6366f1',minHeight:ca>0?3:0}})),
+    h('div',{style:{fontSize:9,color:isT?'#6366f1':'#94a3b8',fontWeight:isT?700:400}},label)));
 });
-chart.appendChild(bars);wrap.appendChild(chart);
+chart.appendChild(bars);
+wrap.appendChild(chart);
+
+// CA par semaine (historique complet)
+const sortedWeeks=Object.entries(weeklyCA).sort(([a],[b])=>a.localeCompare(b));
+if(sortedWeeks.length>0){
+  const wkCard=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',marginBottom:10}});
+  wkCard.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:8}},'📊 CA par semaine réalisé'));
+  // En-tête tableau
+  const tbl=h('div',{style:{display:'flex',flexDirection:'column',gap:0}});
+  const maxWkCA=Math.max(...sortedWeeks.map(([,ca])=>ca),1);
+  sortedWeeks.slice(-8).forEach(([wk,ca])=>{ // 8 dernières semaines
+    const wkDate=new Date(wk+'T00:00:00');
+    const wkEnd=new Date(wk+'T00:00:00');wkEnd.setDate(wkEnd.getDate()+4);
+    const wkLabel=wkDate.toLocaleDateString('fr-CH',{day:'2-digit',month:'2-digit'})+' → '+wkEnd.toLocaleDateString('fr-CH',{day:'2-digit',month:'2-digit'});
+    const pctBar=Math.round((ca/OBJ_MENSUEL*4)*100); // vs objectif hebdo (38000/4 sem = 9500)
+    const pctVsObj=Math.round((ca/9500)*100);
+    const objWk=9500;
+    const isCurrentWk=wkDates.some(d=>getWeekMonday(d)===wk);
+    tbl.appendChild(h('div',{style:{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'0.5px solid #f1f5f9'}},
+      h('div',{style:{fontSize:10,color:isCurrentWk?'#6366f1':'#64748b',minWidth:95,fontWeight:isCurrentWk?600:400}},wkLabel),
+      h('div',{style:{flex:1,background:'#f1f5f9',borderRadius:999,height:6,overflow:'hidden'}},
+        h('div',{style:{width:Math.min(pctVsObj,100)+'%',height:'100%',background:pctVsObj>=100?'#22c55e':pctVsObj>=75?'#f59e0b':'#6366f1',borderRadius:999}})),
+      h('div',{style:{fontSize:10,fontWeight:600,color:pctVsObj>=100?'#22c55e':'#1e293b',minWidth:70,textAlign:'right'}},ca.toLocaleString('fr-CH')+' CHF'),
+      h('div',{style:{fontSize:9,color:pctVsObj>=100?'#22c55e':'#94a3b8',minWidth:35,textAlign:'right'}},pctVsObj+'%')
+    ));
+  });
+  wkCard.appendChild(tbl);
+  // Légende objectif hebdo
+  wkCard.appendChild(h('div',{style:{fontSize:9,color:'#94a3b8',marginTop:6,textAlign:'right'}},'Objectif hebdo: 9 500 CHF (38 000 / 4 semaines)'));
+  wrap.appendChild(wkCard);
+}
+
+// Progression tournée
+const pct=ac.length>0?Math.round((vc/ac.length)*100):0;
+const progCard=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #e2e8f0',boxShadow:'0 1px 3px rgba(0,0,0,.06)',marginBottom:10}});
+progCard.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}},
+  h('div',{style:{fontWeight:700,fontSize:13}},'🏃 Progression tournée'),
+  h('span',{style:{fontWeight:800,fontSize:16,color:'#6366f1'}},pct+'%')));
+const pTrack=h('div',{style:{background:'#e2e8f0',borderRadius:999,height:6,overflow:'hidden',marginBottom:8}});
+pTrack.appendChild(h('div',{style:{width:pct+'%',height:'100%',background:'linear-gradient(90deg,#6366f1,#22c55e)',borderRadius:999}}));
+progCard.appendChild(pTrack);
+progCard.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}},
+  ...[{l:'Visités',v:vc,c:'#22c55e'},{l:'Absents',v:Object.values(vis).filter(v=>v.status==='absent').length,c:'#f59e0b'},{l:'Rappel',v:Object.values(vis).filter(v=>v.status==='callback').length,c:'#8b5cf6'},{l:'Restants',v:ac.length-vc,c:'#94a3b8'}]
+  .map(s=>h('div',{style:{background:'#f8fafc',borderRadius:9,padding:'7px',textAlign:'center'}},
+    h('div',{style:{fontSize:18,fontWeight:700,color:s.c}},s.v),
+    h('div',{style:{fontSize:9,color:'#94a3b8',marginTop:1}},s.l)))));
+wrap.appendChild(progCard);
+
+// Relances
 if(fups.length){
-const rel=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #fde68a'}});
-rel.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:8,color:'#d97706'}},'📅 Relances à effectuer'));
+const rel=h('div',{style:{background:'#fff',borderRadius:10,padding:'12px',border:'1px solid #fde68a',marginBottom:10}});
+rel.appendChild(h('div',{style:{fontWeight:700,fontSize:13,marginBottom:8,color:'#d97706'}},'📅 Relances à effectuer ('+fups.length+')'));
 fups.slice(0,6).forEach(c=>rel.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#f8fafc',borderRadius:8,padding:'8px 10px',marginBottom:5},onClick:()=>{modal={type:'visit',client:c};render()}},
 h('div',null,h('div',{style:{fontWeight:600,fontSize:12}},sal(c)),h('div',{style:{fontSize:10,color:'#64748b'}},c.ort)),
 h('div',{style:{color:'#d97706',fontWeight:700,fontSize:11}},fmtFR(vis[c.kd_nr].followUpDate)))));
@@ -640,6 +1094,7 @@ wrap.appendChild(rel);
 }
 return wrap;
 }
+// ─────────────────────────────────────────────────────────────────────────────
 function renderModal(m,wkDates,cm,ac,td){
 const ov=h('div',{className:'overlay',onClick:e=>{if(e.target===ov){modal=null;render();}}});
 const sheet=h('div',{className:'sheet'});
@@ -1071,6 +1526,7 @@ if(!info)return;
 const cm_=cMap();
 const allC_=activeC();
 const pool=allC_.filter(c=>info.cities.includes(c.ort)||c.ort.includes(zoneName))
+.filter(c=>!(vis[c.kd_nr]&&vis[c.kd_nr].status==='visited')) // exclure déjà visités
 .sort((a,b)=>(parseInt(b.ca_2026)||parseInt(b.ca_2025)||0)-(parseInt(a.ca_2026)||parseInt(a.ca_2025)||0));
 const existingWithRdv=(sch[d]||[]).filter(id=>{
 const c=cm_[id];
@@ -1216,6 +1672,7 @@ sheet.appendChild(body);
 return ov;
 }
 render();
+}
 </script>
 </body>
 </html>
