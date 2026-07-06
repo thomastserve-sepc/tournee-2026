@@ -309,6 +309,19 @@ function renderWeek(wkDates,cm,td,wCA){
       info_.appendChild(h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#1e293b',fontSize:9}},sal(c)+(hasBook?' 📖✅':'')));
       info_.appendChild(h('div',{style:{color:'#94a3b8',fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},(rdvToday?rdvToday.h+' · ':'')+c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':'')));
       chip_.appendChild(info_);
+      // Flèches ▲▼ pour réordonner dans la colonne
+      const idx=(sch[d]||[]).indexOf(c.kd_nr);
+      const total_=(sch[d]||[]).length;
+      const arrows=h('div',{style:{display:'flex',flexDirection:'column',gap:1,flexShrink:0}});
+      if(idx>0){
+        arrows.appendChild(h('span',{style:{fontSize:10,cursor:'pointer',color:'#94a3b8',lineHeight:1,padding:'1px'},
+          onClick:e=>{e.stopPropagation();const arr=[...(sch[d]||[])];arr.splice(idx,1);arr.splice(idx-1,0,c.kd_nr);sch[d]=arr;persist();render();}},'▲'));
+      }
+      if(idx<total_-1){
+        arrows.appendChild(h('span',{style:{fontSize:10,cursor:'pointer',color:'#94a3b8',lineHeight:1,padding:'1px'},
+          onClick:e=>{e.stopPropagation();const arr=[...(sch[d]||[])];arr.splice(idx,1);arr.splice(idx+1,0,c.kd_nr);sch[d]=arr;persist();render();}},'▼'));
+      }
+      chip_.appendChild(arrows);
       chip_.appendChild(h('span',{style:{color:'#94a3b8',cursor:'pointer',fontSize:13,lineHeight:1,flexShrink:0,padding:'0 2px'},
         onClick:e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render();}},'×'));
       // Long press drag
@@ -340,7 +353,7 @@ function renderWeek(wkDates,cm,td,wCA){
           const toD=tCol.dataset.date;
           if((sch[toD]||[]).length>=MAX){showToast('Maximum '+MAX+' ce jour !','err');dragging=false;return;}
           sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);
-          sch[toD]=[...(sch[toD]||[]),c.kd_nr];
+          sch[toD]=[c.kd_nr,...(sch[toD]||[])];  // En tête de liste
           persist();showToast('✓ '+sal(c)+' déplacé !');render();
         }
         dragging=false;
@@ -362,9 +375,9 @@ function renderWeek(wkDates,cm,td,wCA){
       col.appendChild(btnRow);
     }
     if(!cnt)col.appendChild(h('div',{style:{textAlign:'center',color:'#cbd5e1',fontSize:9,padding:'6px 0'}},'— vide —'));
-    // Bouton + Ajouter visite
-    if(!isPast&&cnt<MAX){
-      col.appendChild(h('button',{style:{width:'100%',padding:'4px',fontSize:9,fontWeight:600,color:'#6366f1',background:'#f0f0ff',border:'1px dashed #c7d2fe',borderRadius:6,cursor:'pointer',marginTop:2},
+    // Bouton + Ajouter visite — toujours visible sur les jours non passés
+    if(!isPast){
+      col.appendChild(h('button',{style:{width:'100%',padding:'5px',fontSize:9,fontWeight:600,color:'#6366f1',background:'#f0f0ff',border:'1px dashed #c7d2fe',borderRadius:6,cursor:'pointer',marginTop:3},
         onClick:e=>{e.stopPropagation();modal={type:'addclient',date:d,dayLabel:WDAYS[i]};render();}},'+ Ajouter'));
     }
     grid.appendChild(col);
