@@ -304,15 +304,32 @@ function renderWeek(wkDates,cm,td,wCA){
       const hasBook=!!book[c.kd_nr];
       // Chip avec drag & drop (long press 500ms)
       const chip_=h('div',{className:'cc',style:{background:rdvToday?'#fef9c3':cfg.bg,borderColor:rdvToday?'#f59e0b':cfg.c+'33',position:'relative',userSelect:'none',webkitUserSelect:'none'}});
-      // Flèches ▲▼ à GAUCHE
+      // Poignée de drag intra-colonne (3 lignes = handle)
       const idx=(sch[d]||[]).indexOf(c.kd_nr);
       const total_=(sch[d]||[]).length;
-      const arrows=h('div',{style:{display:'flex',flexDirection:'column',gap:0,flexShrink:0,marginRight:1}});
-      if(idx>0){arrows.appendChild(h('span',{style:{fontSize:11,cursor:'pointer',color:'#94a3b8',lineHeight:1,padding:'1px'},
-        onClick:e=>{e.stopPropagation();const arr=[...(sch[d]||[])];arr.splice(idx,1);arr.splice(idx-1,0,c.kd_nr);sch[d]=arr;persist();render();}},'▲'));}
-      if(idx<total_-1){arrows.appendChild(h('span',{style:{fontSize:11,cursor:'pointer',color:'#94a3b8',lineHeight:1,padding:'1px'},
-        onClick:e=>{e.stopPropagation();const arr=[...(sch[d]||[])];arr.splice(idx,1);arr.splice(idx+1,0,c.kd_nr);sch[d]=arr;persist();render();}},'▼'));}
-      chip_.appendChild(arrows);
+      const handle=h('div',{style:{display:'flex',flexDirection:'column',gap:2,flexShrink:0,marginRight:3,padding:'2px 1px',cursor:'grab',opacity:.4}},
+        h('div',{style:{width:10,height:1.5,background:'#64748b',borderRadius:1}}),
+        h('div',{style:{width:10,height:1.5,background:'#64748b',borderRadius:1}}),
+        h('div',{style:{width:10,height:1.5,background:'#64748b',borderRadius:1}})
+      );
+      // Touch sur la poignée = déplacer haut/bas selon direction du swipe
+      let hStartY=null,hMoved=false;
+      handle.addEventListener('touchstart',e=>{e.stopPropagation();hStartY=e.touches[0].clientY;hMoved=false;handle.style.opacity='1';},{passive:true});
+      handle.addEventListener('touchmove',e=>{
+        e.stopPropagation();e.preventDefault();
+        if(hStartY===null)return;
+        const dy=e.touches[0].clientY-hStartY;
+        if(!hMoved&&Math.abs(dy)>15){
+          hMoved=true;
+          const arr=[...(sch[d]||[])];
+          const curIdx=arr.indexOf(c.kd_nr);
+          if(dy<0&&curIdx>0){arr.splice(curIdx,1);arr.splice(curIdx-1,0,c.kd_nr);}
+          else if(dy>0&&curIdx<arr.length-1){arr.splice(curIdx,1);arr.splice(curIdx+1,0,c.kd_nr);}
+          sch[d]=arr;persist();hStartY=e.touches[0].clientY;render();
+        }
+      },{passive:false});
+      handle.addEventListener('touchend',e=>{e.stopPropagation();hStartY=null;hMoved=false;handle.style.opacity='.4';},{passive:true});
+      chip_.appendChild(handle);
       // Icone statut
       chip_.appendChild(h('span',{style:{color:rdvToday?'#d97706':cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},rdvToday?'⭐':cfg.i));
       // Info client
