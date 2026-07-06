@@ -320,7 +320,7 @@ function renderWeek(wkDates,cm,td,wCA){
           ghost.style.cssText='position:fixed;z-index:9999;opacity:.9;pointer-events:none;background:#fff;border:2px solid #6366f1;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;color:#1e293b;box-shadow:0 8px 24px rgba(0,0,0,.2)';
           ghost.textContent=sal(c);document.body.appendChild(ghost);
           chip_.style.opacity='0.3';
-        },500);
+        },300);
       },{passive:true});
       chip_.addEventListener('touchmove',e=>{if(!dragging||!ghost)return;e.preventDefault();
         const t=e.touches[0];ghost.style.left=(t.clientX-50)+'px';ghost.style.top=(t.clientY-20)+'px';
@@ -362,6 +362,11 @@ function renderWeek(wkDates,cm,td,wCA){
       col.appendChild(btnRow);
     }
     if(!cnt)col.appendChild(h('div',{style:{textAlign:'center',color:'#cbd5e1',fontSize:9,padding:'6px 0'}},'— vide —'));
+    // Bouton + Ajouter visite
+    if(!isPast&&cnt<MAX){
+      col.appendChild(h('button',{style:{width:'100%',padding:'4px',fontSize:9,fontWeight:600,color:'#6366f1',background:'#f0f0ff',border:'1px dashed #c7d2fe',borderRadius:6,cursor:'pointer',marginTop:2},
+        onClick:e=>{e.stopPropagation();modal={type:'addclient',date:d,dayLabel:WDAYS[i]};render();}},'+ Ajouter'));
+    }
     grid.appendChild(col);
   });
   wrap.appendChild(grid);
@@ -711,7 +716,80 @@ function renderModal(m,wkDates,cm,ac,td){
     });
     sheet.appendChild(body);
 
-  } else if(m.type==='newclient'){
+  } else if(m.type==='addclient'){
+    const {date,dayLabel}=m;
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,
+          h('div',{style:{fontWeight:700,fontSize:16}},'➕ Ajouter une visite'),
+          h('div',{style:{fontSize:11,color:'#6366f1'}},(dayLabel||'')+' — '+fmtFR(date)+' · '+(sch[date]||[]).length+'/'+MAX)),
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
+    var addBody=h('div',{className:'sheet-b'});
+
+    // Champ de recherche
+    const searchW=h('div',null,h('div',{className:'fl'},'Rechercher un client existant'));
+    const searchInp=h('input',{type:'search',placeholder:'Nom, salon, ville, N°…',className:'fi'});
+    searchW.appendChild(searchInp);
+    addBody.appendChild(searchW);
+
+    // Résultats de recherche
+    const results=h('div',{style:{display:'flex',flexDirection:'column',gap:5,maxHeight:'35vh',overflowY:'auto'}});
+    addBody.appendChild(results);
+
+    function updateSearch(){
+      results.innerHTML='';
+      const q=searchInp.value.trim().toLowerCase();
+      if(q.length<2){results.appendChild(h('div',{style:{fontSize:11,color:'#94a3b8',textAlign:'center',padding:'8px'}},'Tapez au moins 2 caractères'));return;}
+      const existing=new Set(sch[date]||[]);
+      const found=activeC().filter(c=>!existing.has(c.kd_nr)&&!(vis[c.kd_nr]?.status==='visited')&&
+        (c.name.toLowerCase().includes(q)||c.vorname?.toLowerCase().includes(q)||
+         c.salon?.toLowerCase().includes(q)||c.ort?.toLowerCase().includes(q)||c.kd_nr?.includes(q))
+      ).slice(0,15);
+      if(!found.length){results.appendChild(h('div',{style:{fontSize:11,color:'#94a3b8',textAlign:'center',padding:'8px'}},'Aucun client trouvé'));return;}
+      found.forEach(c=>{
+        const row=h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#f8fafc',borderRadius:9,padding:'9px 12px',border:'1px solid #f1f5f9',cursor:'pointer'},
+          onClick:()=>{
+            if((sch[date]||[]).length>=MAX){showToast('Maximum '+MAX+' visites ce jour !','err');return;}
+            sch[date]=[...(sch[date]||[]),c.kd_nr];persist();
+            showToast('✓ '+sal(c)+' ajouté');modal=null;render();
+          }},
+          h('div',null,
+            h('div',{style:{fontWeight:600,fontSize:12}},sal(c)),
+            h('div',{style:{fontSize:10,color:'#94a3b8'}},c.ort+' · SEK '+c.sek)),
+          h('span',{style:{color:'#6366f1',fontSize:18,fontWeight:300}},'+'));
+        results.appendChild(row);
+      });
+    }
+    searchInp.addEventListener('input',updateSearch);
+
+    // Séparateur
+    addBody.appendChild(h('div',{style:{borderTop:'1px solid #f1f5f9',paddingTop:4}}));
+
+    // Créer un prospect rapidement
+    addBody.appendChild(h('div',{style:{fontWeight:600,fontSize:13,color:'#64748b'}},'Ou créer un nouveau prospect :'));
+    const pForm={name:'',salon:'',ort:'',tel:''};
+    const mkPF=(label,key,ph)=>{
+      const w=h('div',null,h('div',{className:'fl'},label));
+      const inp=h('input',{type:'text',placeholder:ph,className:'fi',onInput:e=>{pForm[key]=e.target.value;}});
+      w.appendChild(inp);return w;
+    };
+    addBody.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+      mkPF('Nom / Salon *','salon','Coiffure Dupont'),
+      mkPF('Localité','ort','Sion')));
+    addBody.appendChild(mkPF('Téléphone','tel','027 XXX XX XX'));
+    addBody.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'11px',fontSize:13},
+      onClick:()=>{
+        const salon=(pForm.salon||'').trim();
+        if(!salon){showToast('Nom du salon requis','err');return;}
+        if((sch[date]||[]).length>=MAX){showToast('Maximum '+MAX+' visites ce jour !','err');return;}
+        const kd='P'+Math.floor(10000+Math.random()*89999);
+        const nouveau={kd_nr:kd,sek:'102',name:salon,vorname:'',salon,strasse:'',plz:'',ort:pForm.ort||'',tel:pForm.tel||'',ca_2025:'0',ca_2026:'0',_manual:true,_prospect:true};
+        extra=[...extra,nouveau];
+        sch[date]=[...(sch[date]||[]),kd];
+        persist();showToast('✓ '+salon+' créé et ajouté');modal=null;render();
+      }},'✓ Créer et ajouter à '+dayLabel));
+
+    sheet.appendChild(addBody);
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'➕ Nouveau client')),
