@@ -212,6 +212,98 @@ function h(tag,attrs,...ch){
   return el;
 }
 
+
+
+function genRapportHebdo(){
+  const wkDates=getWkDates();
+  const cm_=cMap();
+  const wkLabel=fmtFR(wkDates[0])+' → '+fmtFR(wkDates[3]);
+  // Données de la semaine
+  const visitedThisWeek=[];
+  const absentThisWeek=[];
+  const commandesThisWeek=[];
+  const allVisitDates=new Set(wkDates);
+  Object.entries(vis).forEach(([kd,v])=>{
+    if(!allVisitDates.has(v.visitDate))return;
+    const c=cm_[kd];if(!c)return;
+    if(v.status==='visited'){
+      visitedThisWeek.push({c,v});
+      if(parseFloat(v.amount)>0)commandesThisWeek.push({c,v});
+    }
+    if(v.status==='absent')absentThisWeek.push({c,v});
+  });
+  // CA de la semaine
+  const caWeek=totalCA2026(d=>wkDates.includes(d));
+  const OBJ_HEBDO=9500;
+  const pct=Math.round((caWeek/OBJ_HEBDO)*100);
+  // Générer le HTML du rapport
+  let rhtml='\x3chtml>\x3chead>\x3cmeta charset="UTF-8">\x3ctitle>Rapport Hebdomadaire\x3c/title>';
+  rhtml+='\x3cstyle>body{font-family:Arial,sans-serif;font-size:11px;margin:15mm;color:#1e293b}';
+  rhtml+='h1{font-size:18px;color:#6366f1;margin-bottom:4px}h2{font-size:13px;color:#475569;margin:14px 0 6px;border-bottom:2px solid #e2e8f0;padding-bottom:4px}';
+  rhtml+='.kpi{display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 16px;margin:4px;text-align:center}';
+  rhtml+='.kpi-val{font-size:22px;font-weight:700;color:#6366f1}.kpi-lbl{font-size:9px;color:#94a3b8;margin-top:2px}';
+  rhtml+='.ok{color:#16a34a}.warn{color:#f59e0b}.err{color:#ef4444}';
+  rhtml+='table{width:100%;border-collapse:collapse;font-size:10px}th{background:#f8fafc;padding:5px 8px;text-align:left;border-bottom:1px solid #e2e8f0;font-size:9px;text-transform:uppercase;color:#94a3b8}';
+  rhtml+='td{padding:5px 8px;border-bottom:1px solid #f8fafc}.ca{color:#16a34a;font-weight:700;text-align:right}';
+  rhtml+='\x3c/style>\x3c/head>\x3cbody>';
+  rhtml+='\x3ch1>📊 Rapport Hebdomadaire — DICOPAR SA\x3c/h1>';
+  rhtml+='\x3cp style="color:#94a3b8;margin-bottom:16px">Thomas · SEK 102/112 · '+wkLabel+'\x3c/p>';
+  // KPIs
+  rhtml+='\x3cdiv>';
+  rhtml+='\x3cdiv class="kpi">\x3cdiv class="kpi-val '+(pct>=100?'ok':pct>=75?'warn':'err')+'">'+caWeek.toLocaleString('fr-CH')+' CHF\x3c/div>\x3cdiv class="kpi-lbl">CA semaine\x3c/div>\x3c/div>';
+  rhtml+='\x3cdiv class="kpi">\x3cdiv class="kpi-val">'+pct+'%\x3c/div>\x3cdiv class="kpi-lbl">vs objectif 9 500 CHF\x3c/div>\x3c/div>';
+  rhtml+='\x3cdiv class="kpi">\x3cdiv class="kpi-val ok">'+visitedThisWeek.length+'\x3c/div>\x3cdiv class="kpi-lbl">Clients visités\x3c/div>\x3c/div>';
+  rhtml+='\x3cdiv class="kpi">\x3cdiv class="kpi-val warn">'+absentThisWeek.length+'\x3c/div>\x3cdiv class="kpi-lbl">Clients absents\x3c/div>\x3c/div>';
+  rhtml+='\x3cdiv class="kpi">\x3cdiv class="kpi-val">'+commandesThisWeek.length+'\x3c/div>\x3cdiv class="kpi-lbl">Commandes\x3c/div>\x3c/div>';
+  rhtml+='\x3c/div>';
+  // Barre progression
+  rhtml+='\x3cdiv style="margin:16px 0 8px;background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden">\x3cdiv style="width:'+Math.min(pct,100)+'%;height:100%;background:'+(pct>=100?'#22c55e':pct>=75?'#f59e0b':'#6366f1')+';border-radius:999px">\x3c/div>\x3c/div>';
+  rhtml+='\x3cp style="font-size:10px;color:#94a3b8;margin-bottom:16px">Objectif hebdomadaire : 9 500 CHF · Mensuel : 38 000 CHF\x3c/p>';
+  // Commandes
+  if(commandesThisWeek.length>0){
+    rhtml+='\x3ch2>✅ Commandes ('+commandesThisWeek.length+')\x3c/h2>';
+    rhtml+='\x3ctable>\x3cthead>\x3ctr>\x3cth>Jour\x3c/th>\x3cth>Salon\x3c/th>\x3cth>Ville\x3c/th>\x3cth>Produits\x3c/th>\x3cth>Montant CHF\x3c/th>\x3c/tr>\x3c/thead>\x3ctbody>';
+    const totalCmd=commandesThisWeek.reduce((s,{v})=>s+(parseFloat(v.amount)||0),0);
+    commandesThisWeek.sort((a,b)=>(b.v.amount||0)-(a.v.amount||0)).forEach(({c,v})=>{
+      const jour=['Mar','Mer','Jeu','Ven'][wkDates.indexOf(v.visitDate)]||v.visitDate;
+      rhtml+='\x3ctr>\x3ctd>'+jour+'\x3c/td>\x3ctd>'+sal(c)+'\x3c/td>\x3ctd>'+c.ort+'\x3c/td>\x3ctd>'+(v.products||'—')+'\x3c/td>\x3ctd class="ca">'+parseFloat(v.amount).toLocaleString('fr-CH')+'\x3c/td>\x3c/tr>';
+    });
+    rhtml+='\x3ctr style="font-weight:700;border-top:2px solid #e2e8f0">\x3ctd colspan="4">TOTAL\x3c/td>\x3ctd class="ca">'+totalCmd.toLocaleString('fr-CH')+' CHF\x3c/td>\x3c/tr>';
+    rhtml+='\x3c/tbody>\x3c/table>';
+  }
+  // Visites sans commande
+  const visitsSansCmd=visitedThisWeek.filter(({v})=>!(parseFloat(v.amount)>0));
+  if(visitsSansCmd.length>0){
+    rhtml+='\x3ch2>👥 Visites sans commande ('+visitsSansCmd.length+')\x3c/h2>';
+    rhtml+='\x3ctable>\x3cthead>\x3ctr>\x3cth>Jour\x3c/th>\x3cth>Salon\x3c/th>\x3cth>Ville\x3c/th>\x3cth>Motif\x3c/th>\x3c/tr>\x3c/thead>\x3ctbody>';
+    visitsSansCmd.forEach(({c,v})=>{
+      const jour=['Mar','Mer','Jeu','Ven'][wkDates.indexOf(v.visitDate)]||v.visitDate;
+      rhtml+='\x3ctr>\x3ctd>'+jour+'\x3c/td>\x3ctd>'+sal(c)+'\x3c/td>\x3ctd>'+c.ort+'\x3c/td>\x3ctd>'+(v.reason||'—')+'\x3c/td>\x3c/tr>';
+    });
+    rhtml+='\x3c/tbody>\x3c/table>';
+  }
+  // Absents
+  if(absentThisWeek.length>0){
+    rhtml+='\x3ch2>⚠️ Clients absents / à relancer ('+absentThisWeek.length+')\x3c/h2>';
+    rhtml+='\x3ctable>\x3cthead>\x3ctr>\x3cth>Salon\x3c/th>\x3cth>Ville\x3c/th>\x3cth>Tél\x3c/th>\x3cth>CA 2025\x3c/th>\x3c/tr>\x3c/thead>\x3ctbody>';
+    absentThisWeek.forEach(({c,v})=>{
+      rhtml+='\x3ctr>\x3ctd>'+sal(c)+'\x3c/td>\x3ctd>'+c.ort+'\x3c/td>\x3ctd>'+c.tel+'\x3c/td>\x3ctd class="ca">'+(parseInt(c.ca_2025)>0?parseInt(c.ca_2025).toLocaleString('fr-CH')+' CHF':'—')+'\x3c/td>\x3c/tr>';
+    });
+    rhtml+='\x3c/tbody>\x3c/table>';
+  }
+  // Semaines suivantes
+  rhtml+='\x3ch2>📅 Prochains RDV\x3c/h2>';
+  const futureRdvs=Object.entries(RDV_FIXES).filter(([d])=>d>wkDates[3]).sort(([a],[b])=>a.localeCompare(b)).slice(0,5);
+  if(futureRdvs.length){
+    rhtml+='\x3ctable>\x3cthead>\x3ctr>\x3cth>Date\x3c/th>\x3cth>Heure\x3c/th>\x3cth>Lieu\x3c/th>\x3c/tr>\x3c/thead>\x3ctbody>';
+    futureRdvs.forEach(([d,rdvs])=>rdvs.forEach(r=>{rhtml+='\x3ctr>\x3ctd>'+fmtFR(d)+'\x3c/td>\x3ctd>'+r.h+'\x3c/td>\x3ctd>'+r.lieu+'\x3c/td>\x3c/tr>';}));
+    rhtml+='\x3c/tbody>\x3c/table>';
+  } else rhtml+='\x3cp style="color:#94a3b8">Aucun RDV planifié\x3c/p>';
+  rhtml+='\x3cp style="margin-top:20px;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:8px">Généré le '+new Date().toLocaleDateString('fr-CH')+' · DICOPAR SA · Plan de Tournée 2026\x3c/p>';
+  rhtml+='\x3c/body>\x3c/html>';
+  showPrintOverlay(rhtml);
+}
+
 function render(){
   RDV_FIXES=loadRdv();
   const app=document.getElementById('app');
@@ -245,7 +337,8 @@ function render(){
       ),
       h('div',{style:{display:'flex',gap:5}},
         h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11},onClick:()=>{modal={type:'sync'};render();}},'🔄'),
-        h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11,color:'#0891b2',borderColor:'#a5f3fc'},onClick:()=>{modal={type:'print'};render();}},'🖨️')
+        h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11,color:'#0891b2',borderColor:'#a5f3fc'},onClick:()=>{modal={type:'print'};render();}},'🖨️'),
+        h('button',{className:'bg',style:{padding:'5px 9px',fontSize:11,color:'#7c3aed',borderColor:'#ddd6fe'},onClick:()=>{genRapportHebdo();}},'📋')
       )
     )
   ));
