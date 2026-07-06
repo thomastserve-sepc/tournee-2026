@@ -395,15 +395,20 @@ function renderWeek(wkDates,cm,td,wCA){
       const v=vis[c.kd_nr],cfg=SC[v?.status||'none'],amt=parseFloat(v?.amount)||0;
       const rdvToday=(RDV_FIXES[d]||[]).find(r=>r.kd_nr===c.kd_nr);
       const hasBook=!!book[c.kd_nr];
+      // Vérifier si le salon est fermé ce jour
+      const DAY_MAP={2:'Mar',3:'Mer',4:'Jeu',5:'Ven',6:'Sam',0:'Dim',1:'Lun'};
+      const dayName=DAY_MAP[new Date(d+'T00:00:00').getDay()]||'';
+      const cHours_=(()=>{try{const h_=JSON.parse(localStorage.getItem('salon_hours_2026')||'{}');return h_[c.kd_nr]||null;}catch{return null;}})();
+      const isClosed=cHours_&&cHours_.days&&cHours_.days.length>0&&!cHours_.days.includes(dayName);
       // Chip avec drag & drop (long press 500ms)
       const isSelected=window._selectedClient===c.kd_nr&&window._selectedDay===d;
       const chip_=h('div',{className:'cc',style:{
-        background:isSelected?'#eff6ff':rdvToday?'#fef9c3':cfg.bg,
-        borderColor:isSelected?'#6366f1':rdvToday?'#f59e0b':cfg.c+'33',
+        background:isSelected?'#eff6ff':isClosed?'#fef2f2':rdvToday?'#fef9c3':cfg.bg,
+        borderColor:isSelected?'#6366f1':isClosed?'#fecaca':rdvToday?'#f59e0b':cfg.c+'33',
         boxShadow:isSelected?'0 0 0 2px #6366f1':'none',
         position:'relative',userSelect:'none',webkitUserSelect:'none',transition:'all .15s'
       }});
-      chip_.appendChild(h('span',{style:{color:rdvToday?'#d97706':cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},rdvToday?'⭐':cfg.i));
+      chip_.appendChild(h('span',{style:{color:isClosed?'#ef4444':rdvToday?'#d97706':cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},isClosed?'⚠️':rdvToday?'⭐':cfg.i));
       const info_=h('div',{style:{flex:1,minWidth:0}});
       info_.appendChild(h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#1e293b',fontSize:9}},sal(c)+(hasBook?' 📖✅':'')));
       info_.appendChild(h('div',{style:{color:'#94a3b8',fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},(rdvToday?rdvToday.h+' · ':'')+c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':'')));
@@ -704,6 +709,87 @@ function renderModal(m,wkDates,cm,ac,td){
       style:{width:'100%',padding:'10px',borderRadius:10,border:'1px solid '+(hasBook?'#bbf7d0':'#e2e8f0'),background:hasBook?'#f0fdf4':'#f8fafc',color:hasBook?'#16a34a':'#64748b',fontWeight:600,fontSize:13,cursor:'pointer',marginBottom:0},
       onClick:()=>{if(book[c.kd_nr])delete book[c.kd_nr];else book[c.kd_nr]={at:today()};persist();modal={type:'visit',client:c};render();}
     },hasBook?'📖 ✅ Catalogue reçu — appuyer pour annuler':'📖 Marquer catalogue reçu'));
+
+    // ── Horaires d'ouverture ──────────────────────────────────────────────
+    const HOURS_KEY='salon_hours_2026';
+    const loadHours_=()=>{try{return JSON.parse(localStorage.getItem(HOURS_KEY)||'{}')}catch{return{}}};
+    const saveHours_=(h2)=>{localStorage.setItem(HOURS_KEY,JSON.stringify(h2));};
+    const syncHoursToCRM_=(kd,hrs)=>{
+      try{
+        const crmC=JSON.parse(localStorage.getItem('crm_clients')||'[]');
+        const ci=crmC.findIndex(x=>x.kdnr===kd);
+        if(ci>=0){crmC[ci].horaires=hrs;localStorage.setItem('crm_clients',JSON.stringify(crmC));}
+      }catch(e){}
+    };
+    const allHrs=loadHours_();
+    const cHrs=allHrs[c.kd_nr]||{days:[],open:'09:00',close:'18:00'};
+    const JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam'];
+    const hoursBox=h('div',{style:{background:'#f8fafc',borderRadius:10,border:'1px solid #e2e8f0',padding:'10px 12px'}});
+    hoursBox.appendChild(h('div',{className:'fl'},'🕐 Horaires d\'ouverture'));
+    const daysRow=h('div',{style:{display:'flex',gap:4,flexWrap:'nowrap',marginBottom:8,touchAction:'none'}});
+    const dayBtns={};
+    let slideMode=null; // 'add' ou 'remove'
+    const refreshStatus=()=>{
+      const h2=loadHours_();const ch=h2[c.kd_nr]||{days:[]};
+      const days=ch.days||[];
+      const info=hoursBox.querySelector('.hours-info');
+      if(info)info.textContent=days.length>0?'✓ Ouvert : '+days.join(', ')+' · '+(ch.open||'09:00')+'–'+(ch.close||'18:00'):'Tapez ou glissez pour sélectionner les jours';
+      if(info)info.style.color=days.length>0?'#22c55e':'#94a3b8';
+    };
+    const toggleDay=(j,forceOn)=>{
+      const h2=loadHours_();const ch=h2[c.kd_nr]||{days:[],open:'09:00',close:'18:00'};
+      const days=[...(ch.days||[])];
+      const on=forceOn!==undefined?forceOn:!days.includes(j);
+      const newDays=on?[...new Set([...days,j])]:days.filter(x=>x!==j);
+      h2[c.kd_nr]={...ch,days:newDays};
+      saveHours_(h2);syncHoursToCRM_(c.kd_nr,h2[c.kd_nr]);
+      const btn=dayBtns[j];
+      if(btn){btn.style.background=on?'#eff6ff':'#fff';btn.style.borderColor=on?'#6366f1':'#e2e8f0';btn.style.color=on?'#6366f1':'#94a3b8';btn.style.fontWeight=on?'600':'400';}
+      refreshStatus();
+    };
+    JOURS.forEach(j=>{
+      const isOn=(cHrs.days||[]).includes(j);
+      const btn=h('button',{style:{flex:1,padding:'8px 2px',borderRadius:7,border:'1px solid '+(isOn?'#6366f1':'#e2e8f0'),background:isOn?'#eff6ff':'#fff',color:isOn?'#6366f1':'#94a3b8',cursor:'pointer',fontSize:11,fontWeight:isOn?600:400,textAlign:'center',minWidth:0}},j);
+      dayBtns[j]=btn;
+      // Tap simple
+      btn.addEventListener('click',e=>{e.stopPropagation();toggleDay(j);showToast('✓ '+j+' '+(!(cHrs.days||[]).includes(j)?'retiré':'ajouté'));});
+      // Slide
+      btn.addEventListener('touchstart',e=>{
+        e.stopPropagation();
+        const h2=loadHours_();const ch=h2[c.kd_nr]||{days:[]};
+        slideMode=(ch.days||[]).includes(j)?'remove':'add';
+        toggleDay(j,slideMode==='add');
+      },{passive:true});
+      btn.addEventListener('touchmove',e=>{
+        e.stopPropagation();e.preventDefault();
+        const t=e.touches[0];
+        const el=document.elementFromPoint(t.clientX,t.clientY);
+        const day=Object.entries(dayBtns).find(([,b])=>b===el)?.[0];
+        if(day)toggleDay(day,slideMode==='add');
+      },{passive:false});
+      btn.addEventListener('touchend',e=>{e.stopPropagation();slideMode=null;showToast('✓ Horaires sauvegardés');},{passive:true});
+      daysRow.appendChild(btn);
+    });
+    hoursBox.appendChild(daysRow);
+    const timeRow=h('div',{style:{display:'flex',gap:8,alignItems:'center'}});
+    const openInp=h('input',{type:'time',value:cHrs.open||'09:00',className:'fi',style:{flex:1}});
+    const closeInp=h('input',{type:'time',value:cHrs.close||'18:00',className:'fi',style:{flex:1}});
+    const saveTime_=()=>{
+      const h2=loadHours_();h2[c.kd_nr]={...(h2[c.kd_nr]||{days:[]}),open:openInp.value,close:closeInp.value};
+      saveHours_(h2);syncHoursToCRM_(c.kd_nr,h2[c.kd_nr]);showToast('✓ Horaires sauvegardés');
+    };
+    openInp.addEventListener('change',saveTime_);closeInp.addEventListener('change',saveTime_);
+    timeRow.appendChild(h('span',{style:{fontSize:11,color:'#94a3b8'}},'De'));
+    timeRow.appendChild(openInp);
+    timeRow.appendChild(h('span',{style:{fontSize:11,color:'#94a3b8'}},'à'));
+    timeRow.appendChild(closeInp);
+    hoursBox.appendChild(timeRow);
+    if(cHrs.days&&cHrs.days.length>0){
+      hoursBox.appendChild(h('div',{className:'hours-info',style:{fontSize:10,color:'#22c55e',marginTop:5,fontWeight:600}},'✓ Ouvert : '+cHrs.days.join(', ')+' · '+(cHrs.open||'09:00')+'–'+(cHrs.close||'18:00')));
+    } else {
+      hoursBox.appendChild(h('div',{className:'hours-info',style:{fontSize:10,color:'#94a3b8',marginTop:5}},'Tapez ou glissez pour sélectionner les jours'));
+    }
+    body.appendChild(hoursBox);
 
     body.appendChild(h('div',{style:{display:'flex',gap:8}},
       c.strasse?h('a',{href:'https://maps.apple.com/?address='+encodeURIComponent(c.strasse+' '+c.plz+' '+c.ort),target:'_blank',style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:5,background:'#eff6ff',border:'1px solid #c7d2fe',color:'#6366f1',padding:'10px',borderRadius:9,textDecoration:'none',fontSize:12,fontWeight:600}},'🗺️ Plans Apple'):'',
