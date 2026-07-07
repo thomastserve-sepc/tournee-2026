@@ -304,6 +304,7 @@ function genRapportHebdo(){
   showPrintOverlay(rhtml);
 }
 
+
 function render(){
   RDV_FIXES=loadRdv();
   const app=document.getElementById('app');
@@ -348,6 +349,7 @@ function render(){
   if(view==='week')main.appendChild(renderWeek(wkDates,cm_,td,wCA));
   else if(view==='list')main.appendChild(renderList(ac));
   else if(view==='stats')main.appendChild(renderStats(wkDates,ac,td,tCA,wCA,dCA));
+  else if(view==='messages')main.appendChild(renderMessages());
 
   app.appendChild(main);
   setTimeout(()=>{const m=app.querySelector('.ms');if(m)m.scrollTop=sc},0);
@@ -357,6 +359,7 @@ function render(){
       h('button',{className:'nb'+(view===n.id?' on':''),onClick:()=>{view=n.id;render();}},
         h('span',{className:'ic'},n.ic),n.l)
     ),
+    h('button',{className:'nb'+(view==='messages'?' on':''),onClick:()=>{view='messages';loadCRMClients();render();}},h('span',{className:'ic'},'📤'),'Messages'),
     h('button',{className:'nb',onClick:()=>{modal={type:'newclient'};render();}},h('span',{className:'ic'},'➕'),'Nouveau')
   ));
 }
@@ -843,14 +846,11 @@ function renderModal(m,wkDates,cm,ac,td){
         onClick:()=>{
           try{
             const v2=vis[c.kd_nr]||{};
-            const hrs=(()=>{try{const h_=JSON.parse(localStorage.getItem('salon_hours_2026')||'{}');return h_[c.kd_nr]||null;}catch{return null;}})();
             const uid_=()=>Math.random().toString(36).slice(2,10);
-            // Lire le pending existant
             let pending=JSON.parse(localStorage.getItem('crm_pending')||'{"clients":{},"visites":{},"hist":[],"cmds":[]}');
             if(!pending.clients)pending.clients={};
             if(!pending.visites)pending.visites={};
             if(!pending.hist)pending.hist=[];
-            // Trouver ou créer le client CRM
             let crmClients=JSON.parse(localStorage.getItem('crm_clients')||'[]');
             let crmClient=crmClients.find(x=>x.kdnr===c.kd_nr);
             if(!crmClient){
@@ -861,12 +861,8 @@ function renderModal(m,wkDates,cm,ac,td){
               crmClients.push(crmClient);
               localStorage.setItem('crm_clients',JSON.stringify(crmClients));
             }
-            // Mettre à jour lastVisit
             if(v2.visitDate)crmClient.lastVisit=v2.visitDate;
-            if(hrs)crmClient.horaires=hrs;
-            localStorage.setItem('crm_clients',JSON.stringify(crmClients));
             pending.clients[crmClient.id]=true;
-            // Créer une visite dans le pending
             const note_=[];
             if(v2.status){const lbl={visited:'✓ Visité',absent:'~ Absent',closed:'✕ Fermé',callback:'↩ Rappel'};note_.push(lbl[v2.status]);}
             if(v2.products)note_.push(v2.products);
@@ -877,16 +873,16 @@ function renderModal(m,wkDates,cm,ac,td){
               statut:v2.status==='visited'?'Validée':'Planifiée',
               comment:note_.join(' · '),commande:parseFloat(v2.amount)||0};
             pending.visites[visite.id]=visite;
-            // Si commande > 0, ajouter à l'historique
             if(parseFloat(v2.amount)>0){
-              pending.hist.push({id:uid_(),clientId:crmClient.id,salon:sal(c),nom:c.name,ville:c.ort||'',
-                date:v2.visitDate||today(),objet:'Visite commerciale',
-                comment:v2.products||'',commande:parseFloat(v2.amount)});
+              pending.hist.push({id:uid_(),clientId:crmClient.id,salon:sal(c),nom:c.name,
+                ville:c.ort||'',date:v2.visitDate||today(),commande:parseFloat(v2.amount),
+                comment:v2.products||''});
             }
             localStorage.setItem('crm_pending',JSON.stringify(pending));
             showToast('✓ Sync CRM — ouvrez le CRM pour finaliser');
           }catch(err){showToast('Erreur: '+err.message,'err');}
-        }},'📤 Sync → CRM'),
+        }
+      },'📤 Sync → CRM'),
       h('button',{style:{flex:1,padding:'11px',borderRadius:10,border:'1px solid #fde68a',background:'#fffbeb',color:'#d97706',fontWeight:600,fontSize:12,cursor:'pointer'},
         onClick:()=>{
           try{
