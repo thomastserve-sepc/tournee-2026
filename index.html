@@ -399,7 +399,8 @@ function renderWeek(wkDates,cm,td,wCA){
       const DAY_MAP={2:'Mar',3:'Mer',4:'Jeu',5:'Ven',6:'Sam',0:'Dim',1:'Lun'};
       const dayName=DAY_MAP[new Date(d+'T00:00:00').getDay()]||'';
       const cHours_=(()=>{try{const h_=JSON.parse(localStorage.getItem('salon_hours_2026')||'{}');return h_[c.kd_nr]||null;}catch{return null;}})();
-      const isClosed=cHours_&&cHours_.days&&cHours_.days.length>0&&!cHours_.days.includes(dayName);
+      const hasAnyDay=cHours_&&Object.values(cHours_).some(v=>v&&v.on);
+      const isClosed=hasAnyDay&&!(cHours_[dayName]?.on);
       // Chip avec drag & drop (long press 500ms)
       const isSelected=window._selectedClient===c.kd_nr&&window._selectedDay===d;
       const chip_=h('div',{className:'cc',style:{
@@ -721,81 +722,113 @@ function renderModal(m,wkDates,cm,ac,td){
         if(ci>=0){crmC[ci].horaires=hrs;localStorage.setItem('crm_clients',JSON.stringify(crmC));}
       }catch(e){}
     };
-    const allHrs=loadHours_();
-    const cHrs=allHrs[c.kd_nr]||{days:[],open:'09:00',close:'18:00'};
-    const JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam'];
-    const hoursBox=h('div',{style:{background:'#f8fafc',borderRadius:10,border:'1px solid #e2e8f0',padding:'10px 12px'}});
-    hoursBox.appendChild(h('div',{className:'fl'},'🕐 Horaires d\'ouverture'));
-    const daysRow=h('div',{style:{display:'flex',gap:4,flexWrap:'nowrap',marginBottom:8,touchAction:'none'}});
-    const dayBtns={};
-    let slideMode=null; // 'add' ou 'remove'
     const getSheetScroll=()=>document.querySelector('.sheet')?.scrollTop||0;
     const setSheetScroll=(v)=>{const s=document.querySelector('.sheet');if(s)s.scrollTop=v;};
-    const refreshStatus=()=>{
-      const h2=loadHours_();const ch=h2[c.kd_nr]||{days:[]};
-      const days=ch.days||[];
-      const info=hoursBox.querySelector('.hours-info');
-      if(info)info.textContent=days.length>0?'✓ Ouvert : '+days.join(', ')+' · '+(ch.open||'09:00')+'–'+(ch.close||'18:00'):'Tapez ou glissez pour sélectionner les jours';
-      if(info)info.style.color=days.length>0?'#22c55e':'#94a3b8';
-    };
-    const toggleDay=(j,forceOn)=>{
-      const sc=getSheetScroll();
-      const h2=loadHours_();const ch=h2[c.kd_nr]||{days:[],open:'09:00',close:'18:00'};
-      const days=[...(ch.days||[])];
-      const on=forceOn!==undefined?forceOn:!days.includes(j);
-      const newDays=on?[...new Set([...days,j])]:days.filter(x=>x!==j);
-      h2[c.kd_nr]={...ch,days:newDays};
-      saveHours_(h2);syncHoursToCRM_(c.kd_nr,h2[c.kd_nr]);
-      const btn=dayBtns[j];
-      if(btn){btn.style.background=on?'#eff6ff':'#fff';btn.style.borderColor=on?'#6366f1':'#e2e8f0';btn.style.color=on?'#6366f1':'#94a3b8';btn.style.fontWeight=on?'600':'400';}
-      refreshStatus();
-      requestAnimationFrame(()=>setSheetScroll(sc));
-    };
-    JOURS.forEach(j=>{
-      const isOn=(cHrs.days||[]).includes(j);
-      const btn=h('button',{style:{flex:1,padding:'8px 2px',borderRadius:7,border:'1px solid '+(isOn?'#6366f1':'#e2e8f0'),background:isOn?'#eff6ff':'#fff',color:isOn?'#6366f1':'#94a3b8',cursor:'pointer',fontSize:11,fontWeight:isOn?600:400,textAlign:'center',minWidth:0}},j);
-      dayBtns[j]=btn;
-      // Tap simple
-      btn.addEventListener('click',e=>{e.stopPropagation();toggleDay(j);});
-      // Slide
-      btn.addEventListener('touchstart',e=>{
-        e.stopPropagation();
-        const h2=loadHours_();const ch=h2[c.kd_nr]||{days:[]};
-        slideMode=(ch.days||[]).includes(j)?'remove':'add';
-        toggleDay(j,slideMode==='add');
-      },{passive:true});
-      btn.addEventListener('touchmove',e=>{
-        e.stopPropagation();e.preventDefault();
-        const t=e.touches[0];
-        const el=document.elementFromPoint(t.clientX,t.clientY);
-        const day=Object.entries(dayBtns).find(([,b])=>b===el)?.[0];
-        if(day)toggleDay(day,slideMode==='add');
-      },{passive:false});
-      btn.addEventListener('touchend',e=>{e.stopPropagation();slideMode=null;},{passive:true});
-      daysRow.appendChild(btn);
+    const allHrs=loadHours_();
+    // Format: {Lun:{on:true,m1:'09:00',m2:'12:00',a1:'13:30',a2:'18:00',pause:true}, ...}
+    const cHrs=allHrs[c.kd_nr]||{};
+    const JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam'];
+    const hoursBox=h('div',{style:{background:'#f8fafc',borderRadius:10,border:'1px solid #e2e8f0',padding:'10px 12px'}});
+    hoursBox.appendChild(h('div',{className:'fl'},'🕐 Horaires par jour'));
+
+    // Préréglages rapides
+    const presetsRow=h('div',{style:{display:'flex',gap:4,marginBottom:8}});
+    const presets=[
+      {label:'9h–18h',v:{m1:'09:00',m2:'18:00',pause:false}},
+      {label:'9h–12h / 13h30–18h',v:{m1:'09:00',m2:'12:00',a1:'13:30',a2:'18:00',pause:true}},
+      {label:'9h–12h / 14h–18h',v:{m1:'09:00',m2:'12:00',a1:'14:00',a2:'18:00',pause:true}},
+      {label:'10h–19h',v:{m1:'10:00',m2:'19:00',pause:false}},
+    ];
+    presets.forEach(p=>{
+      presetsRow.appendChild(h('button',{style:{flex:1,padding:'5px 3px',fontSize:9,borderRadius:6,border:'1px solid #e2e8f0',background:'#fff',color:'#6366f1',cursor:'pointer',fontWeight:500},
+        onClick:()=>{
+          const sc=getSheetScroll();
+          const h2=loadHours_();
+          if(!h2[c.kd_nr])h2[c.kd_nr]={};
+          JOURS.forEach(j=>{
+            if(h2[c.kd_nr][j]?.on){
+              h2[c.kd_nr][j]={...h2[c.kd_nr][j],...p.v};
+            }
+          });
+          saveHours_(h2);syncHoursToCRM_(c.kd_nr,h2[c.kd_nr]);
+          renderHoursTable();
+          requestAnimationFrame(()=>setSheetScroll(sc));
+        }
+      },p.label));
     });
-    hoursBox.appendChild(daysRow);
-    const timeRow=h('div',{style:{display:'flex',gap:8,alignItems:'center'}});
-    const openInp=h('input',{type:'time',value:cHrs.open||'09:00',className:'fi',style:{flex:1}});
-    const closeInp=h('input',{type:'time',value:cHrs.close||'18:00',className:'fi',style:{flex:1}});
-    const saveTime_=()=>{
-      const sc=getSheetScroll();
-      const h2=loadHours_();h2[c.kd_nr]={...(h2[c.kd_nr]||{days:[]}),open:openInp.value,close:closeInp.value};
-      saveHours_(h2);syncHoursToCRM_(c.kd_nr,h2[c.kd_nr]);
-      refreshStatus();
-      requestAnimationFrame(()=>setSheetScroll(sc));
+    hoursBox.appendChild(h('div',{style:{fontSize:9,color:'#94a3b8',marginBottom:3}},'Appliquer aux jours actifs :'));
+    hoursBox.appendChild(presetsRow);
+
+    // Tableau par jour
+    const tableWrap=h('div',{style:{display:'flex',flexDirection:'column',gap:4}});
+    hoursBox.appendChild(tableWrap);
+
+    const renderHoursTable=()=>{
+      tableWrap.innerHTML='';
+      const h2=loadHours_();
+      const ch=h2[c.kd_nr]||{};
+      JOURS.forEach(j=>{
+        const jData=ch[j]||{on:false,m1:'09:00',m2:'12:00',a1:'13:30',a2:'18:00',pause:true};
+        const isOn=!!jData.on;
+        const row=h('div',{style:{display:'flex',alignItems:'center',gap:4,padding:'4px 0',borderBottom:'0.5px solid #e2e8f0'}});
+        // Toggle jour
+        const dayBtn=h('button',{style:{minWidth:32,padding:'5px 4px',borderRadius:6,border:'1px solid '+(isOn?'#6366f1':'#e2e8f0'),background:isOn?'#eff6ff':'#fff',color:isOn?'#6366f1':'#94a3b8',cursor:'pointer',fontSize:11,fontWeight:isOn?600:400}},j);
+        dayBtn.addEventListener('click',()=>{
+          const sc=getSheetScroll();
+          const h3=loadHours_();if(!h3[c.kd_nr])h3[c.kd_nr]={};
+          h3[c.kd_nr][j]={...(h3[c.kd_nr][j]||{m1:'09:00',m2:'12:00',a1:'13:30',a2:'18:00',pause:true}),on:!isOn};
+          saveHours_(h3);syncHoursToCRM_(c.kd_nr,h3[c.kd_nr]);
+          renderHoursTable();
+          requestAnimationFrame(()=>setSheetScroll(sc));
+        });
+        row.appendChild(dayBtn);
+        if(isOn){
+          // Créneaux horaires
+          const mkTime=(val,key)=>{
+            const inp=h('input',{type:'time',value:val||'',className:'fi',style:{flex:1,padding:'4px 5px',fontSize:11,minWidth:0}});
+            inp.addEventListener('change',()=>{
+              const sc=getSheetScroll();
+              const h3=loadHours_();if(!h3[c.kd_nr])h3[c.kd_nr]={};
+              h3[c.kd_nr][j]={...(h3[c.kd_nr][j]||{}),on:true,[key]:inp.value};
+              saveHours_(h3);syncHoursToCRM_(c.kd_nr,h3[c.kd_nr]);
+              requestAnimationFrame(()=>setSheetScroll(sc));
+            });
+            return inp;
+          };
+          const slots=h('div',{style:{flex:1,display:'flex',flexDirection:'column',gap:2}});
+          // Matin
+          const matinRow=h('div',{style:{display:'flex',alignItems:'center',gap:2}});
+          matinRow.appendChild(mkTime(jData.m1,'m1'));
+          matinRow.appendChild(h('span',{style:{fontSize:9,color:'#94a3b8','flexShrink':0}},'–'));
+          matinRow.appendChild(mkTime(jData.m2,'m2'));
+          slots.appendChild(matinRow);
+          // Pause midi ?
+          const pauseBtn=h('button',{style:{fontSize:9,padding:'2px 5px',borderRadius:5,border:'1px solid '+(jData.pause?'#fde68a':'#e2e8f0'),background:jData.pause?'#fef9c3':'#f8fafc',color:jData.pause?'#d97706':'#94a3b8',cursor:'pointer'},
+            onClick:()=>{
+              const sc=getSheetScroll();
+              const h3=loadHours_();if(!h3[c.kd_nr])h3[c.kd_nr]={};
+              h3[c.kd_nr][j]={...(h3[c.kd_nr][j]||{}),on:true,pause:!jData.pause};
+              saveHours_(h3);syncHoursToCRM_(c.kd_nr,h3[c.kd_nr]);
+              renderHoursTable();requestAnimationFrame(()=>setSheetScroll(sc));
+            }
+          },jData.pause?'+ Après-midi':'Journée continue');
+          slots.appendChild(pauseBtn);
+          // Après-midi si pause
+          if(jData.pause){
+            const apresRow=h('div',{style:{display:'flex',alignItems:'center',gap:2}});
+            apresRow.appendChild(mkTime(jData.a1||'13:30','a1'));
+            apresRow.appendChild(h('span',{style:{fontSize:9,color:'#94a3b8',flexShrink:0}},'–'));
+            apresRow.appendChild(mkTime(jData.a2||'18:00','a2'));
+            slots.appendChild(apresRow);
+          }
+          row.appendChild(slots);
+        } else {
+          row.appendChild(h('span',{style:{fontSize:10,color:'#94a3b8',fontStyle:'italic'}},'Fermé'));
+        }
+        tableWrap.appendChild(row);
+      });
     };
-    openInp.addEventListener('change',saveTime_);closeInp.addEventListener('change',saveTime_);
-    timeRow.appendChild(h('span',{style:{fontSize:11,color:'#94a3b8'}},'De'));
-    timeRow.appendChild(openInp);
-    timeRow.appendChild(h('span',{style:{fontSize:11,color:'#94a3b8'}},'à'));
-    timeRow.appendChild(closeInp);
-    hoursBox.appendChild(timeRow);
-    if(cHrs.days&&cHrs.days.length>0){
-      hoursBox.appendChild(h('div',{className:'hours-info',style:{fontSize:10,color:'#22c55e',marginTop:5,fontWeight:600}},'✓ Ouvert : '+cHrs.days.join(', ')+' · '+(cHrs.open||'09:00')+'–'+(cHrs.close||'18:00')));
-    } else {
-      hoursBox.appendChild(h('div',{className:'hours-info',style:{fontSize:10,color:'#94a3b8',marginTop:5}},'Tapez ou glissez pour sélectionner les jours'));
-    }
+    renderHoursTable();
     body.appendChild(hoursBox);
 
     body.appendChild(h('div',{style:{display:'flex',gap:8}},
@@ -804,22 +837,72 @@ function renderModal(m,wkDates,cm,ac,td){
       h('button',{className:'bg',style:{flex:1,padding:'10px',fontSize:12,fontWeight:600},onClick:()=>{modal={type:'schedule',client:c};render();}},'📅 Planning')
     ));
     body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'12px',fontSize:14},onClick:()=>{archiveCurrentVisit(c.kd_nr);modal=null;showToast('Visite enregistrée ✓');}},'💾 Enregistrer & fermer'));
-    // Bouton CRM
-    body.appendChild(h('button',{style:{width:'100%',padding:'11px',borderRadius:10,border:'1px solid #fde68a',background:'#fffbeb',color:'#d97706',fontWeight:600,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8},
-      onClick:()=>{
-        try{
-          const sessionData=JSON.stringify({readonly:false,expires:Date.now()+8*60*60*1000});
-          localStorage.setItem('crm_session_active',sessionData);
-          localStorage.setItem('crm_open_client','c_'+c.kd_nr);
-          const crmClients=JSON.parse(localStorage.getItem('crm_clients')||'[]');
-          if(!crmClients.find(x=>x.kdnr===c.kd_nr)){
-            crmClients.push({id:'c_'+c.kd_nr,kdnr:c.kd_nr,sek:c.sek,nom:c.name,prenom:c.vorname||'',salon:sal(c),rue:c.strasse||'',npa:c.plz||'',ville:c.ort||'',tel1:c.tel||'',ca26:parseInt(c.ca_2026)||0,ca25:parseInt(c.ca_2025)||0,statut:'Actif',comments:[],lastVisit:'',nbVisites:0});
+    // Boutons CRM
+    body.appendChild(h('div',{style:{display:'flex',gap:8}},
+      h('button',{style:{flex:1,padding:'11px',borderRadius:10,border:'1px solid #bbf7d0',background:'#f0fdf4',color:'#16a34a',fontWeight:600,fontSize:12,cursor:'pointer'},
+        onClick:()=>{
+          try{
+            const v2=vis[c.kd_nr]||{};
+            const hrs=(()=>{try{const h_=JSON.parse(localStorage.getItem('salon_hours_2026')||'{}');return h_[c.kd_nr]||null;}catch{return null;}})();
+            const uid_=()=>Math.random().toString(36).slice(2,10);
+            // Lire le pending existant
+            let pending=JSON.parse(localStorage.getItem('crm_pending')||'{"clients":{},"visites":{},"hist":[],"cmds":[]}');
+            if(!pending.clients)pending.clients={};
+            if(!pending.visites)pending.visites={};
+            if(!pending.hist)pending.hist=[];
+            // Trouver ou créer le client CRM
+            let crmClients=JSON.parse(localStorage.getItem('crm_clients')||'[]');
+            let crmClient=crmClients.find(x=>x.kdnr===c.kd_nr);
+            if(!crmClient){
+              crmClient={id:'c_'+c.kd_nr,kdnr:c.kd_nr,sek:c.sek,nom:c.name,prenom:c.vorname||'',
+                salon:sal(c),rue:c.strasse||'',npa:c.plz||'',ville:c.ort||'',
+                tel1:c.tel||'',ca26:parseInt(c.ca_2026)||0,ca25:parseInt(c.ca_2025)||0,
+                statut:'Actif',comments:[],lastVisit:'',nbVisites:0};
+              crmClients.push(crmClient);
+              localStorage.setItem('crm_clients',JSON.stringify(crmClients));
+            }
+            // Mettre à jour lastVisit
+            if(v2.visitDate)crmClient.lastVisit=v2.visitDate;
+            if(hrs)crmClient.horaires=hrs;
             localStorage.setItem('crm_clients',JSON.stringify(crmClients));
-          }
-          const a=document.createElement('a');a.href='https://thomastserve-sepc.github.io/CRM-2026/index.html';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);
-          showToast('✓ Ouverture du CRM...');
-        }catch(err){showToast('Erreur: '+err.message,'err');}
-      }},'📋 Ouvrir dans le CRM'));
+            pending.clients[crmClient.id]=true;
+            // Créer une visite dans le pending
+            const note_=[];
+            if(v2.status){const lbl={visited:'✓ Visité',absent:'~ Absent',closed:'✕ Fermé',callback:'↩ Rappel'};note_.push(lbl[v2.status]);}
+            if(v2.products)note_.push(v2.products);
+            if(v2.note)note_.push(v2.note);
+            if(book[c.kd_nr])note_.push('📖 Catalogue remis');
+            const visite={id:uid_(),clientId:crmClient.id,salon:sal(c),nom:c.name,ville:c.ort||'',
+              date:v2.visitDate||today(),objet:v2.reason||'Visite commerciale',
+              statut:v2.status==='visited'?'Validée':'Planifiée',
+              comment:note_.join(' · '),commande:parseFloat(v2.amount)||0};
+            pending.visites[visite.id]=visite;
+            // Si commande > 0, ajouter à l'historique
+            if(parseFloat(v2.amount)>0){
+              pending.hist.push({id:uid_(),clientId:crmClient.id,salon:sal(c),nom:c.name,ville:c.ort||'',
+                date:v2.visitDate||today(),objet:'Visite commerciale',
+                comment:v2.products||'',commande:parseFloat(v2.amount)});
+            }
+            localStorage.setItem('crm_pending',JSON.stringify(pending));
+            showToast('✓ Sync CRM — ouvrez le CRM pour finaliser');
+          }catch(err){showToast('Erreur: '+err.message,'err');}
+        }},'📤 Sync → CRM'),
+      h('button',{style:{flex:1,padding:'11px',borderRadius:10,border:'1px solid #fde68a',background:'#fffbeb',color:'#d97706',fontWeight:600,fontSize:12,cursor:'pointer'},
+        onClick:()=>{
+          try{
+            const sessionData=JSON.stringify({readonly:false,expires:Date.now()+8*60*60*1000});
+            localStorage.setItem('crm_session_active',sessionData);
+            localStorage.setItem('crm_open_client','c_'+c.kd_nr);
+            const crmClients=JSON.parse(localStorage.getItem('crm_clients')||'[]');
+            if(!crmClients.find(x=>x.kdnr===c.kd_nr)){
+              crmClients.push({id:'c_'+c.kd_nr,kdnr:c.kd_nr,sek:c.sek,nom:c.name,prenom:c.vorname||'',salon:sal(c),rue:c.strasse||'',npa:c.plz||'',ville:c.ort||'',tel1:c.tel||'',ca26:parseInt(c.ca_2026)||0,ca25:parseInt(c.ca_2025)||0,statut:'Actif',comments:[],lastVisit:'',nbVisites:0});
+              localStorage.setItem('crm_clients',JSON.stringify(crmClients));
+            }
+            const a=document.createElement('a');a.href='https://thomastserve-sepc.github.io/CRM-2026/index.html';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);
+            showToast('✓ Ouverture du CRM...');
+          }catch(err){showToast('Erreur: '+err.message,'err');}
+        }},'📋 Ouvrir CRM')
+    ));
     sheet.appendChild(body);
 
   } else if(m.type==='schedule'){
@@ -921,17 +1004,19 @@ function renderModal(m,wkDates,cm,ac,td){
       }},'⭐ Confirmer le RDV'));
     body.appendChild(h('button',{className:'bg',style:{width:'100%',padding:'10px',marginTop:4},onClick:()=>{modal={type:'visit',client:c};render();}},'← Retour à la fiche'));
     sheet.appendChild(body);
+
+  } else if(m.type==='sync'){
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'🔄 Synchronisation'),h('div',{style:{fontSize:11,color:'#0891b2'}},'Transférer les données entre appareils')),
         h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:()=>{modal=null;render();}},'✕'))));
-    var body=h('div',{className:'sheet-b'});
-    body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'13px',fontSize:14},onClick:()=>{exportSync();}},'📤 Exporter sync (.json)'));
+    var syncBody=h('div',{className:'sheet-b'});
+    syncBody.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'13px',fontSize:14},onClick:()=>{exportSync();}},'📤 Exporter sync (.json)'));
     const impLbl=h('label',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'13px',borderRadius:10,border:'2px dashed #a5f3fc',background:'#ecfeff',color:'#0891b2',fontWeight:600,fontSize:14,cursor:'pointer'}},'📥 Importer sync (.json)',
       h('input',{type:'file',accept:'.json',style:{display:'none'},onChange:e=>{const f=e.target.files[0];if(f){importSync(f);modal=null;}}}));
-    body.appendChild(impLbl);
-    body.appendChild(h('div',{style:{fontSize:11,color:'#94a3b8',textAlign:'center'}},Object.keys(vis).length+' visites · '+Object.keys(sch).filter(d=>sch[d]?.length).length+' jours planifiés · CA '+totalCA2026().toLocaleString('fr-CH')+' CHF'));
-    sheet.appendChild(body);
+    syncBody.appendChild(impLbl);
+    syncBody.appendChild(h('div',{style:{fontSize:11,color:'#94a3b8',textAlign:'center'}},Object.keys(vis).length+' visites · '+Object.keys(sch).filter(d=>sch[d]?.length).length+' jours planifiés · CA '+totalCA2026().toLocaleString('fr-CH')+' CHF'));
+    sheet.appendChild(syncBody);
 
   } else if(m.type==='print'){
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
