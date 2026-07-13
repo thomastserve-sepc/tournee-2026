@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Tournée 2026">
@@ -480,16 +480,29 @@ function renderWeek(wkDates,cm,td,wCA){
       del_.textContent='×';
       del_.addEventListener('click',e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render();});
       chip_.appendChild(del_);
-      // Tap: sélectionner
-      chip_.addEventListener('click',e=>{
+      // 1 tap = déplacement | 2 taps = fiche client
+      chip_.style.touchAction='manipulation'; // Désactive le zoom double-tap Safari
+      let lastTap_=0;
+      chip_.onclick=function(e){
         e.stopPropagation();
-        if(window._selectedClient===c.kd_nr&&window._selectedDay===d){
+        const now=Date.now();
+        const diff=now-lastTap_;
+        lastTap_=now;
+        if(diff<400&&diff>0){
+          // Double tap → fiche client
+          lastTap_=0;
           window._selectedClient=null;window._selectedDay=null;
+          modal={type:'visit',client:c,fromDay:d};render();
         } else {
-          window._selectedClient=c.kd_nr;window._selectedDay=d;
+          // Simple tap → sélectionner / déselectionner
+          if(window._selectedClient===c.kd_nr&&window._selectedDay===d){
+            window._selectedClient=null;window._selectedDay=null;
+          } else {
+            window._selectedClient=c.kd_nr;window._selectedDay=d;
+          }
+          render();
         }
-        render();
-      });
+      };
       col.appendChild(chip_);
     });
     // Boutons de gestion — disponibles sur toutes les semaines
@@ -514,7 +527,7 @@ function renderWeek(wkDates,cm,td,wCA){
   });
   wrap.appendChild(grid);
 
-  // Barre de déplacement si client sélectionné
+  // Barre déplacement si client sélectionné
   if(window._selectedClient&&window._selectedDay&&wkDates.includes(window._selectedDay)){
     const selId=window._selectedClient;
     const selD=window._selectedDay;
@@ -524,63 +537,58 @@ function renderWeek(wkDates,cm,td,wCA){
     const dayIdx=wkDates.indexOf(selD);
     const bar_=document.createElement('div');
     bar_.style.cssText='background:#1e293b;border-radius:12px;margin-top:8px;padding:10px;';
-    // Nom
     const lbl_=document.createElement('div');
     lbl_.style.cssText='font-size:11px;color:#94a3b8;text-align:center;margin-bottom:8px;font-weight:600';
-    lbl_.textContent='📌 '+(selC?sal(selC):'?')+' — '+(WDAYS[dayIdx]||selD)+' (pos '+(selIdx+1)+'/'+total_+')';
+    lbl_.textContent='📌 '+(selC?sal(selC):'?')+' — '+(WDAYS[dayIdx]||selD)+' pos '+(selIdx+1)+'/'+total_;
     bar_.appendChild(lbl_);
-    // Boutons haut/bas
     const ud_=document.createElement('div');
     ud_.style.cssText='display:flex;gap:8px;margin-bottom:8px';
-    const mkBtn=(label,enabled,fn)=>{
+    const mkBtn_=(label,enabled,fn)=>{
       const b=document.createElement('button');
-      b.style.cssText='flex:1;padding:14px;font-size:17px;font-weight:700;border:none;border-radius:9px;cursor:'+(enabled?'pointer':'default')+';'
-        +'background:'+(enabled?'#6366f1':'#374151')+';color:'+(enabled?'#fff':'#6b7280')+';font-family:inherit;';
+      b.style.cssText='flex:1;padding:14px;font-size:17px;font-weight:700;border:none;border-radius:9px;touch-action:manipulation;'
+        +'background:'+(enabled?'#6366f1':'#374151')+';color:'+(enabled?'#fff':'#6b7280')+';font-family:inherit;cursor:'+(enabled?'pointer':'default');
       b.textContent=label;
-      if(enabled)b.addEventListener('click',fn);
+      if(enabled)b.onclick=fn;
       return b;
     };
-    ud_.appendChild(mkBtn('↑ Monter',selIdx>0,()=>{
+    ud_.appendChild(mkBtn_('↑ Monter',selIdx>0,()=>{
       const arr=[...(sch[selD]||[])];arr.splice(selIdx,1);arr.splice(selIdx-1,0,selId);
       sch[selD]=arr;persist();render();
     }));
-    ud_.appendChild(mkBtn('↓ Descendre',selIdx<total_-1,()=>{
+    ud_.appendChild(mkBtn_('↓ Descendre',selIdx<total_-1,()=>{
       const arr=[...(sch[selD]||[])];arr.splice(selIdx,1);arr.splice(selIdx+1,0,selId);
       sch[selD]=arr;persist();render();
     }));
     bar_.appendChild(ud_);
-    // Déplacer vers autre jour
     const others_=wkDates.filter(dd=>dd!==selD);
     if(others_.length){
       const dr_=document.createElement('div');
-      dr_.style.cssText='display:flex;gap:4px;align-items:center';
-      const lbl2_=document.createElement('span');
-      lbl2_.style.cssText='font-size:10px;color:#64748b';lbl2_.textContent='→';
-      dr_.appendChild(lbl2_);
+      dr_.style.cssText='display:flex;gap:4px;align-items:center;margin-bottom:6px';
+      dr_.appendChild(Object.assign(document.createElement('span'),{textContent:'→',style:'font-size:10px;color:#64748b'}));
       others_.forEach(dd=>{
         const di=wkDates.indexOf(dd);
         const b=document.createElement('button');
-        b.style.cssText='flex:1;padding:9px 4px;font-size:12px;font-weight:600;background:#374151;color:#e2e8f0;border:1px solid #4b5563;border-radius:7px;cursor:pointer;font-family:inherit';
+        b.style.cssText='flex:1;padding:9px 4px;font-size:12px;font-weight:600;background:#374151;color:#e2e8f0;border:1px solid #4b5563;border-radius:7px;cursor:pointer;touch-action:manipulation;font-family:inherit';
         b.textContent=WDAYS[di];
-        b.addEventListener('click',()=>{
+        b.onclick=()=>{
           if((sch[dd]||[]).length>=MAX){showToast('Maximum '+MAX+' ce jour !','err');return;}
           sch[selD]=(sch[selD]||[]).filter(id=>id!==selId);
           sch[dd]=[selId,...(sch[dd]||[])];
           persist();window._selectedClient=null;window._selectedDay=null;
           showToast('✓ Déplacé vers '+WDAYS[di]);render();
-        });
+        };
         dr_.appendChild(b);
       });
       bar_.appendChild(dr_);
     }
-    // Annuler
     const ann_=document.createElement('button');
-    ann_.style.cssText='width:100%;padding:8px;margin-top:6px;background:transparent;border:1px solid #374151;color:#64748b;border-radius:7px;cursor:pointer;font-size:11px;font-family:inherit';
-    ann_.textContent='✕ Annuler';
-    ann_.addEventListener('click',()=>{window._selectedClient=null;window._selectedDay=null;render();});
+    ann_.style.cssText='width:100%;padding:8px;background:transparent;border:1px solid #374151;color:#64748b;border-radius:7px;cursor:pointer;font-size:11px;font-family:inherit;touch-action:manipulation';
+    ann_.textContent='✕ Annuler sélection';
+    ann_.onclick=()=>{window._selectedClient=null;window._selectedDay=null;render();};
     bar_.appendChild(ann_);
     wrap.appendChild(bar_);
   }
+
   return wrap;
 }
 
