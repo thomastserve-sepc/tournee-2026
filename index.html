@@ -153,6 +153,62 @@ function h(tag,attrs){
   return el;
 }
 
+var ZONE_INFO={
+  RIVIERA:{label:'Riviera',cities:['Villeneuve VD','Corseaux','Blonay','Clarens','La Tour-de-Peilz','Vevey','Montreux','Roche VD','St-Légier-Chiésaz','Paudex']},
+  LAUSANNE:{label:'Lausanne',cities:['Lausanne','Lutry','Pully','Crissier','Chavannes-Renens','Bussigny','Renens VD','Prilly','Ecublens VD','Etagnières']},
+  FRIBOURG:{label:'Fribourg',cities:['Ursy','Châtel-St-Denis','Attalens','Bossonnens','Servion','Chexbres','Bulle','Oron-la-Ville','Siviriez','Moudon','Romont']},
+  CHABLAIS:{label:'Chablais',cities:['Aigle','Bex','Collombey','Vouvry','Bouveret','Monthey','St-Maurice','Muraz (Collombey)','Troistorrents','Ollon']},
+  MARTIGNY:{label:'Martigny',cities:['Martigny','Saxon','Saillon','Riddes','Ardon','Aproz','Fully','Leytron','Charrat','Martigny-Croix','Sembrancher']},
+  SION:{label:'Sion',cities:['Sion','Conthey','Vétroz','Savièse','Grimisuat','Uvrier','Bramois','Haute-Nendaz','Basse-Nendaz']},
+  SIERRE:{label:'Sierre',cities:['Sierre','Crans-Montana','Crans-sur-Sierre','Grône','Salgesch','Chippis','Blignoud (Ayent)','Miège','Chalais','Noës']},
+};
+var ZONE_NEIGHBORS={
+  RIVIERA:['LAUSANNE','CHABLAIS','FRIBOURG'],LAUSANNE:['RIVIERA','FRIBOURG'],
+  FRIBOURG:['LAUSANNE','RIVIERA'],CHABLAIS:['RIVIERA','MARTIGNY'],
+  MARTIGNY:['CHABLAIS','SION'],SION:['MARTIGNY','SIERRE'],SIERRE:['SION','MARTIGNY'],
+};
+var CITY_ZONE={};
+Object.keys(ZONE_INFO).forEach(function(z){ZONE_INFO[z].cities.forEach(function(city){CITY_ZONE[city]=z;});});
+
+function getRdvForDay(date_){
+  try{var rdv=JSON.parse(localStorage.getItem('rdv_fixes_2026')||'{}');return rdv[date_]||[];}catch{return[];}
+}
+
+function loadZone(date_,zoneName){
+  var info=ZONE_INFO[zoneName];if(!info)return;
+  var rdvIds=getRdvForDay(date_).filter(function(r){return r.kd_nr}).map(function(r){return r.kd_nr});
+  var ac_=activeC().filter(function(c){return!(vis[c.kd_nr]&&vis[c.kd_nr].status==='visited')&&!rdvIds.includes(c.kd_nr)});
+  var pool=ac_.filter(function(c){return info.cities.includes(c.ort)})
+    .sort(function(a,b){return(parseInt(b.ca_2025)||0)-(parseInt(a.ca_2025)||0)});
+  sch[date_]=[].concat(rdvIds,pool.slice(0,MAX-rdvIds.length).map(function(c){return c.kd_nr}));
+  persist();showToast('✓ Zone '+info.label+' chargée');modal=null;render();
+}
+
+function organizeAroundRdv(date_){
+  var rdvs=getRdvForDay(date_).filter(function(r){return r.kd_nr});
+  if(!rdvs.length){showToast('Aucun RDV client ce jour','warn');return;}
+  var cm_=cMap();
+  var rdvCities=new Set();
+  rdvs.forEach(function(r){var c=cm_[r.kd_nr];if(c)rdvCities.add(c.ort);});
+  var rdvZones=new Set();
+  rdvCities.forEach(function(city){if(CITY_ZONE[city])rdvZones.add(CITY_ZONE[city]);});
+  var nearCities=new Set(rdvCities);
+  rdvZones.forEach(function(z){
+    (ZONE_INFO[z]&&ZONE_INFO[z].cities||[]).forEach(function(c){nearCities.add(c);});
+    (ZONE_NEIGHBORS[z]||[]).forEach(function(nz){(ZONE_INFO[nz]&&ZONE_INFO[nz].cities||[]).forEach(function(c){nearCities.add(c);});});
+  });
+  var existing=new Set(sch[date_]||[]);
+  var candidates=activeC().filter(function(c){
+    return !existing.has(c.kd_nr)&&!(vis[c.kd_nr]&&vis[c.kd_nr].status==='visited')&&nearCities.has(c.ort);
+  }).sort(function(a,b){return(parseInt(b.ca_2025)||0)-(parseInt(a.ca_2025)||0)});
+  var spots=MAX-(sch[date_]||[]).length;
+  if(spots<=0){showToast('Jour déjà plein','warn');return;}
+  var toAdd=candidates.slice(0,spots);
+  if(!toAdd.length){showToast('Pas de clients disponibles dans cette zone','warn');return;}
+  sch[date_]=(sch[date_]||[]).concat(toAdd.map(function(c){return c.kd_nr}));
+  persist();showToast('✓ '+toAdd.length+' clients ajoutés');render();
+}
+
 function render(){
   var app=document.getElementById('app');
   var sc=app.querySelector('.ms')?app.querySelector('.ms').scrollTop:0;
@@ -312,6 +368,24 @@ function renderWeek(wkDates,cm,td,wCA,wkLabel){
     ab.style.cssText='width:100%;padding:7px 5px;font-size:10px;font-weight:700;color:#6366f1;background:#f0f0ff;border:1px dashed #c7d2fe;border-radius:7px;cursor:pointer;margin-top:4px;font-family:inherit;-webkit-appearance:none';
     ab.onclick=function(){modal={type:'addclient',date:d,dayLabel:WDAYS[i]};render();};
     col.appendChild(ab);
+
+    // Boutons Zone et RDV
+    var zoneRow=document.createElement('div');
+    zoneRow.style.cssText='display:flex;gap:3px;margin-top:3px';
+    var zb=document.createElement('button');
+    zb.textContent='↺ Zone';
+    zb.style.cssText='flex:1;padding:4px;font-size:8px;font-weight:600;color:#6366f1;background:#f0f0ff;border:1px dashed #c7d2fe;border-radius:5px;cursor:pointer;font-family:inherit';
+    zb.onclick=function(){modal={type:'zone',date:d,dayLabel:WDAYS[i]};render();};
+    zoneRow.appendChild(zb);
+    var rdvs_=getRdvForDay(d).filter(function(r){return r.kd_nr});
+    if(rdvs_.length>0&&cnt<MAX){
+      var rb=document.createElement('button');
+      rb.textContent='⭐ Compléter';
+      rb.style.cssText='flex:1;padding:4px;font-size:8px;font-weight:600;color:#d97706;background:#fef9c3;border:1px solid #fde68a;border-radius:5px;cursor:pointer;font-family:inherit';
+      rb.onclick=function(){organizeAroundRdv(d);};
+      zoneRow.appendChild(rb);
+    }
+    col.appendChild(zoneRow);
 
     grid.appendChild(col);
   });
@@ -679,7 +753,24 @@ function renderModal(m,wkDates,cm,ac,td){
     si2.oninput=showClients;showClients();
     sheet.appendChild(ab2);
 
-  } else if(m.type==='newclient'){
+  } else if(m.type==='zone'){
+    var date_=m.date,dayLabel_=m.dayLabel;
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'↺ Changer la zone'),h('div',{style:{fontSize:11,color:'#6366f1'}},dayLabel_||'')),
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:function(){modal=null;render();}},'✕')
+      )
+    ));
+    var zb2=h('div',{className:'sheet-b'});
+    Object.keys(ZONE_INFO).forEach(function(z){
+      var info=ZONE_INFO[z];
+      var btn=document.createElement('button');
+      btn.style.cssText='width:100%;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;color:#1e293b;font-weight:600;font-size:13px;cursor:pointer;text-align:left;font-family:inherit;margin-bottom:6px';
+      btn.textContent=info.label+' — '+info.cities.slice(0,3).join(', ')+'…';
+      btn.onclick=function(){loadZone(date_,z);};
+      zb2.appendChild(btn);
+    });
+    sheet.appendChild(zb2);
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'➕ Nouveau client')),
