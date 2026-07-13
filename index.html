@@ -227,7 +227,8 @@ function renderWeek(wkDates,cm,td,wCA,wkLabel){
     dh.innerHTML='<div style="font-weight:700;font-size:11px;color:'+(isT?'#6366f1':'#64748b')+'">'+WDAYS[i]+'</div>'
       +'<div style="font-size:9px;color:'+(isT?'#6366f1':'#94a3b8')+'">'+fmtFR(d)+'</div>'
       +'<div style="font-size:9px;font-weight:700;color:'+bar+';margin-top:1px">'+cnt+'/'+MAX+(cnt>=MAX?' ✓':'')+'</div>'
-      +'<div style="background:#e2e8f0;border-radius:999px;height:3px;overflow:hidden;margin:2px 0"><div style="width:'+Math.min((cnt/MAX)*100,100)+'%;height:100%;background:'+bar+'"></div></div>';
+      +'<div style="background:#e2e8f0;border-radius:999px;height:3px;overflow:hidden;margin:2px 0"><div style="width:'+Math.min((cnt/MAX)*100,100)+'%;height:100%;background:'+bar+'"></div></div>'
+      +(totalCA(function(x){return x===d})>0?'<div style="font-size:9px;color:#22c55e;font-weight:700">'+totalCA(function(x){return x===d}).toLocaleString('fr-CH')+' CHF</div>':'');
     col.appendChild(dh);
 
     dc.forEach(function(c){
@@ -477,6 +478,138 @@ function renderModal(m,wkDates,cm,ac,td){
     if(c.strasse){
       body.appendChild(h('a',{href:'https://maps.apple.com/?address='+encodeURIComponent(c.strasse+' '+c.plz+' '+c.ort),target:'_blank',style:{display:'flex',alignItems:'center',justifyContent:'center',gap:5,background:'#eff6ff',border:'1px solid #c7d2fe',color:'#6366f1',padding:'10px',borderRadius:9,textDecoration:'none',fontSize:12,fontWeight:600}},'🗺️ Plans Apple'));
     }
+
+    // Horaires d'ouverture
+    var JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam'];
+    var hKey='salon_hours_2026';
+    var loadH=function(){try{return JSON.parse(localStorage.getItem(hKey)||'{}')}catch{return{}}};
+    var saveH=function(h2){localStorage.setItem(hKey,JSON.stringify(h2))};
+    var allH=loadH(),cH=allH[c.kd_nr]||{};
+    var hBox=h('div',{style:{background:'#f8fafc',borderRadius:10,border:'1px solid #e2e8f0',padding:'10px 12px'}});
+    hBox.appendChild(h('div',{className:'fl'},'🕐 Horaires par jour'));
+    var hTable=document.createElement('div');
+    hBox.appendChild(hTable);
+    var PRESETS=[
+      {l:'9h–18h',v:{m1:'09:00',m2:'18:00',pause:false}},
+      {l:'9h–12h/13h30',v:{m1:'09:00',m2:'12:00',a1:'13:30',a2:'18:00',pause:true}},
+      {l:'9h–12h/14h',v:{m1:'09:00',m2:'12:00',a1:'14:00',a2:'18:00',pause:true}},
+      {l:'10h–19h',v:{m1:'10:00',m2:'19:00',pause:false}},
+    ];
+    function renderHours(){
+      hTable.innerHTML='';
+      var h2=loadH(),ch=h2[c.kd_nr]||{};
+      JOURS.forEach(function(j){
+        var jd=ch[j]||{on:false,m1:'09:00',m2:'12:00',a1:'13:30',a2:'18:00',pause:true};
+        // Ligne jour
+        var row=document.createElement('div');
+        row.style.cssText='border-bottom:0.5px solid #e2e8f0;padding:6px 0';
+        // Bouton jour ON/OFF
+        var topRow=document.createElement('div');
+        topRow.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:4px';
+        var db=document.createElement('button');
+        db.textContent=j;
+        db.style.cssText='min-width:36px;padding:5px;border-radius:6px;border:1px solid '+(jd.on?'#6366f1':'#e2e8f0')+';background:'+(jd.on?'#eff6ff':'#fff')+';color:'+(jd.on?'#6366f1':'#94a3b8')+';cursor:pointer;font-size:12px;font-weight:'+(jd.on?'700':'400')+';font-family:inherit';
+        db.onclick=function(){
+          var sc=document.querySelector('.sheet').scrollTop;
+          var h3=loadH();if(!h3[c.kd_nr])h3[c.kd_nr]={};
+          h3[c.kd_nr][j]=Object.assign({},jd,{on:!jd.on});
+          saveH(h3);renderHours();
+          requestAnimationFrame(function(){document.querySelector('.sheet').scrollTop=sc;});
+        };
+        topRow.appendChild(db);
+        if(jd.on){
+          // Préréglages rapides pour ce jour
+          PRESETS.forEach(function(p){
+            var pb=document.createElement('button');
+            pb.textContent=p.l;
+            pb.style.cssText='padding:4px 6px;font-size:9px;border-radius:5px;border:1px solid #e2e8f0;background:#f8fafc;color:#6366f1;cursor:pointer;font-family:inherit';
+            pb.onclick=function(){
+              var sc=document.querySelector('.sheet').scrollTop;
+              var h3=loadH();if(!h3[c.kd_nr])h3[c.kd_nr]={};
+              h3[c.kd_nr][j]=Object.assign({},jd,p.v,{on:true});
+              saveH(h3);renderHours();
+              requestAnimationFrame(function(){document.querySelector('.sheet').scrollTop=sc;});
+            };
+            topRow.appendChild(pb);
+          });
+        } else {
+          topRow.appendChild(h('span',{style:{fontSize:10,color:'#94a3b8',fontStyle:'italic'}},'Fermé'));
+        }
+        row.appendChild(topRow);
+        if(jd.on){
+          // Heures manuelles
+          var mkT=function(val,key){
+            var inp=document.createElement('input');inp.type='time';inp.value=val||'';
+            inp.style.cssText='width:80px;padding:3px 5px;font-size:11px;border:1px solid #e2e8f0;border-radius:5px;background:#fff;color:#1e293b';
+            inp.onchange=function(){
+              var sc=document.querySelector('.sheet').scrollTop;
+              var h3=loadH();if(!h3[c.kd_nr])h3[c.kd_nr]={};
+              h3[c.kd_nr][j]=Object.assign({},h3[c.kd_nr][j]||{},{on:true,[key]:inp.value});
+              saveH(h3);
+              requestAnimationFrame(function(){document.querySelector('.sheet').scrollTop=sc;});
+            };
+            return inp;
+          };
+          var timeRow=document.createElement('div');
+          timeRow.style.cssText='display:flex;align-items:center;gap:4px;flex-wrap:wrap';
+          timeRow.appendChild(mkT(jd.m1,'m1'));
+          timeRow.appendChild(h('span',{style:{fontSize:9,color:'#94a3b8'}},'–'));
+          timeRow.appendChild(mkT(jd.m2,'m2'));
+          if(jd.pause){
+            timeRow.appendChild(h('span',{style:{fontSize:9,color:'#94a3b8'}},'|'));
+            timeRow.appendChild(mkT(jd.a1||'13:30','a1'));
+            timeRow.appendChild(h('span',{style:{fontSize:9,color:'#94a3b8'}},'–'));
+            timeRow.appendChild(mkT(jd.a2||'18:00','a2'));
+          }
+          row.appendChild(timeRow);
+        }
+        hTable.appendChild(row);
+      });
+    }
+    renderHours();
+    body.appendChild(hBox);
+
+    // Bouton Sync → CRM
+    var syncBtn=document.createElement('button');
+    syncBtn.style.cssText='width:100%;padding:11px;border-radius:10px;border:1px solid #bbf7d0;background:#f0fdf4;color:#16a34a;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit';
+    syncBtn.textContent='📤 Sync → CRM';
+    syncBtn.onclick=function(){
+      try{
+        var v2=vis[c.kd_nr]||{};
+        var hrs=loadH()[c.kd_nr]||null;
+        var pending=JSON.parse(localStorage.getItem('crm_pending')||'{"clients":{},"visites":{},"hist":[],"cmds":[]}');
+        if(!pending.clients)pending.clients={};if(!pending.visites)pending.visites={};if(!pending.hist)pending.hist=[];
+        var crmC=JSON.parse(localStorage.getItem('crm_clients')||'[]');
+        var cl=crmC.find(function(x){return x.kdnr===c.kd_nr});
+        if(!cl){cl={id:'c_'+c.kd_nr,kdnr:c.kd_nr,sek:c.sek,nom:c.name,prenom:c.vorname||'',salon:sal(c),rue:c.strasse||'',npa:c.plz||'',ville:c.ort||'',tel1:c.tel||'',ca26:parseInt(c.ca_2026)||0,ca25:parseInt(c.ca_2025)||0,statut:'Actif',comments:[],lastVisit:'',nbVisites:0};crmC.push(cl);}
+        if(v2.visitDate)cl.lastVisit=v2.visitDate;
+        if(hrs)cl.horaires=hrs;
+        localStorage.setItem('crm_clients',JSON.stringify(crmC));
+        pending.clients[cl.id]=true;
+        var note=[];
+        if(v2.status){var lbl={visited:'✓ Visité',absent:'~ Absent',closed:'✕ Fermé',callback:'↩ Rappel'};note.push(lbl[v2.status]);}
+        if(v2.amount&&parseFloat(v2.amount)>0)note.push(parseFloat(v2.amount).toLocaleString('fr-CH')+' CHF');
+        if(v2.products)note.push(v2.products);
+        if(v2.note)note.push(v2.note);
+        if(book[c.kd_nr])note.push('📖 Catalogue remis');
+        if(note.length){pending.visites['v_'+Date.now()]={clientId:cl.id,salon:sal(c),date:v2.visitDate||today(),statut:v2.status==='visited'?'Validée':'Planifiée',comment:note.join(' · '),commande:parseFloat(v2.amount)||0};}
+        if(parseFloat(v2.amount)>0)pending.hist.push({clientId:cl.id,salon:sal(c),ville:c.ort||'',date:v2.visitDate||today(),commande:parseFloat(v2.amount),comment:v2.products||''});
+        localStorage.setItem('crm_pending',JSON.stringify(pending));
+        showToast('✓ Envoyé au CRM !');
+      }catch(err){showToast('Erreur: '+err.message,'err');}
+    };
+    body.appendChild(syncBtn);
+
+    // Bouton ouvrir CRM
+    var crmBtn=document.createElement('button');
+    crmBtn.style.cssText='width:100%;padding:11px;border-radius:10px;border:1px solid #fde68a;background:#fffbeb;color:#d97706;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit';
+    crmBtn.textContent='📋 Ouvrir dans le CRM';
+    crmBtn.onclick=function(){
+      localStorage.setItem('crm_session_active',JSON.stringify({readonly:false,expires:Date.now()+8*60*60*1000}));
+      localStorage.setItem('crm_open_client','c_'+c.kd_nr);
+      window.open('https://thomastserve-sepc.github.io/CRM-2026/index.html','_blank');
+    };
+    body.appendChild(crmBtn);
 
     // Enregistrer
     var saveBtn=document.createElement('button');
