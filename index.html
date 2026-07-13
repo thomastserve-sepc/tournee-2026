@@ -474,17 +474,19 @@ function renderWeek(wkDates,cm,td,wCA){
       del_.textContent='×';
       del_.onclick=e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();if(window._sel===c.kd_nr)window._sel=null;render();};
       chip_.appendChild(del_);
-      // Logique 1 clic / 2 clics
-      chip_.onclick=function(e){
-        e.stopPropagation();
-        const now=Date.now();
-        if(window._lastTapId===c.kd_nr&&now-window._lastTapT<450){
-          // 2 clics → fiche
-          window._sel=null;window._selD=null;window._lastTapId=null;
+      // 1 clic court = sélectionner | appui long (600ms) = fiche client
+      let pressTimer_=null;
+      chip_.addEventListener('touchstart',function(e){
+        pressTimer_=setTimeout(()=>{
+          pressTimer_=null;
+          window._sel=null;window._selD=null;
           modal={type:'visit',client:c,fromDay:d};render();
-        } else {
-          // 1 clic → sélectionner
-          window._lastTapId=c.kd_nr;window._lastTapT=now;
+        },600);
+      },{passive:true});
+      chip_.addEventListener('touchend',function(e){
+        if(pressTimer_){
+          clearTimeout(pressTimer_);pressTimer_=null;
+          // Clic court → sélectionner
           if(window._sel===c.kd_nr&&window._selD===d){
             window._sel=null;window._selD=null;
           } else {
@@ -492,7 +494,10 @@ function renderWeek(wkDates,cm,td,wCA){
           }
           render();
         }
-      };
+      },{passive:true});
+      chip_.addEventListener('touchcancel',function(){
+        if(pressTimer_){clearTimeout(pressTimer_);pressTimer_=null;}
+      },{passive:true});
       col.appendChild(chip_);
     });
     // Boutons de gestion — disponibles sur toutes les semaines
