@@ -353,6 +353,51 @@ function render(){
 
   app.appendChild(main);
   setTimeout(()=>{const m=app.querySelector('.ms');if(m)m.scrollTop=sc},0);
+  if(window._selectedClient&&window._selectedDay){
+    const selId=window._selectedClient;
+    const selD=window._selectedDay;
+    const selIdx=(sch[selD]||[]).indexOf(selId);
+    const selC=cMap()[selId];
+    const total_=(sch[selD]||[]).length;
+    const dayIdx=wkDates.indexOf(selD);
+    const bar=h('div',{style:{
+      position:'fixed',bottom:'64px',left:0,right:0,zIndex:200,
+      background:'#1e293b',padding:'8px 10px',
+      boxShadow:'0 -4px 20px rgba(0,0,0,.3)'
+    }});
+    bar.appendChild(h('div',{style:{fontSize:11,color:'#94a3b8',textAlign:'center',marginBottom:6}},
+      '📌 '+(selC?sal(selC):'Client')+' — '+(WDAYS[dayIdx]||selD)+' pos '+(selIdx+1)+'/'+total_));
+    const row1=h('div',{style:{display:'flex',gap:6,marginBottom:6}});
+    // Monter
+    row1.appendChild(h('button',{style:{flex:1,padding:'11px',fontSize:16,fontWeight:700,background:selIdx>0?'#6366f1':'#374151',color:selIdx>0?'#fff':'#6b7280',border:'none',borderRadius:9,cursor:selIdx>0?'pointer':'default'},
+      onClick:()=>{if(selIdx<=0)return;const arr=[...(sch[selD]||[])];arr.splice(selIdx,1);arr.splice(selIdx-1,0,selId);sch[selD]=arr;persist();render();}},'↑ Monter'));
+    // Descendre
+    row1.appendChild(h('button',{style:{flex:1,padding:'11px',fontSize:16,fontWeight:700,background:selIdx<total_-1?'#6366f1':'#374151',color:selIdx<total_-1?'#fff':'#6b7280',border:'none',borderRadius:9,cursor:selIdx<total_-1?'pointer':'default'},
+      onClick:()=>{if(selIdx>=total_-1)return;const arr=[...(sch[selD]||[])];arr.splice(selIdx,1);arr.splice(selIdx+1,0,selId);sch[selD]=arr;persist();render();}},'↓ Descendre'));
+    // Annuler
+    row1.appendChild(h('button',{style:{padding:'11px 14px',fontSize:13,background:'#374151',color:'#94a3b8',border:'none',borderRadius:9,cursor:'pointer'},
+      onClick:()=>{window._selectedClient=null;window._selectedDay=null;render();}},'✕'));
+    bar.appendChild(row1);
+    // Déplacer vers autre jour
+    const otherDays=wkDates.filter(dd=>dd!==selD);
+    if(otherDays.length){
+      const row2=h('div',{style:{display:'flex',gap:4}});
+      row2.appendChild(h('span',{style:{fontSize:10,color:'#64748b',alignSelf:'center',marginRight:2}},'→'));
+      otherDays.forEach(dd=>{
+        const di=wkDates.indexOf(dd);
+        row2.appendChild(h('button',{style:{flex:1,padding:'7px 4px',fontSize:11,fontWeight:600,background:'#374151',color:'#e2e8f0',border:'1px solid #4b5563',borderRadius:7,cursor:'pointer'},
+          onClick:()=>{
+            if((sch[dd]||[]).length>=MAX){showToast('Maximum '+MAX+' ce jour !','err');return;}
+            sch[selD]=(sch[selD]||[]).filter(id=>id!==selId);
+            sch[dd]=[selId,...(sch[dd]||[])];
+            persist();window._selectedClient=null;window._selectedDay=null;
+            showToast('✓ Déplacé vers '+WDAYS[di]);render();
+          }},WDAYS[di]));
+      });
+      bar.appendChild(row2);
+    }
+    app.appendChild(bar);
+  }
 
   app.appendChild(h('nav',{className:'nav-bar'},
     ...[{id:'week',ic:'📅',l:'Planning'},{id:'list',ic:'👥',l:'Clients'},{id:'stats',ic:'📊',l:'Stats'}].map(n=>
@@ -440,41 +485,6 @@ function renderWeek(wkDates,cm,td,wCA){
     });
     // Boutons de gestion — disponibles sur toutes les semaines
     {
-      // Si un client est sélectionné dans cette colonne → gros boutons de déplacement
-      if(window._selectedClient&&window._selectedDay===d){
-        const selId=window._selectedClient;
-        const selIdx=(sch[d]||[]).indexOf(selId);
-        const selC=cMap()[selId];
-        const moveBox=h('div',{style:{background:'#eff6ff',border:'2px solid #6366f1',borderRadius:10,padding:'8px',marginTop:4}});
-        moveBox.appendChild(h('div',{style:{fontSize:10,color:'#6366f1',fontWeight:600,textAlign:'center',marginBottom:6}},
-          '📌 '+(selC?sal(selC):'Client')+' — pos '+(selIdx+1)+'/'+(sch[d]||[]).length));
-        const upDown=h('div',{style:{display:'flex',gap:6,marginBottom:6}});
-        upDown.appendChild(h('button',{style:{flex:1,padding:'12px',fontSize:18,fontWeight:700,background:selIdx>0?'#6366f1':'#e2e8f0',color:selIdx>0?'#fff':'#94a3b8',border:'none',borderRadius:9,cursor:selIdx>0?'pointer':'default'},
-          onClick:()=>{if(selIdx<=0)return;const arr=[...(sch[d]||[])];arr.splice(selIdx,1);arr.splice(selIdx-1,0,selId);sch[d]=arr;persist();render();}},'↑ Monter'));
-        upDown.appendChild(h('button',{style:{flex:1,padding:'12px',fontSize:18,fontWeight:700,background:selIdx<(sch[d]||[]).length-1?'#6366f1':'#e2e8f0',color:selIdx<(sch[d]||[]).length-1?'#fff':'#94a3b8',border:'none',borderRadius:9,cursor:selIdx<(sch[d]||[]).length-1?'pointer':'default'},
-          onClick:()=>{if(selIdx>=(sch[d]||[]).length-1)return;const arr=[...(sch[d]||[])];arr.splice(selIdx,1);arr.splice(selIdx+1,0,selId);sch[d]=arr;persist();render();}},'↓ Descendre'));
-        moveBox.appendChild(upDown);
-        const otherDays=wkDates.filter(dd=>dd!==d);
-        if(otherDays.length){
-          moveBox.appendChild(h('div',{style:{fontSize:10,color:'#94a3b8',marginBottom:4,textAlign:'center'}},'Déplacer vers :'));
-          const dayBtns=h('div',{style:{display:'flex',gap:4}});
-          otherDays.forEach((dd)=>{
-            const dayIdx=wkDates.indexOf(dd);
-            dayBtns.appendChild(h('button',{style:{flex:1,padding:'8px 4px',fontSize:11,fontWeight:600,background:'#fff',border:'1px solid #c7d2fe',color:'#6366f1',borderRadius:7,cursor:'pointer'},
-              onClick:()=>{
-                if((sch[dd]||[]).length>=MAX){showToast('Maximum '+MAX+' ce jour !','err');return;}
-                sch[d]=(sch[d]||[]).filter(id=>id!==selId);
-                sch[dd]=[selId,...(sch[dd]||[])];
-                persist();window._selectedClient=null;window._selectedDay=null;
-                showToast('✓ Déplacé vers '+WDAYS[dayIdx]);render();
-              }},WDAYS[dayIdx]));
-          });
-          moveBox.appendChild(dayBtns);
-        }
-        moveBox.appendChild(h('button',{style:{width:'100%',padding:'7px',marginTop:5,fontSize:11,background:'transparent',border:'1px solid #e2e8f0',color:'#94a3b8',borderRadius:7,cursor:'pointer'},
-          onClick:()=>{window._selectedClient=null;window._selectedDay=null;render();}},'✕ Annuler'));
-        col.appendChild(moveBox);
-      }
       const btnRow=h('div',{style:{display:'flex',gap:3,marginTop:2}});
       btnRow.appendChild(h('button',{style:{flex:1,background:'#f0f0ff',border:'1px dashed #c7d2fe',color:'#6366f1',borderRadius:5,padding:'2px 4px',fontSize:8,fontWeight:600,cursor:'pointer'},
         onClick:e=>{e.stopPropagation();modal={type:'swapday',date:d,dayLabel:WDAYS[i],wkDates};render();}},'↺ Zone'));
