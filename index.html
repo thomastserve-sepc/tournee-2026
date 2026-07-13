@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Tournée 2026">
@@ -450,20 +450,15 @@ function renderWeek(wkDates,cm,td,wCA){
       const hasAnyDay=cHours_&&Object.values(cHours_).some(v=>v&&v.on);
       const isClosed=hasAnyDay&&!(cHours_[dayName]?.on);
       // Chip avec drag & drop (long press 500ms)
-      const isSelected=window._selectedClient===c.kd_nr&&window._selectedDay===d;
-      // Utiliser un button natif pour fiabilité iPad
+      // 1 clic = sélectionner/déplacer | 2 clics = fiche client
       const chip_=document.createElement('button');
-      chip_.style.cssText='width:100%;display:flex;align-items:center;gap:3px;padding:4px 5px;border-radius:5px;cursor:pointer;font-family:inherit;text-align:left;'
-        +'background:'+(isSelected?'#eff6ff':isClosed?'#fef2f2':rdvToday?'#fef9c3':cfg.bg)+';'
-        +'border:1px solid '+(isSelected?'#6366f1':isClosed?'#fecaca':rdvToday?'#f59e0b':cfg.c+'33')+';'
-        +'box-shadow:'+(isSelected?'0 0 0 2px #6366f1':'none')+';'
-        +'outline:none;-webkit-appearance:none;';
-      // Icone statut
+      chip_.style.cssText='width:100%;display:flex;align-items:center;gap:3px;padding:4px 5px;border-radius:5px;cursor:pointer;font-family:inherit;text-align:left;touch-action:manipulation;-webkit-appearance:none;outline:none;'
+        +'background:'+(isClosed?'#fef2f2':rdvToday?'#fef9c3':cfg.bg)+';'
+        +'border:1px solid '+(isClosed?'#fecaca':rdvToday?'#f59e0b':cfg.c+'33')+';';
       const ico_=document.createElement('span');
       ico_.style.cssText='color:'+(isClosed?'#ef4444':rdvToday?'#d97706':cfg.c)+';font-weight:700;flex-shrink:0;font-size:11px';
       ico_.textContent=isClosed?'⚠️':rdvToday?'⭐':cfg.i;
       chip_.appendChild(ico_);
-      // Info
       const info_=document.createElement('div');
       info_.style.cssText='flex:1;min-width:0;';
       const name_=document.createElement('div');
@@ -474,31 +469,26 @@ function renderWeek(wkDates,cm,td,wCA){
       sub_.textContent=(rdvToday?rdvToday.h+' · ':'')+c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':'');
       info_.appendChild(name_);info_.appendChild(sub_);
       chip_.appendChild(info_);
-      // Croix
       const del_=document.createElement('span');
-      del_.style.cssText='color:#94a3b8;font-size:13px;flex-shrink:0;padding:0 2px;line-height:1';
+      del_.style.cssText='color:#94a3b8;font-size:13px;flex-shrink:0;padding:0 2px';
       del_.textContent='×';
-      del_.addEventListener('click',e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render();});
+      del_.onclick=e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();if(window._sel===c.kd_nr)window._sel=null;render();};
       chip_.appendChild(del_);
-      // 1 tap = déplacement | 2 taps = fiche client
-      chip_.style.touchAction='manipulation'; // Désactive le zoom double-tap Safari
-      let lastTap_=0;
+      // Logique 1 clic / 2 clics
       chip_.onclick=function(e){
         e.stopPropagation();
         const now=Date.now();
-        const diff=now-lastTap_;
-        lastTap_=now;
-        if(diff<400&&diff>0){
-          // Double tap → fiche client
-          lastTap_=0;
-          window._selectedClient=null;window._selectedDay=null;
+        if(window._lastTapId===c.kd_nr&&now-window._lastTapT<450){
+          // 2 clics → fiche
+          window._sel=null;window._selD=null;window._lastTapId=null;
           modal={type:'visit',client:c,fromDay:d};render();
         } else {
-          // Simple tap → sélectionner / déselectionner
-          if(window._selectedClient===c.kd_nr&&window._selectedDay===d){
-            window._selectedClient=null;window._selectedDay=null;
+          // 1 clic → sélectionner
+          window._lastTapId=c.kd_nr;window._lastTapT=now;
+          if(window._sel===c.kd_nr&&window._selD===d){
+            window._sel=null;window._selD=null;
           } else {
-            window._selectedClient=c.kd_nr;window._selectedDay=d;
+            window._sel=c.kd_nr;window._selD=d;
           }
           render();
         }
@@ -518,76 +508,16 @@ function renderWeek(wkDates,cm,td,wCA){
       col.appendChild(btnRow);
     }
     if(!cnt)col.appendChild(h('div',{style:{textAlign:'center',color:'#cbd5e1',fontSize:9,padding:'6px 0'}},'— vide —'));
-    // Bouton + Ajouter visite — visible sur tous les jours
-    const addBtn=h('button',{style:{width:'100%',padding:'8px 5px',fontSize:10,fontWeight:700,color:'#6366f1',background:'#f0f0ff',border:'1px dashed #c7d2fe',borderRadius:7,cursor:'pointer',marginTop:4,display:'block'}},'+ Ajouter');
-    addBtn.addEventListener('click',e=>{e.stopPropagation();modal={type:'addclient',date:d,dayLabel:WDAYS[i]};render();});
-    addBtn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();modal={type:'addclient',date:d,dayLabel:WDAYS[i]};render();});
+    // Bouton + Ajouter
+    const addBtn=document.createElement('button');
+    addBtn.textContent='+ Ajouter';
+    addBtn.style.cssText='width:100%;padding:8px 5px;font-size:10px;font-weight:700;color:#6366f1;background:#f0f0ff;border:1px dashed #c7d2fe;border-radius:7px;cursor:pointer;margin-top:4px;touch-action:manipulation;font-family:inherit;-webkit-appearance:none';
+    addBtn.onclick=function(e){e.stopPropagation();modal={type:'addclient',date:d,dayLabel:WDAYS[i]};render();};
     col.appendChild(addBtn);
     grid.appendChild(col);
   });
   wrap.appendChild(grid);
 
-  // Barre déplacement si client sélectionné
-  if(window._selectedClient&&window._selectedDay&&wkDates.includes(window._selectedDay)){
-    const selId=window._selectedClient;
-    const selD=window._selectedDay;
-    const selIdx=(sch[selD]||[]).indexOf(selId);
-    const selC=cm[selId];
-    const total_=(sch[selD]||[]).length;
-    const dayIdx=wkDates.indexOf(selD);
-    const bar_=document.createElement('div');
-    bar_.style.cssText='background:#1e293b;border-radius:12px;margin-top:8px;padding:10px;';
-    const lbl_=document.createElement('div');
-    lbl_.style.cssText='font-size:11px;color:#94a3b8;text-align:center;margin-bottom:8px;font-weight:600';
-    lbl_.textContent='📌 '+(selC?sal(selC):'?')+' — '+(WDAYS[dayIdx]||selD)+' pos '+(selIdx+1)+'/'+total_;
-    bar_.appendChild(lbl_);
-    const ud_=document.createElement('div');
-    ud_.style.cssText='display:flex;gap:8px;margin-bottom:8px';
-    const mkBtn_=(label,enabled,fn)=>{
-      const b=document.createElement('button');
-      b.style.cssText='flex:1;padding:14px;font-size:17px;font-weight:700;border:none;border-radius:9px;touch-action:manipulation;'
-        +'background:'+(enabled?'#6366f1':'#374151')+';color:'+(enabled?'#fff':'#6b7280')+';font-family:inherit;cursor:'+(enabled?'pointer':'default');
-      b.textContent=label;
-      if(enabled)b.onclick=fn;
-      return b;
-    };
-    ud_.appendChild(mkBtn_('↑ Monter',selIdx>0,()=>{
-      const arr=[...(sch[selD]||[])];arr.splice(selIdx,1);arr.splice(selIdx-1,0,selId);
-      sch[selD]=arr;persist();render();
-    }));
-    ud_.appendChild(mkBtn_('↓ Descendre',selIdx<total_-1,()=>{
-      const arr=[...(sch[selD]||[])];arr.splice(selIdx,1);arr.splice(selIdx+1,0,selId);
-      sch[selD]=arr;persist();render();
-    }));
-    bar_.appendChild(ud_);
-    const others_=wkDates.filter(dd=>dd!==selD);
-    if(others_.length){
-      const dr_=document.createElement('div');
-      dr_.style.cssText='display:flex;gap:4px;align-items:center;margin-bottom:6px';
-      dr_.appendChild(Object.assign(document.createElement('span'),{textContent:'→',style:'font-size:10px;color:#64748b'}));
-      others_.forEach(dd=>{
-        const di=wkDates.indexOf(dd);
-        const b=document.createElement('button');
-        b.style.cssText='flex:1;padding:9px 4px;font-size:12px;font-weight:600;background:#374151;color:#e2e8f0;border:1px solid #4b5563;border-radius:7px;cursor:pointer;touch-action:manipulation;font-family:inherit';
-        b.textContent=WDAYS[di];
-        b.onclick=()=>{
-          if((sch[dd]||[]).length>=MAX){showToast('Maximum '+MAX+' ce jour !','err');return;}
-          sch[selD]=(sch[selD]||[]).filter(id=>id!==selId);
-          sch[dd]=[selId,...(sch[dd]||[])];
-          persist();window._selectedClient=null;window._selectedDay=null;
-          showToast('✓ Déplacé vers '+WDAYS[di]);render();
-        };
-        dr_.appendChild(b);
-      });
-      bar_.appendChild(dr_);
-    }
-    const ann_=document.createElement('button');
-    ann_.style.cssText='width:100%;padding:8px;background:transparent;border:1px solid #374151;color:#64748b;border-radius:7px;cursor:pointer;font-size:11px;font-family:inherit;touch-action:manipulation';
-    ann_.textContent='✕ Annuler sélection';
-    ann_.onclick=()=>{window._selectedClient=null;window._selectedDay=null;render();};
-    bar_.appendChild(ann_);
-    wrap.appendChild(bar_);
-  }
 
   return wrap;
 }
