@@ -438,8 +438,8 @@ function renderWeek(wkDates,cm,td,wCA){
       });
       col.appendChild(chip_);
     });
-    // Boutons de gestion de zone
-    if(!isPast){
+    // Boutons de gestion — disponibles sur toutes les semaines
+    {
       // Si un client est sélectionné dans cette colonne → gros boutons de déplacement
       if(window._selectedClient&&window._selectedDay===d){
         const selId=window._selectedClient;
@@ -448,19 +448,17 @@ function renderWeek(wkDates,cm,td,wCA){
         const moveBox=h('div',{style:{background:'#eff6ff',border:'2px solid #6366f1',borderRadius:10,padding:'8px',marginTop:4}});
         moveBox.appendChild(h('div',{style:{fontSize:10,color:'#6366f1',fontWeight:600,textAlign:'center',marginBottom:6}},
           '📌 '+(selC?sal(selC):'Client')+' — pos '+(selIdx+1)+'/'+(sch[d]||[]).length));
-        // Boutons haut/bas
         const upDown=h('div',{style:{display:'flex',gap:6,marginBottom:6}});
         upDown.appendChild(h('button',{style:{flex:1,padding:'12px',fontSize:18,fontWeight:700,background:selIdx>0?'#6366f1':'#e2e8f0',color:selIdx>0?'#fff':'#94a3b8',border:'none',borderRadius:9,cursor:selIdx>0?'pointer':'default'},
           onClick:()=>{if(selIdx<=0)return;const arr=[...(sch[d]||[])];arr.splice(selIdx,1);arr.splice(selIdx-1,0,selId);sch[d]=arr;persist();render();}},'↑ Monter'));
         upDown.appendChild(h('button',{style:{flex:1,padding:'12px',fontSize:18,fontWeight:700,background:selIdx<(sch[d]||[]).length-1?'#6366f1':'#e2e8f0',color:selIdx<(sch[d]||[]).length-1?'#fff':'#94a3b8',border:'none',borderRadius:9,cursor:selIdx<(sch[d]||[]).length-1?'pointer':'default'},
           onClick:()=>{if(selIdx>=(sch[d]||[]).length-1)return;const arr=[...(sch[d]||[])];arr.splice(selIdx,1);arr.splice(selIdx+1,0,selId);sch[d]=arr;persist();render();}},'↓ Descendre'));
         moveBox.appendChild(upDown);
-        // Boutons déplacer vers autre jour
-        const otherDays=wkDates.filter(dd=>dd!==d&&!isPast);
+        const otherDays=wkDates.filter(dd=>dd!==d);
         if(otherDays.length){
           moveBox.appendChild(h('div',{style:{fontSize:10,color:'#94a3b8',marginBottom:4,textAlign:'center'}},'Déplacer vers :'));
           const dayBtns=h('div',{style:{display:'flex',gap:4}});
-          otherDays.forEach((dd,ii)=>{
+          otherDays.forEach((dd)=>{
             const dayIdx=wkDates.indexOf(dd);
             dayBtns.appendChild(h('button',{style:{flex:1,padding:'8px 4px',fontSize:11,fontWeight:600,background:'#fff',border:'1px solid #c7d2fe',color:'#6366f1',borderRadius:7,cursor:'pointer'},
               onClick:()=>{
@@ -473,7 +471,6 @@ function renderWeek(wkDates,cm,td,wCA){
           });
           moveBox.appendChild(dayBtns);
         }
-        // Bouton annuler
         moveBox.appendChild(h('button',{style:{width:'100%',padding:'7px',marginTop:5,fontSize:11,background:'transparent',border:'1px solid #e2e8f0',color:'#94a3b8',borderRadius:7,cursor:'pointer'},
           onClick:()=>{window._selectedClient=null;window._selectedDay=null;render();}},'✕ Annuler'));
         col.appendChild(moveBox);
