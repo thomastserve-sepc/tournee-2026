@@ -491,8 +491,11 @@ function renderWeek(wkDates,cm,td,wCA){
     if(!cnt)col.appendChild(h('div',{style:{textAlign:'center',color:'#cbd5e1',fontSize:9,padding:'6px 0'}},'— vide —'));
     // Bouton + Ajouter visite — toujours visible sur les jours non passés
     if(!isPast){
-      col.appendChild(h('button',{style:{width:'100%',padding:'5px',fontSize:9,fontWeight:600,color:'#6366f1',background:'#f0f0ff',border:'1px dashed #c7d2fe',borderRadius:6,cursor:'pointer',marginTop:3},
-        onClick:e=>{e.stopPropagation();modal={type:'addclient',date:d,dayLabel:WDAYS[i]};render();}},'+ Ajouter'));
+      const addBtn=h('button',{style:{width:'100%',padding:'8px 5px',fontSize:10,fontWeight:700,color:'#6366f1',background:'#f0f0ff',border:'1px dashed #c7d2fe',borderRadius:7,cursor:'pointer',marginTop:4,display:'block'}},
+        '+ Ajouter');
+      addBtn.addEventListener('click',e=>{e.stopPropagation();modal={type:'addclient',date:d,dayLabel:WDAYS[i]};render();});
+      addBtn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();modal={type:'addclient',date:d,dayLabel:WDAYS[i]};render();});
+      col.appendChild(addBtn);
     }
     grid.appendChild(col);
   });
