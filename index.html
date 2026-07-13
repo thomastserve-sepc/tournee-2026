@@ -451,35 +451,44 @@ function renderWeek(wkDates,cm,td,wCA){
       const isClosed=hasAnyDay&&!(cHours_[dayName]?.on);
       // Chip avec drag & drop (long press 500ms)
       const isSelected=window._selectedClient===c.kd_nr&&window._selectedDay===d;
-      const chip_=h('div',{className:'cc',style:{
-        background:isSelected?'#eff6ff':isClosed?'#fef2f2':rdvToday?'#fef9c3':cfg.bg,
-        borderColor:isSelected?'#6366f1':isClosed?'#fecaca':rdvToday?'#f59e0b':cfg.c+'33',
-        boxShadow:isSelected?'0 0 0 2px #6366f1':'none',
-        position:'relative',userSelect:'none',webkitUserSelect:'none',transition:'all .15s'
-      }});
-      chip_.appendChild(h('span',{style:{color:isClosed?'#ef4444':rdvToday?'#d97706':cfg.c,fontWeight:700,flexShrink:0,fontSize:11}},isClosed?'⚠️':rdvToday?'⭐':cfg.i));
-      const info_=h('div',{style:{flex:1,minWidth:0}});
-      info_.appendChild(h('div',{style:{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#1e293b',fontSize:9}},sal(c)+(hasBook?' 📖✅':'')));
-      info_.appendChild(h('div',{style:{color:'#94a3b8',fontSize:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},(rdvToday?rdvToday.h+' · ':'')+c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':'')));
+      // Utiliser un button natif pour fiabilité iPad
+      const chip_=document.createElement('button');
+      chip_.style.cssText='width:100%;display:flex;align-items:center;gap:3px;padding:4px 5px;border-radius:5px;cursor:pointer;font-family:inherit;text-align:left;'
+        +'background:'+(isSelected?'#eff6ff':isClosed?'#fef2f2':rdvToday?'#fef9c3':cfg.bg)+';'
+        +'border:1px solid '+(isSelected?'#6366f1':isClosed?'#fecaca':rdvToday?'#f59e0b':cfg.c+'33')+';'
+        +'box-shadow:'+(isSelected?'0 0 0 2px #6366f1':'none')+';'
+        +'outline:none;-webkit-appearance:none;';
+      // Icone statut
+      const ico_=document.createElement('span');
+      ico_.style.cssText='color:'+(isClosed?'#ef4444':rdvToday?'#d97706':cfg.c)+';font-weight:700;flex-shrink:0;font-size:11px';
+      ico_.textContent=isClosed?'⚠️':rdvToday?'⭐':cfg.i;
+      chip_.appendChild(ico_);
+      // Info
+      const info_=document.createElement('div');
+      info_.style.cssText='flex:1;min-width:0;';
+      const name_=document.createElement('div');
+      name_.style.cssText='font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:9px';
+      name_.textContent=sal(c)+(hasBook?' 📖✅':'');
+      const sub_=document.createElement('div');
+      sub_.style.cssText='color:#94a3b8;font-size:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      sub_.textContent=(rdvToday?rdvToday.h+' · ':'')+c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH')+' CHF':'');
+      info_.appendChild(name_);info_.appendChild(sub_);
       chip_.appendChild(info_);
-      chip_.appendChild(h('span',{style:{color:'#94a3b8',cursor:'pointer',fontSize:13,lineHeight:1,flexShrink:0,padding:'0 2px'},
-        onClick:e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();if(window._selectedClient===c.kd_nr){window._selectedClient=null;}render();}},'×'));
-      // 1 tap = sélectionner | 2 taps rapides = ouvrir fiche
-      let tapT=null,taps=0;
+      // Croix
+      const del_=document.createElement('span');
+      del_.style.cssText='color:#94a3b8;font-size:13px;flex-shrink:0;padding:0 2px;line-height:1';
+      del_.textContent='×';
+      del_.addEventListener('click',e=>{e.stopPropagation();sch[d]=(sch[d]||[]).filter(id=>id!==c.kd_nr);persist();render();});
+      chip_.appendChild(del_);
+      // Tap: sélectionner
       chip_.addEventListener('click',e=>{
-        e.stopPropagation();taps++;
-        if(taps===1){
-          tapT=setTimeout(()=>{
-            taps=0;
-            window._selectedClient=window._selectedClient===c.kd_nr&&window._selectedDay===d?null:c.kd_nr;
-            window._selectedDay=d;
-            render();
-          },300);
+        e.stopPropagation();
+        if(window._selectedClient===c.kd_nr&&window._selectedDay===d){
+          window._selectedClient=null;window._selectedDay=null;
         } else {
-          clearTimeout(tapT);taps=0;
-          window._selectedClient=null;
-          modal={type:'visit',client:c};render();
+          window._selectedClient=c.kd_nr;window._selectedDay=d;
         }
+        render();
       });
       col.appendChild(chip_);
     });
@@ -504,6 +513,74 @@ function renderWeek(wkDates,cm,td,wCA){
     grid.appendChild(col);
   });
   wrap.appendChild(grid);
+
+  // Barre de déplacement si client sélectionné
+  if(window._selectedClient&&window._selectedDay&&wkDates.includes(window._selectedDay)){
+    const selId=window._selectedClient;
+    const selD=window._selectedDay;
+    const selIdx=(sch[selD]||[]).indexOf(selId);
+    const selC=cm[selId];
+    const total_=(sch[selD]||[]).length;
+    const dayIdx=wkDates.indexOf(selD);
+    const bar_=document.createElement('div');
+    bar_.style.cssText='background:#1e293b;border-radius:12px;margin-top:8px;padding:10px;';
+    // Nom
+    const lbl_=document.createElement('div');
+    lbl_.style.cssText='font-size:11px;color:#94a3b8;text-align:center;margin-bottom:8px;font-weight:600';
+    lbl_.textContent='📌 '+(selC?sal(selC):'?')+' — '+(WDAYS[dayIdx]||selD)+' (pos '+(selIdx+1)+'/'+total_+')';
+    bar_.appendChild(lbl_);
+    // Boutons haut/bas
+    const ud_=document.createElement('div');
+    ud_.style.cssText='display:flex;gap:8px;margin-bottom:8px';
+    const mkBtn=(label,enabled,fn)=>{
+      const b=document.createElement('button');
+      b.style.cssText='flex:1;padding:14px;font-size:17px;font-weight:700;border:none;border-radius:9px;cursor:'+(enabled?'pointer':'default')+';'
+        +'background:'+(enabled?'#6366f1':'#374151')+';color:'+(enabled?'#fff':'#6b7280')+';font-family:inherit;';
+      b.textContent=label;
+      if(enabled)b.addEventListener('click',fn);
+      return b;
+    };
+    ud_.appendChild(mkBtn('↑ Monter',selIdx>0,()=>{
+      const arr=[...(sch[selD]||[])];arr.splice(selIdx,1);arr.splice(selIdx-1,0,selId);
+      sch[selD]=arr;persist();render();
+    }));
+    ud_.appendChild(mkBtn('↓ Descendre',selIdx<total_-1,()=>{
+      const arr=[...(sch[selD]||[])];arr.splice(selIdx,1);arr.splice(selIdx+1,0,selId);
+      sch[selD]=arr;persist();render();
+    }));
+    bar_.appendChild(ud_);
+    // Déplacer vers autre jour
+    const others_=wkDates.filter(dd=>dd!==selD);
+    if(others_.length){
+      const dr_=document.createElement('div');
+      dr_.style.cssText='display:flex;gap:4px;align-items:center';
+      const lbl2_=document.createElement('span');
+      lbl2_.style.cssText='font-size:10px;color:#64748b';lbl2_.textContent='→';
+      dr_.appendChild(lbl2_);
+      others_.forEach(dd=>{
+        const di=wkDates.indexOf(dd);
+        const b=document.createElement('button');
+        b.style.cssText='flex:1;padding:9px 4px;font-size:12px;font-weight:600;background:#374151;color:#e2e8f0;border:1px solid #4b5563;border-radius:7px;cursor:pointer;font-family:inherit';
+        b.textContent=WDAYS[di];
+        b.addEventListener('click',()=>{
+          if((sch[dd]||[]).length>=MAX){showToast('Maximum '+MAX+' ce jour !','err');return;}
+          sch[selD]=(sch[selD]||[]).filter(id=>id!==selId);
+          sch[dd]=[selId,...(sch[dd]||[])];
+          persist();window._selectedClient=null;window._selectedDay=null;
+          showToast('✓ Déplacé vers '+WDAYS[di]);render();
+        });
+        dr_.appendChild(b);
+      });
+      bar_.appendChild(dr_);
+    }
+    // Annuler
+    const ann_=document.createElement('button');
+    ann_.style.cssText='width:100%;padding:8px;margin-top:6px;background:transparent;border:1px solid #374151;color:#64748b;border-radius:7px;cursor:pointer;font-size:11px;font-family:inherit';
+    ann_.textContent='✕ Annuler';
+    ann_.addEventListener('click',()=>{window._selectedClient=null;window._selectedDay=null;render();});
+    bar_.appendChild(ann_);
+    wrap.appendChild(bar_);
+  }
   return wrap;
 }
 
@@ -846,6 +923,61 @@ function renderModal(m,wkDates,cm,ac,td){
       h('button',{style:{flex:1,padding:'10px',fontSize:12,fontWeight:600,background:'#fef9c3',border:'1px solid #fde68a',color:'#d97706',borderRadius:9,cursor:'pointer'},onClick:()=>{modal={type:'rdv',client:c};render();}},'⭐ Gérer RDV'),
       h('button',{className:'bg',style:{flex:1,padding:'10px',fontSize:12,fontWeight:600},onClick:()=>{modal={type:'schedule',client:c};render();}},'📅 Planning')
     ));
+    // Boutons déplacement dans le planning
+    const fromDay=m.fromDay;
+    if(fromDay&&(sch[fromDay]||[]).includes(c.kd_nr)){
+      const posIdx=(sch[fromDay]||[]).indexOf(c.kd_nr);
+      const total_=(sch[fromDay]||[]).length;
+      const dayIdx=getWkDates().indexOf(fromDay);
+      const moveBox=h('div',{style:{background:'#f8fafc',borderRadius:10,border:'1px solid #e2e8f0',overflow:'hidden'}});
+      moveBox.appendChild(h('div',{style:{fontSize:11,color:'#6366f1',fontWeight:600,padding:'8px 12px 4px',textAlign:'center'}},
+        '📋 Position — '+(WDAYS[dayIdx]||fromDay)+' : '+(posIdx+1)+'/'+total_));
+      // Monter / Descendre
+      const ud=h('div',{style:{display:'flex'}});
+      const btnUp=h('button',{style:{flex:1,padding:'13px',fontSize:18,fontWeight:700,
+        background:posIdx>0?'#6366f1':'#e2e8f0',color:posIdx>0?'#fff':'#94a3b8',
+        border:'none',borderRight:'1px solid #fff',cursor:'pointer'}},
+        '↑ Monter');
+      btnUp.addEventListener('click',()=>{
+        if(posIdx<=0)return;
+        const arr=[...(sch[fromDay]||[])];arr.splice(posIdx,1);arr.splice(posIdx-1,0,c.kd_nr);
+        sch[fromDay]=arr;persist();modal={type:'visit',client:c,fromDay};render();
+      });
+      const btnDown=h('button',{style:{flex:1,padding:'13px',fontSize:18,fontWeight:700,
+        background:posIdx<total_-1?'#6366f1':'#e2e8f0',color:posIdx<total_-1?'#fff':'#94a3b8',
+        border:'none',cursor:'pointer'}},
+        '↓ Descendre');
+      btnDown.addEventListener('click',()=>{
+        if(posIdx>=total_-1)return;
+        const arr=[...(sch[fromDay]||[])];arr.splice(posIdx,1);arr.splice(posIdx+1,0,c.kd_nr);
+        sch[fromDay]=arr;persist();modal={type:'visit',client:c,fromDay};render();
+      });
+      ud.appendChild(btnUp);ud.appendChild(btnDown);
+      moveBox.appendChild(ud);
+      // Déplacer vers autre jour
+      const wkD=getWkDates();
+      const otherDays=wkD.filter(dd=>dd!==fromDay);
+      if(otherDays.length){
+        const dr=h('div',{style:{display:'flex',gap:4,padding:'6px 8px',background:'#f1f5f9'}});
+        dr.appendChild(h('span',{style:{fontSize:10,color:'#94a3b8',alignSelf:'center'}},'→'));
+        otherDays.forEach(dd=>{
+          const di=wkD.indexOf(dd);
+          const btn=h('button',{style:{flex:1,padding:'8px 4px',fontSize:11,fontWeight:600,
+            background:'#fff',border:'1px solid #c7d2fe',color:'#6366f1',borderRadius:7,cursor:'pointer'}},
+            WDAYS[di]);
+          btn.addEventListener('click',()=>{
+            if((sch[dd]||[]).length>=MAX){showToast('Maximum '+MAX+' ce jour !','err');return;}
+            sch[fromDay]=(sch[fromDay]||[]).filter(id=>id!==c.kd_nr);
+            sch[dd]=[c.kd_nr,...(sch[dd]||[])];
+            persist();showToast('✓ Déplacé vers '+WDAYS[di]);modal=null;render();
+          });
+          dr.appendChild(btn);
+        });
+        moveBox.appendChild(dr);
+      }
+      body.appendChild(moveBox);
+    }
+
     body.appendChild(h('button',{className:'bp',style:{width:'100%',padding:'12px',fontSize:14},onClick:()=>{archiveCurrentVisit(c.kd_nr);modal=null;showToast('Visite enregistrée ✓');}},'💾 Enregistrer & fermer'));
     // Boutons CRM
     body.appendChild(h('div',{style:{display:'flex',gap:8}},
