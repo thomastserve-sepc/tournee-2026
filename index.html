@@ -952,6 +952,39 @@ function renderModal(m,wkDates,cm,ac,td){
     nb.appendChild(saveBtn2);
     sheet.appendChild(nb);
 
+  } else if(m.type==='newclient'){
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'➕ Nouveau client / prospect')),
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:function(){modal=null;render();}},'✕')
+      )
+    ));
+    var nb=h('div',{className:'sheet-b'});
+    var nf={salon:'',ort:'',tel:'',npa:''};
+    function mkNF(lbl2,key,ph){
+      var w=h('div',null,h('div',{className:'fl'},lbl2));
+      var inp=document.createElement('input');
+      inp.type='text';inp.placeholder=ph;inp.className='fi';
+      inp.oninput=function(){nf[key]=inp.value;};
+      w.appendChild(inp);return w;
+    }
+    nb.appendChild(mkNF('Nom du salon *','salon','Coiffure Dupont'));
+    nb.appendChild(h('div',{style:{display:'grid',gridTemplateColumns:'90px 1fr',gap:8}},
+      mkNF('NPA','npa','1950'),mkNF('Localité','ort','Sion')));
+    nb.appendChild(mkNF('Téléphone','tel','027 XXX XX XX'));
+    var saveBtn2=document.createElement('button');
+    saveBtn2.className='bp';
+    saveBtn2.style.cssText='width:100%;padding:12px;font-size:14px;cursor:pointer;margin-top:4px';
+    saveBtn2.textContent='✓ Ajouter le client';
+    saveBtn2.onclick=function(){
+      if(!nf.salon.trim()){showToast('Nom du salon requis','err');return;}
+      var kd='P'+Math.floor(10000+Math.random()*89999);
+      extra.push({kd_nr:kd,sek:'102',name:nf.salon,salon:nf.salon,vorname:'',strasse:'',plz:nf.npa||'',ort:nf.ort||'',tel:nf.tel||'',ca_2025:'0',ca_2026:'0',_prospect:true});
+      persist();showToast('✓ '+nf.salon+' ajouté !');modal=null;render();
+    };
+    nb.appendChild(saveBtn2);
+    sheet.appendChild(nb);
+
   } else if(m.type==='zone'){
     var date_=m.date,dayLabel_=m.dayLabel;
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
