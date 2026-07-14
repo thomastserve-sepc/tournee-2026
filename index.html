@@ -212,6 +212,150 @@ function organizeAroundRdv(date_){
   persist();showToast('✓ '+toAdd.length+' clients ajoutés');render();
 }
 
+function showPrintOverlay(title, content){
+  // Supprimer ancien overlay
+  var old=document.getElementById('printOverlay');
+  if(old)old.remove();
+
+  var ov=document.createElement('div');
+  ov.id='printOverlay';
+  ov.style.cssText='position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto;font-family:Arial,sans-serif';
+
+  // Barre d'outils
+  var bar=document.createElement('div');
+  bar.style.cssText='position:sticky;top:0;background:#1e293b;padding:10px 16px;display:flex;align-items:center;gap:10px;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+
+  var backBtn=document.createElement('button');
+  backBtn.textContent='← Retour';
+  backBtn.style.cssText='padding:9px 16px;background:#374151;border:none;color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit';
+  backBtn.onclick=function(){ov.remove();document.body.style.overflow='';};
+
+  var titleEl=document.createElement('span');
+  titleEl.textContent=title;
+  titleEl.style.cssText='color:#fff;font-weight:700;font-size:14px;flex:1';
+
+  var printBtn=document.createElement('button');
+  printBtn.textContent='🖨️ Imprimer';
+  printBtn.style.cssText='padding:9px 18px;background:#6366f1;border:none;color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit';
+  printBtn.onclick=function(){window.print();};
+
+  bar.appendChild(backBtn);
+  bar.appendChild(titleEl);
+  bar.appendChild(printBtn);
+  ov.appendChild(bar);
+
+  // Contenu
+  var contentDiv=document.createElement('div');
+  contentDiv.style.cssText='padding:20px;max-width:900px;margin:0 auto';
+  contentDiv.innerHTML=content;
+  ov.appendChild(contentDiv);
+
+  document.body.appendChild(ov);
+  document.body.style.overflow='hidden';
+}
+
+function printWeek(){
+  var wkDates=getWkDates();
+  var cm=cMap();
+  var wkLabel=fmtFR(wkDates[0])+' → '+fmtFR(wkDates[3]);
+  var total=wkDates.reduce(function(s,d){return s+(sch[d]||[]).length},0);
+  var wCA=totalCA(function(d){return wkDates.includes(d)});
+  var WDAYS2=['Mardi','Mercredi','Jeudi','Vendredi'];
+
+  var html='<h2 style="margin-bottom:4px;color:#1e293b">📅 Planning — '+wkLabel+'</h2>';
+  html+='<p style="color:#64748b;margin-bottom:16px;font-size:13px">'+total+' visites planifiées · CA semaine: <strong style="color:#22c55e">'+wCA.toLocaleString('fr-CH')+' CHF</strong></p>';
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">';
+
+  wkDates.forEach(function(d,i){
+    var ids=sch[d]||[];
+    var dayCA=totalCA(function(x){return x===d});
+    html+='<div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">';
+    html+='<div style="background:#6366f1;color:#fff;padding:8px 10px;font-weight:700;font-size:12px">';
+    html+=WDAYS2[i]+' '+fmtFR(d)+'<br><span style="font-size:10px;opacity:.85">'+ids.length+'/14'+(dayCA>0?' · '+dayCA.toLocaleString('fr-CH')+' CHF':'')+'</span></div>';
+    ids.forEach(function(id){
+      var c_=cm[id];if(!c_)return;
+      var v=vis[id]||{};
+      var amt=parseFloat(v.amount)||0;
+      var status=v.status||'';
+      var bg=status==='visited'?'#f0fdf4':status==='absent'?'#fffbeb':status==='closed'?'#fef2f2':'#fff';
+      var icon=status==='visited'?'✓':status==='absent'?'~':status==='closed'?'✕':status==='callback'?'↩':'○';
+      var bk=book[id]?'📖':'';
+      html+='<div style="padding:5px 8px;border-bottom:1px solid #f1f5f9;background:'+bg+';font-size:10px">';
+      html+='<span style="font-weight:600">'+icon+' '+(c_.salon||c_.name)+bk+'</span>';
+      if(amt>0)html+='<span style="float:right;color:#16a34a;font-weight:600">'+amt.toLocaleString('fr-CH')+'</span>';
+      html+='</div>';
+    });
+    if(!ids.length)html+='<div style="padding:10px;text-align:center;color:#cbd5e1;font-size:11px">— vide —</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  showPrintOverlay('Planning semaine', html);
+}
+
+function printClients(){
+  var ac=activeC().sort(function(a,b){return(a.ort||'').localeCompare(b.ort||'')});
+  var html='<h2 style="margin-bottom:4px;color:#1e293b">👥 Liste clients — '+ac.length+' clients</h2>';
+  html+='<p style="color:#64748b;margin-bottom:16px;font-size:12px">Généré le '+new Date().toLocaleDateString('fr-CH')+'</p>';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html+='<thead><tr style="background:#6366f1;color:#fff">';
+  ['Salon','Ville','Tél','Statut','CA 2026','Catalogue'].forEach(function(h_){
+    html+='<th style="padding:6px 8px;text-align:left">'+h_+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  ac.forEach(function(c_,i){
+    var v=vis[c_.kd_nr]||{};
+    var status=v.status||'';
+    var amt=parseFloat(v.amount)||0;
+    var icon={visited:'✓',absent:'~',closed:'✕',callback:'↩'}[status]||'○';
+    var bg=i%2===0?'#f8fafc':'#fff';
+    html+='<tr style="background:'+bg+'"><td style="padding:5px 8px;font-weight:600">'+(c_.salon||c_.name)+'</td>';
+    html+='<td style="padding:5px 8px">'+c_.ort+'</td>';
+    html+='<td style="padding:5px 8px">'+c_.tel+'</td>';
+    html+='<td style="padding:5px 8px">'+icon+' '+(status||'—')+'</td>';
+    html+='<td style="padding:5px 8px;text-align:right;color:#16a34a;font-weight:600">'+(amt>0?amt.toLocaleString('fr-CH')+' CHF':'')+'</td>';
+    html+='<td style="padding:5px 8px;text-align:center">'+(book[c_.kd_nr]?'📖':'')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  showPrintOverlay('Liste clients', html);
+}
+
+function printCA(){
+  var tCA=totalCA();
+  var wkDates=getWkDates();
+  var wCA=totalCA(function(d){return wkDates.includes(d)});
+  var mois=today().slice(0,7);
+  var mCA=totalCA(function(d){return d&&d.slice(0,7)===mois});
+  var cmds=Object.entries(vis).filter(function(e){return e[1].status==='visited'&&parseFloat(e[1].amount)>0});
+  cmds.sort(function(a,b){return(b[1].visitDate||'').localeCompare(a[1].visitDate||'')});
+  var cm=cMap();
+
+  var html='<h2 style="margin-bottom:4px;color:#1e293b">📊 Rapport CA</h2>';
+  html+='<p style="color:#64748b;margin-bottom:16px;font-size:12px">Généré le '+new Date().toLocaleDateString('fr-CH')+'</p>';
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
+  [{l:'CA semaine',v:wCA},{l:'CA mois',v:mCA},{l:'CA total',v:tCA}].forEach(function(k){
+    html+='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center">';
+    html+='<div style="font-size:20px;font-weight:800;color:#6366f1">'+k.v.toLocaleString('fr-CH')+' CHF</div>';
+    html+='<div style="font-size:11px;color:#64748b;margin-top:4px">'+k.l+'</div></div>';
+  });
+  html+='</div>';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html+='<thead><tr style="background:#22c55e;color:#fff"><th style="padding:6px 8px;text-align:left">Date</th><th style="padding:6px 8px;text-align:left">Salon</th><th style="padding:6px 8px;text-align:left">Ville</th><th style="padding:6px 8px;text-align:left">Produits</th><th style="padding:6px 8px;text-align:right">Montant CHF</th></tr></thead><tbody>';
+  var tot=0;
+  cmds.forEach(function(e,i){
+    var c_=cm[e[0]],v=e[1],amt=parseFloat(v.amount)||0;
+    tot+=amt;
+    var bg=i%2===0?'#f0fdf4':'#fff';
+    html+='<tr style="background:'+bg+'"><td style="padding:5px 8px">'+fmtFR(v.visitDate)+'</td>';
+    html+='<td style="padding:5px 8px;font-weight:600">'+(c_?c_.salon||c_.name:e[0])+'</td>';
+    html+='<td style="padding:5px 8px">'+(c_?c_.ort:'')+'</td>';
+    html+='<td style="padding:5px 8px">'+(v.products||'')+'</td>';
+    html+='<td style="padding:5px 8px;text-align:right;font-weight:600;color:#16a34a">'+amt.toLocaleString('fr-CH')+'</td></tr>';
+  });
+  html+='<tr style="font-weight:800;border-top:2px solid #e2e8f0"><td colspan="4" style="padding:8px">TOTAL</td><td style="padding:8px;text-align:right;color:#16a34a;font-size:14px">'+tot.toLocaleString('fr-CH')+' CHF</td></tr>';
+  html+='</tbody></table>';
+  showPrintOverlay('Rapport CA', html);
+}
+
 function render(){
   var app=document.getElementById('app');
   var sc=app.querySelector('.ms')?app.querySelector('.ms').scrollTop:0;
@@ -241,7 +385,7 @@ function render(){
       ),
       h('div',{style:{display:'flex',gap:5}},
         h('button',{className:'bg',style:{padding:'5px 9px'},onClick:function(){modal={type:'sync'};render();}},'🔄'),
-        h('button',{className:'bg',style:{padding:'5px 9px',color:'#7c3aed'},onClick:function(){genRapport();}},'📋')
+        h('button',{className:'bg',style:{padding:'5px 9px',color:'#7c3aed'},onClick:function(){modal={type:'print_menu'};render();}},'🖨️')
       )
     )
   ));
@@ -756,7 +900,26 @@ function renderModal(m,wkDates,cm,ac,td){
     si2.oninput=showClients;showClients();
     sheet.appendChild(ab2);
 
-  } else if(m.type==='newclient'){
+  } else if(m.type==='print_menu'){
+    sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'🖨️ Imprimer')),
+        h('button',{style:{background:'#f1f5f9',border:'none',color:'#64748b',width:28,height:28,borderRadius:7,cursor:'pointer',fontSize:12},onClick:function(){modal=null;render();}},'✕')
+      )
+    ));
+    var pb=h('div',{className:'sheet-b'});
+    [
+      {l:'📅 Planning de la semaine', fn:function(){modal=null;render();setTimeout(printWeek,100);}},
+      {l:'👥 Liste de tous les clients', fn:function(){modal=null;render();setTimeout(printClients,100);}},
+      {l:'📊 Rapport CA et commandes', fn:function(){modal=null;render();setTimeout(printCA,100);}},
+    ].forEach(function(item){
+      var btn=document.createElement('button');
+      btn.textContent=item.l;
+      btn.style.cssText='width:100%;padding:14px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;color:#1e293b;font-weight:600;font-size:14px;cursor:pointer;text-align:left;font-family:inherit;margin-bottom:8px';
+      btn.onclick=item.fn;
+      pb.appendChild(btn);
+    });
+    sheet.appendChild(pb);
     sheet.appendChild(h('div',{className:'sheet-h',style:{paddingTop:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,h('div',{style:{fontWeight:700,fontSize:16}},'➕ Nouveau client / prospect')),
