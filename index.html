@@ -82,10 +82,13 @@ function persist(){save(SK,vis);save(DK,del_);save(SCK,sch);save(EK,extra);save(
 
 function totalCA(fn){
   var t=0;
-  hist.forEach(function(h){if(!fn||fn(h.visitDate))t+=parseFloat(h.amount)||0});
+  hist.forEach(function(h){
+    var amt=parseFloat(h.amount)||0;
+    if(amt>0&&(!fn||fn(h.visitDate)))t+=amt;
+  });
   Object.entries(vis).forEach(function(e){
     var kd=e[0],v=e[1];
-    if(v.status!=='visited'||!v.amount)return;
+    if(v.status!=='visited')return;
     var amt=parseFloat(v.amount)||0;if(amt<=0)return;
     var already=hist.some(function(h){return h.kd_nr===kd&&h.visitDate===v.visitDate&&Math.abs(parseFloat(h.amount)-amt)<0.01});
     if(!already&&(!fn||fn(v.visitDate)))t+=amt;
@@ -289,7 +292,7 @@ function renderWeek(wkDates,cm,td,wCA,wkLabel){
     col.appendChild(dh);
 
     dc.forEach(function(c){
-      var v=vis[c.kd_nr],cfg=SC[v&&v.status||'none'],amt=parseFloat(v&&v.amount)||0;
+      var v=vis[c.kd_nr]||{},cfg=SC[v.status||'none'],amt=parseFloat(v.amount)||0;
       var hasBook=!!book[c.kd_nr];
       var isSelected=window._sel===c.kd_nr&&window._selD===d;
 
@@ -729,7 +732,7 @@ function renderModal(m,wkDates,cm,ac,td){
     ab2.appendChild(si2);
     var res2=h('div',{style:{maxHeight:'45vh',overflowY:'auto'}});
     ab2.appendChild(res2);
-    function showClients(){
+    var showClients=function(){
       res2.innerHTML='';
       var q=si2.value.toLowerCase();
       var ex=new Set(sch[date]||[]);
