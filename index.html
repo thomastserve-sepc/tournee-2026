@@ -281,7 +281,7 @@ function renderWeek(wk,cm,td,wCA,wkLbl){
     col.appendChild(ch);
 
     // Clients
-    var cl=document.createElement('div');cl.style.cssText='flex:1;padding:4px;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch';
+    var cl=document.createElement('div');cl.style.cssText='flex:1;padding:3px';
     dc.forEach(function(c){
       var v=vis[c.kd_nr]||{},st=v.status||'none',cfg=SC[st]||SC.none;
       var amt=parseFloat(v.amount)||0,hb=!!book[c.kd_nr];
