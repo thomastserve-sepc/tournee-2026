@@ -291,7 +291,7 @@ function renderWeek(wk,cm,td,wCA,wkLbl){
 
       var inf=document.createElement('div');inf.style.cssText='flex:1;min-width:0';
       var nm=document.createElement('div');nm.style.cssText='font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b';
-      nm.textContent=sal(c)+(hb?' 📖':'');
+      nm.textContent=(v.status==='visited'?'✅ ':v.status==='absent'?'~ ':v.status==='closed'?'✕ ':v.status==='callback'?'↩ ':'')+sal(c)+(hb?' 📖':'');
       var sb=document.createElement('div');sb.style.cssText='font-size:10px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
       sb.textContent=c.ort+(amt>0?' · '+amt.toLocaleString('fr-CH'):'');
       inf.appendChild(nm);inf.appendChild(sb);chip.appendChild(inf);
@@ -353,7 +353,7 @@ function renderList(ac){
       row.style.cssText='width:100%;display:flex;align-items:center;gap:10px;background:#fff;border-radius:10px;padding:10px 12px;border:1px solid #f1f5f9;margin-bottom:4px;cursor:pointer;font-family:inherit;text-align:left;box-sizing:border-box';
       var av=document.createElement('div');av.style.cssText='width:36px;height:36px;border-radius:9px;background:'+cfg.bg+';border:1px solid '+cfg.c+'33;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:'+cfg.c+';flex-shrink:0';av.textContent=cfg.i;
       var inf=document.createElement('div');inf.style.cssText='flex:1;min-width:0';
-      var nm=document.createElement('div');nm.style.cssText='font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';nm.textContent=sal(c)+(hb?' 📖':'');
+      var nm=document.createElement('div');nm.style.cssText='font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';nm.textContent=(v.status==='visited'?'✅ ':v.status==='absent'?'~ ':v.status==='closed'?'✕ ':v.status==='callback'?'↩ ':'')+sal(c)+(hb?' 📖':'');
       var sb=document.createElement('div');sb.style.cssText='font-size:11px;color:#64748b';sb.textContent=c.ort+(c.tel?' · '+c.tel:'');
       inf.appendChild(nm);inf.appendChild(sb);
       var ri=document.createElement('div');ri.style.cssText='text-align:right;flex-shrink:0';
@@ -503,6 +503,10 @@ function renderModal(m,wk,cm,ac,td){
     syncB.onclick=function(){try{var v2=vis[c.kd_nr]||{},hrs=ldH()[c.kd_nr]||null;var pend=JSON.parse(localStorage.getItem('crm_pending')||'{"clients":{},"visites":{},"hist":[]}');if(!pend.clients)pend.clients={};if(!pend.visites)pend.visites={};if(!pend.hist)pend.hist=[];var crmC=JSON.parse(localStorage.getItem('crm_clients')||'[]');var cl=crmC.find(function(x){return x.kdnr===c.kd_nr});if(!cl){cl={id:'c_'+c.kd_nr,kdnr:c.kd_nr,sek:c.sek,nom:c.name,salon:sal(c),ville:c.ort||'',tel1:c.tel||'',ca26:parseInt(c.ca_2026)||0,ca25:parseInt(c.ca_2025)||0,statut:'Actif',comments:[]};crmC.push(cl)}if(v2.visitDate)cl.lastVisit=v2.visitDate;if(hrs)cl.horaires=hrs;localStorage.setItem('crm_clients',JSON.stringify(crmC));var note=[];if(v2.status){var lbl2={visited:'✓ Visité',absent:'~ Absent',closed:'✕ Fermé',callback:'↩ Rappel'};note.push(lbl2[v2.status]||v2.status)}if(v2.amount&&parseFloat(v2.amount)>0)note.push(parseFloat(v2.amount).toLocaleString('fr-CH')+' CHF');if(v2.products)note.push(v2.products);if(v2.note)note.push(v2.note);if(hb)note.push('📖 Catalogue remis');if(note.length){pend.visites['v_'+Date.now()]={clientId:cl.id,salon:sal(c),date:v2.visitDate||tod(),comment:note.join(' · '),commande:parseFloat(v2.amount)||0}}localStorage.setItem('crm_pending',JSON.stringify(pend));showToast('✓ Envoyé au CRM!')}catch(err){showToast('Erreur: '+err.message,'err')}};
     bd.appendChild(syncB);
 
+    // Ouvrir CRM
+    var openCRM=document.createElement('button');openCRM.style.cssText='width:100%;padding:11px;border-radius:10px;border:1px solid #fde68a;background:#fffbeb;color:#d97706;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit';openCRM.textContent='📋 Ouvrir dans le CRM';
+    openCRM.onclick=function(){localStorage.setItem('crm_session_active',JSON.stringify({readonly:false,expires:Date.now()+8*60*60*1000}));localStorage.setItem('crm_open_client','c_'+c.kd_nr);var a=document.createElement('a');a.href='https://thomastserve-sepc.github.io/CRM-2026/index.html';a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a)};
+    bd.appendChild(openCRM);
     // Save
     var sb3=document.createElement('button');sb3.className='bp';sb3.textContent='💾 Enregistrer & fermer';sb3.onclick=function(){archVis(c.kd_nr);modal=null;showToast('Visite enregistrée ✓')};
     bd.appendChild(sb3);
