@@ -249,6 +249,91 @@ async function flush(){
     }
   }finally{flushing=false; syncState.pending=Object.keys(pend()).length; showSync()}
 }
+/* ---------- envoi automatique vers le CRM (version autonome) ---------- */
+const CRM_ON=FB_ON;
+let crmBusy=false, crmTimer=null, crmState={at:null,err:null,n:0};
+function toFS(obj){const fields={};for(const [k,v] of Object.entries(obj)){
+  if(v===null||v===undefined)fields[k]={nullValue:null};else if(typeof v==='boolean')fields[k]={booleanValue:v};
+  else if(typeof v==='number')fields[k]={doubleValue:v};else if(typeof v==='string')fields[k]={stringValue:v};
+  else fields[k]={stringValue:JSON.stringify(v)}}return {fields}}
+async function fsPatch(path,obj){try{const r=await fetch(FB.url+'/'+path+'?key='+FB.key,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(toFS(obj))});return r.ok}catch(e){return false}}
+async function fsDelete(path){try{const r=await fetch(FB.url+'/'+path+'?key='+FB.key,{method:'DELETE'});return r.ok||r.status===404}catch(e){return false}}
+function scheduleCrm(){if(!CRM_ON)return;clearTimeout(crmTimer);crmTimer=setTimeout(pushCrm,4000)}
+function localWeeks(){const out=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const m=k&&k.match(/^rapportExpress:w(\d{4}-\d\d-\d\d)$/);
+  if(m){const w=lsGet('w'+m[1]);if(w&&w.days)out.push({start:m[1],week:w})}}}catch(e){}return out}
+function addDaysIso(start,i){const [y,m,d]=start.split('-').map(Number);return iso(new Date(y,m-1,d+i))}
+function frDate(isoD){const [y,m,d]=isoD.split('-');return d+'.'+m+'.'+y}
+function visitText(v){
+  const parts=[];
+  if(v.type) parts.push({CL:'Client',P:'Prospect',NCL:'Nouveau client'}[v.type]||v.type);
+  if(v.cmd) parts.push('Commande '+(v.cmd==='Tél.'?'tél.':'')+(num(v.amount)?' '+chf(num(v.amount)):'').trim());
+  else if(num(v.amount)) parts.push(chf(num(v.amount)));
+  if(v.promo) parts.push('Promo : '+v.promo);
+  if(v.brands) parts.push('Marques : '+v.brands);
+  if(v.next) parts.push('Suite : '+v.next);
+  if(v.obs) parts.push(v.obs);
+  return parts.join(' · ');
+}
+async function pushCrm(){
+  if(!CRM_ON||crmBusy) return; crmBusy=true;
+  try{
+    const sent=(await load('crmSent'))||{};
+    const today=iso(new Date()); const todo=[];
+    localWeeks().forEach(({start,week})=>week.days.forEach((d,i)=>{const date=addDaysIso(start,i); if(date>today) return;
+      d.visits.forEach(v=>{if(v.example||!String(v.name||'').trim())return;
+        const sig=JSON.stringify([v.name,v.city,v.amount,v.obs,v.next,v.promo,v.type,v.cmd,v.brands,date]);
+        const s=sent[v.id]; if(!s||s.del||s.sig!==sig) todo.push({v,date,prev:(s&&!s.del)?s:null,sig})})}));
+    const dels=Object.entries(sent).filter(([,s])=>s&&s.del);
+    if(!todo.length&&!dels.length){crmState.err=null;return}
+    const r=await fetch(FB.url+'/meta/all_clients?key='+FB.key); if(!r.ok) throw new Error('lecture du CRM ('+r.status+')');
+    const doc=await r.json(); const raw=doc.fields&&doc.fields.data&&doc.fields.data.stringValue; if(!raw) throw new Error('CRM vide');
+    const list=JSON.parse(raw); if(!Array.isArray(list)||!list.length) throw new Error('CRM illisible');
+    const byId={}; list.forEach(c=>byId[c.id]=c);
+    let clientsChanged=false;
+    const comPush=(cc,date,text)=>{let com=[];try{com=typeof cc.comments==='string'?JSON.parse(cc.comments||'[]'):(cc.comments||[])}catch(e){com=[]}
+      com.push({date,time:'',text});cc.comments=JSON.stringify(com)};
+    for(const t of todo){
+      const rc=S.clients.find(c=>c.id===t.v.clientId)||S.clients.find(c=>norm(c.name)===norm(t.v.name)&&norm(c.city)===norm(t.v.city));
+      let cc=(t.prev&&byId[t.prev.c])||(rc&&rc.crmId&&byId[rc.crmId])||list.find(c=>norm(c.salon||c.nom)===norm(t.v.name)&&(!t.v.city||norm(c.ville)===norm(t.v.city)));
+      if(!cc){cc={id:'c_rx'+uidGen(),kdnr:'',sek:(rc&&rc.sector)||'',nom:t.v.name.trim(),prenom:'',salon:t.v.name.trim(),rue:'',npa:'',ville:(t.v.city||'').trim(),
+        tel1:(rc&&rc.phone)||'',tel2:'',ca26:0,ca25:0,ca24:0,statut:'Actif',comments:'[]',lastVisit:'',nextVisit:'',nbVisites:0,opport:'',tasks:''};list.push(cc);byId[cc.id]=cc}
+      if(rc&&rc.crmId!==cc.id){rc.crmId=cc.id;clientsChanged=true}
+      const amt=num(t.v.amount);
+      cc.ca26=Math.round(((Number(cc.ca26)||0)+amt-(t.prev?t.prev.a:0))*100)/100;
+      if(!t.prev) cc.nbVisites=(Number(cc.nbVisites)||0)+1;
+      if(!cc.lastVisit||t.date>cc.lastVisit) cc.lastVisit=t.date;
+      if(cc.nextVisit&&cc.nextVisit<=t.date) cc.nextVisit='';
+      t.txt=visitText(t.v);
+      if(!t.prev||t.prev.t!==t.txt) comPush(cc,t.date,'[Rapport '+frDate(t.date)+(t.prev?' · modifié':'')+'] '+(t.txt||'Visite'));
+      t.cc=cc;
+    }
+    for(const [,s] of dels){const cc=byId[s.c];if(cc){cc.ca26=Math.round(((Number(cc.ca26)||0)-(s.a||0))*100)/100;cc.nbVisites=Math.max(0,(Number(cc.nbVisites)||0)-1);
+      comPush(cc,today,'[Rapport] Visite du '+frDate(s.date)+' supprimée')}}
+    const w=await fetch(FB.url+'/meta/all_clients?key='+FB.key,{method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fields:{data:{stringValue:JSON.stringify(list)},count:{integerValue:String(list.length)},updated:{stringValue:new Date().toISOString()}}})});
+    if(!w.ok) throw new Error('écriture du CRM ('+w.status+')');
+    for(const t of todo){
+      const base={clientId:t.cc.id,salon:t.cc.salon||t.cc.nom||'',nom:t.cc.nom||'',ville:t.cc.ville||'',date:t.date,comment:t.txt,commande:num(t.v.amount),opport:''};
+      await fsPatch('visites/rx_'+t.v.id,{id:'rx_'+t.v.id,...base,prenom:t.cc.prenom||'',heure:t.v.time||'',objet:'Visite',priorite:'',statut:'Validée',dateVal:t.date});
+      await fsPatch('historique/rx_'+t.v.id,{id:'rx_'+t.v.id,dateArchivage:t.date,...base,objet:'Visite validée'});
+      sent[t.v.id]={sig:t.sig,date:t.date,a:num(t.v.amount),c:t.cc.id,t:t.txt};
+    }
+    for(const [id] of dels){await fsDelete('visites/rx_'+id);await fsDelete('historique/rx_'+id);delete sent[id]}
+    save('crmSent',sent); if(clientsChanged) saveClients();
+    crmState={at:new Date(),err:null,n:todo.length+dels.length};
+  }catch(e){crmState.err=(e&&e.message)||String(e)}
+  finally{crmBusy=false;showSync()}
+}
+function crmLabel(){
+  if(!CRM_ON) return '';
+  if(crmState.err) return 'CRM : envoi en attente ('+crmState.err+'), nouvel essai automatique.';
+  if(crmState.at) return 'CRM à jour · '+crmState.at.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'})+(crmState.n?' · '+crmState.n+' visite'+(crmState.n>1?'s':'')+' envoyée'+(crmState.n>1?'s':''):'');
+  return 'CRM : envoi automatique des visites.';
+}
+function markCrmDeleted(id){
+  if(!CRM_ON) return; const sent=lsGet('crmSent')||{};
+  if(sent[id]&&!sent[id].del){sent[id].del=true;save('crmSent',sent);scheduleCrm()}
+}
 function syncLabel(){
   if(store) return 'Synchronisé sur ton compte Claude.';
   if(!FB_ON) return 'Enregistré sur cet appareil.';
@@ -258,7 +343,7 @@ function syncLabel(){
   if(syncState.at) return 'Synchronisé entre tes appareils · '+syncState.at.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'});
   return 'Synchronisation…';
 }
-function showSync(){const el=document.getElementById('syncHint');if(el)el.textContent=syncLabel()}
+function showSync(){const el=document.getElementById('syncHint');if(el)el.textContent=syncLabel();const c=document.getElementById('crmHint');if(c)c.textContent=crmLabel()}
 async function pullNow(){
   if(!FB_ON) return;
   await flush();
@@ -268,6 +353,7 @@ async function pullNow(){
   if(wk!==wkKey()) return;
   if(w) S.week=w; if(c) S.clients=c; if(st) Object.assign(S.settings,st);
   if(JSON.stringify([S.week,S.clients,S.settings])!==before&&!V) render(); else showSync();
+  pushCrm();
 }
 function migrateLocal(){
   try{const p=pend();let n=0;
@@ -391,7 +477,7 @@ function render(){
   h+='<section class="block"><p class="label">Mon rapport</p><div class="card two">'+
      '<label class="f"><span>Nom</span><input type="text" id="setName" value="'+esc(S.settings.name)+'" oninput="setSet(\'name\',this.value)"></label>'+
      '<label class="f"><span>Société</span><input type="text" id="setCo" value="'+esc(S.settings.company)+'" oninput="setSet(\'company\',this.value)"></label>'+
-     '</div><p class="hint" id="syncHint" style="margin-top:8px">'+esc(syncLabel())+'</p></section>';
+     '</div><p class="hint" id="syncHint" style="margin-top:8px">'+esc(syncLabel())+'</p>'+(CRM_ON?'<p class="hint" id="crmHint" style="margin-top:2px">'+esc(crmLabel())+'</p>':'')+'</section>';
   main.innerHTML=h;
 }
 function pickDay(i){S.day=i;render();window.scrollTo({top:0})}
@@ -462,10 +548,10 @@ function saveVisit(){
   Object.assign(c,{city:V.city||c.city,brands:V.brands,staff:V.staff,closed:V.closed,pot:V.pot,last:iso(dateOf(S.day))});
   clean.clientId=c.id;
   const i=d.visits.findIndex(x=>x.id===V.id); if(i>=0)d.visits[i]=clean; else d.visits.push(clean);
-  saveWeek(); saveClients(); closeSheet(); render(); toast('Visite enregistrée');
+  saveWeek(); saveClients(); closeSheet(); render(); toast('Visite enregistrée'); scheduleCrm();
 }
 function delVisit(){if(!V._del){V._del=true;drawSheet();return}
-  const d=S.week.days[S.day]; d.visits=d.visits.filter(x=>x.id!==V.id); saveWeek(); closeSheet(); render(); toast('Visite supprimée')}
+  const d=S.week.days[S.day]; markCrmDeleted(V.id); d.visits=d.visits.filter(x=>x.id!==V.id); saveWeek(); closeSheet(); render(); toast('Visite supprimée')}
 function closeSheet(){document.getElementById('sheetHost').innerHTML='';V=null}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&V)closeSheet()});
 
