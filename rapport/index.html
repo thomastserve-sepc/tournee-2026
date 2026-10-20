@@ -135,6 +135,12 @@ textarea{min-height:76px;resize:vertical}
 .tbl tbody tr:last-child td{border-bottom:0}
 .tbl tfoot td{font-weight:800;border-top:2px solid var(--ink);border-bottom:0}
 .tbl .r{text-align:right}
+.tkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.tk{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:6px;text-align:left;min-width:0}
+.tk img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;background:var(--bg);display:block}
+.tk span{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk.add2{border-style:dashed;border-color:color-mix(in srgb,var(--accent) 45%,var(--line));color:var(--accent);align-items:center;justify-content:center;min-height:120px;font-weight:800}
+.tk.add2 small{color:var(--muted);font-weight:600}
 .example{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ncl);background:var(--ncl-soft);padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
 </style>
 
@@ -187,7 +193,7 @@ function num(v){const n=parseFloat(String(v??'').replace(/'/g,'').replace(',','.
 function chf(n){const s=(Math.round(n*100)/100).toFixed(2);const [a,b]=s.split('.');return 'CHF '+a.replace(/\B(?=(\d{3})+(?!\d))/g,"'")+'.'+b}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function uidGen(){return Math.random().toString(36).slice(2,10)}
-function blankDay(){return {km:'',frais:{},comment:'',visits:[]}}
+function blankDay(){return {km:'',frais:{},comment:'',visits:[],tickets:[]}}
 function blankWeek(){return {start:S.start,days:[0,1,2,3,4].map(blankDay)}}
 function toast(msg){const h=document.getElementById('toastHost');h.innerHTML='<div class="toast" role="status">'+esc(msg)+'</div>';clearTimeout(toast.t);toast.t=setTimeout(()=>h.innerHTML='',2200)}
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
@@ -346,8 +352,8 @@ function syncLabel(){
 function showSync(){const el=document.getElementById('syncHint');if(el)el.textContent=syncLabel();const c=document.getElementById('crmHint');if(c)c.textContent=crmLabel()}
 async function pullNow(){
   if(!FB_ON) return;
-  await flush();
-  const a=document.activeElement; if(V||(a&&/INPUT|TEXTAREA/.test(a.tagName))) {showSync();return}
+  await flush(); flushImgs();
+  const a=document.activeElement; if(V||TK||(a&&/INPUT|TEXTAREA/.test(a.tagName))) {showSync();return}
   const wk=wkKey(); const before=JSON.stringify([S.week,S.clients,S.settings]);
   const [w,c,st]=await Promise.all([load(wk),load('clients'),load('settings')]);
   if(wk!==wkKey()) return;
@@ -473,6 +479,7 @@ function render(){
      '<label class="f"><span>Kilomètres</span><input type="number" inputmode="decimal" id="km" value="'+esc(d.km)+'" oninput="setDay(\'km\',this.value)" placeholder="0"></label>';
   FRAIS.forEach(([k,l])=>{h+='<label class="f"><span>'+l+'</span><input type="number" inputmode="decimal" id="fr_'+k+'" value="'+esc(d.frais[k]??'')+'" oninput="setFrais(\''+k+'\',this.value)" placeholder="0.00"></label>'});
   h+='</div><div class="total"><span>Total frais</span><span id="frTot">'+chf(st.fr)+'</span></div></div></section>';
+  h+='<section class="block"><p class="label">Tickets de dépense</p>'+ticketsHtml(d)+'</section>';
   h+='<section class="block"><p class="label">Commentaire du jour</p><textarea id="comment" placeholder="Résumé, infos marché, concurrence…" oninput="setDay(\'comment\',this.value)">'+esc(d.comment)+'</textarea></section>';
   h+='<section class="block"><p class="label">Mon rapport</p><div class="card two">'+
      '<label class="f"><span>Nom</span><input type="text" id="setName" value="'+esc(S.settings.name)+'" oninput="setSet(\'name\',this.value)"></label>'+
@@ -654,7 +661,7 @@ function restoreBackup(f){if(!f)return;const r=new FileReader();r.onload=()=>{tr
 function ymOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function ymLabel(ym){const [y,m]=ym.split('-').map(Number);const s=new Date(y,m-1,1).toLocaleDateString('fr-CH',{month:'long',year:'numeric'});return s.charAt(0).toUpperCase()+s.slice(1)}
 function shiftMonth(n){const [y,m]=S.ym.split('-').map(Number);S.ym=ymOf(new Date(y,m-1+n,1));render()}
-function hasData(d){return d&&(d.visits.length||num(d.km)||d.comment||FRAIS.some(([k])=>num(d.frais[k])))}
+function hasData(d){return d&&(d.visits.length||(d.tickets&&d.tickets.length)||num(d.km)||d.comment||FRAIS.some(([k])=>num(d.frais[k])))}
 async function loadMonth(ym){
   const [y,m]=ym.split('-').map(Number); const last=new Date(y,m,0);
   const mon=new Date(y,m-1,1); mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
@@ -702,6 +709,108 @@ async function renderMonth(){
   h+='<section class="block row"><button class="btn" id="saveMonDays" onclick="saveDays(\'month\',this)">Enregistrer chaque jour du mois</button><button class="btn" id="mailMonBtn" onclick="copyMail(\'month\')">Recopier le texte du mail du mois</button></section>';
   main.innerHTML=h;
 }
+
+/* ---------- tickets de dépense (photos) ---------- */
+const IDB=(()=>{let dbp=null;
+  function open(){if(!dbp)dbp=new Promise((res,rej)=>{try{const r=indexedDB.open('rapportExpress',1);r.onupgradeneeded=()=>r.result.createObjectStore('img');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});return dbp}
+  const tx=async(mode,fn)=>{try{const db=await open();return await new Promise(res=>{const t=db.transaction('img',mode);const st=t.objectStore('img');const rq=fn(st);t.oncomplete=()=>res(rq&&rq.result!==undefined?rq.result:true);t.onerror=()=>res(null);t.onabort=()=>res(null)})}catch(e){return null}};
+  return {get:k=>tx('readonly',s=>s.get(k)),set:(k,v)=>tx('readwrite',s=>s.put(v,k)),del:k=>tx('readwrite',s=>s.delete(k))};
+})();
+const memImg={};
+function compressImage(file){return new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file); const im=new Image();
+  im.onload=()=>{try{let max=1500,q=0.72,out=null,w,h;
+    for(let i=0;i<8;i++){const sc=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight));w=Math.round(im.naturalWidth*sc);h=Math.round(im.naturalHeight*sc);
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.drawImage(im,0,0,w,h);
+      out=cv.toDataURL('image/jpeg',q); if(out.length<230000)break; if(q>0.5)q-=0.1;else max=Math.round(max*0.82)}
+    URL.revokeObjectURL(url);res({data:out,w,h})}catch(e){rej(e)}};
+  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('image illisible'))}; im.src=url;})}
+async function putImg(id,data){
+  memImg[id]=data; await IDB.set(id,data);
+  if(store){try{await store.doc('t_'+id).set({v:data})}catch(e){}}
+  if(FB_ON){const p=lsGet('_imgPending')||[];if(!p.includes(id)){p.push(id);lsSet('_imgPending',p)}flushImgs()}
+}
+async function getImg(id){
+  if(memImg[id]) return memImg[id];
+  let d=await IDB.get(id);
+  if(!d&&store){try{const s=await store.doc('t_'+id).get();if(s.exists)d=s.data().v}catch(e){}}
+  if(!d&&FB_ON){const r=await fbGet('t_'+id);if(r&&!r.missing)d=r.v}
+  if(d){memImg[id]=d;IDB.set(id,d)}
+  return d||null;
+}
+let imgFlushing=false;
+async function flushImgs(){
+  if(!FB_ON||imgFlushing)return; imgFlushing=true;
+  try{let p=lsGet('_imgPending')||[];
+    for(const id of p.slice()){const d=memImg[id]||await IDB.get(id); if(!d){p=p.filter(x=>x!==id);continue}
+      if(!(await fbPut('t_'+id,d,Date.now())))break; p=p.filter(x=>x!==id); lsSet('_imgPending',p)}
+  }finally{imgFlushing=false}
+}
+let TK=null;
+function pickTicket(){const i=document.getElementById('tkFile'); if(i){i.value='';i.click()}}
+async function onTicketFile(input){
+  const f=input.files&&input.files[0]; if(!f)return;
+  toast('Préparation de la photo…');
+  try{const c=await compressImage(f); TK={id:uidGen(),cat:'',amount:'',note:'',w:c.w,h:c.h,_data:c.data,_new:true}; drawTicketSheet()}
+  catch(e){toast('Photo illisible : essaie une autre image')}
+}
+function openTicket(id){const t=S.week.days[S.day].tickets.find(x=>x.id===id); if(!t)return; TK={...t,_new:false}; drawTicketSheet(); getImg(id).then(d=>{const im=document.getElementById('tkPrev');if(im&&d)im.src=d})}
+function drawTicketSheet(){
+  document.getElementById('sheetHost').innerHTML='<div class="scrim" onclick="if(event.target===this)closeTicket()"><div class="sheet" role="dialog" aria-modal="true" aria-label="Ticket"><div class="grab"></div>'+
+  '<h2>'+(TK._new?'Nouveau ticket':'Ticket')+'</h2><div class="stack">'+
+  '<img id="tkPrev" alt="Photo du ticket" src="'+(TK._data||'')+'" style="width:100%;max-height:46vh;object-fit:contain;border-radius:12px;background:var(--bg)">'+
+  '<div><p class="label">Poste</p><div class="chips" role="group">'+FRAIS.map(([k,l])=>'<button type="button" aria-pressed="'+(TK.cat===k)+'" onclick="TK.cat=\''+k+'\';drawTicketSheet()">'+l+'</button>').join('')+'</div></div>'+
+  '<div class="two"><label class="f"><span>Montant CHF</span><input type="number" inputmode="decimal" id="tkAmt" value="'+esc(TK.amount)+'" oninput="TK.amount=this.value" placeholder="0.00"></label>'+
+  '<label class="f"><span>Note (facultatif)</span><input type="text" id="tkNote" value="'+esc(TK.note)+'" oninput="TK.note=this.value" placeholder="Restaurant, station…"></label></div>'+
+  (TK._new?'<p class="hint" style="margin:0">Le montant s\'ajoute automatiquement aux frais du jour.</p>':'')+
+  '<div class="row" style="justify-content:space-between"><div class="row">'+(TK._new?'':'<button class="btn danger" id="tkDel" onclick="delTicket()">'+(TK._del?'Confirmer la suppression':'Supprimer')+'</button>')+'</div>'+
+  '<div class="row"><button class="btn" onclick="closeTicket()">'+(TK._new?'Annuler':'Fermer')+'</button><button class="btn pri" id="tkSave" onclick="saveTicket()">Enregistrer</button></div></div></div></div></div>';
+}
+function closeTicket(){TK=null;closeSheet()}
+async function saveTicket(){
+  if(!TK.cat){toast('Choisis le poste du ticket');return}
+  const d=S.week.days[S.day]; if(!d.tickets)d.tickets=[];
+  const amt=num(TK.amount); const old=d.tickets.find(x=>x.id===TK.id);
+  if(old&&old.cat) d.frais[old.cat]=String(Math.max(0,Math.round((num(d.frais[old.cat])-num(old.amount))*100)/100)||'');
+  d.frais[TK.cat]=String(Math.round((num(d.frais[TK.cat])+amt)*100)/100||'');
+  const rec={id:TK.id,cat:TK.cat,amount:TK.amount,note:TK.note,w:TK.w,h:TK.h};
+  if(old)Object.assign(old,rec);else d.tickets.push(rec);
+  if(TK._data) await putImg(TK.id,TK._data);
+  saveWeek(); closeTicket(); render(); toast('Ticket enregistré');
+}
+function delTicket(){
+  if(!TK._del){TK._del=true;drawTicketSheet();return}
+  const d=S.week.days[S.day]; const old=d.tickets.find(x=>x.id===TK.id);
+  if(old&&old.cat) d.frais[old.cat]=String(Math.max(0,Math.round((num(d.frais[old.cat])-num(old.amount))*100)/100)||'');
+  d.tickets=d.tickets.filter(x=>x.id!==TK.id); IDB.del(TK.id);
+  saveWeek(); closeTicket(); render(); toast('Ticket supprimé');
+}
+function ticketsHtml(d){
+  const t=d.tickets||[];
+  let h='<div class="tkgrid">'+t.map(x=>'<button class="tk" id="tkb_'+x.id+'" onclick="openTicket(\''+x.id+'\')"><img id="tki_'+x.id+'" alt=""><span><b>'+esc((FRAIS.find(f=>f[0]===x.cat)||['',''])[1])+'</b>'+(num(x.amount)?' · '+esc(chf(num(x.amount))):'')+'</span></button>').join('')+
+    '<button class="tk add2" id="tkAdd" onclick="pickTicket()"><span>+ Ticket</span><small>photo</small></button></div>'+
+    '<input type="file" id="tkFile" accept="image/*" hidden onchange="onTicketFile(this)">';
+  setTimeout(()=>t.forEach(x=>getImg(x.id).then(src=>{const im=document.getElementById('tki_'+x.id);if(im&&src)im.src=src})),0);
+  return h;
+}
+const FRL=k=>(FRAIS.find(f=>f[0]===k)||['',k])[1];
+async function preloadImgs(list){const m={};for(const x of list){for(const t of (x.day.tickets||[])){const d=await getImg(t.id);if(d)m[t.id]=d}}return m}
+function drawTickets(C,d,date,IM){
+  const t=(d.tickets||[]).filter(x=>IM[x.id]); if(!t.length) return;
+  const {doc,M,W}=C; const dt=fmtLong(date).replace(',',''); const sub=dt.charAt(0).toUpperCase()+dt.slice(1);
+  const boxW=(W-2*M-10)/2, boxH=150, top=36;
+  t.forEach((x,i)=>{
+    if(i%2===0){doc.addPage();C.head('Justificatifs',sub)}
+    const bx=M+(i%2)*(boxW+10);
+    const r=Math.min(boxW/(x.w||1),(boxH)/(x.h||1)); const w=(x.w||1)*r, h=(x.h||1)*r;
+    try{doc.addImage(IM[x.id],'JPEG',bx+(boxW-w)/2,top,w,h)}catch(e){}
+    doc.setDrawColor(...C.LINE);doc.rect(bx,top,boxW,boxH);
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...C.INK);
+    doc.text(pdfTxt(FRL(x.cat)+(num(x.amount)?'  -  '+chfP(num(x.amount)):'')),bx,top+boxH+7);
+    if(x.note){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...C.MUT);doc.text(pdfTxt(x.note),bx,top+boxH+12)}
+  });
+}
+function drawDayFull(C,d,date,IM){drawDay(C,d,date);drawTickets(C,d,date,IM||{})}
 
 /* ---------- PDF ---------- */
 function pdfTxt(s){return String(s??'').replace(/[–—]/g,'-').replace(/[’‘]/g,"'").replace(/[·•]/g,'-').replace(/[^\x00-\xFF]/g,'')}
@@ -786,12 +895,13 @@ async function makePdf(mode,el){
   try{
     const C=pdfCtx(); const doc=C.doc; let fname;
     const week=S.week.days.map((day,i)=>({date:dateOf(i),weekStart:S.start,day}));
-    if(mode==='day'){drawDay(C,S.week.days[S.day],dateOf(S.day));fname='_'+iso(dateOf(S.day))}
-    else if(mode==='week'){week.forEach((x,i)=>{if(i)doc.addPage();drawDay(C,x.day,x.date)});doc.addPage();drawWeekRecap(C,week);fname='_semaine_'+S.start}
+    if(mode==='day'){const IM=await preloadImgs([{day:S.week.days[S.day]}]);drawDayFull(C,S.week.days[S.day],dateOf(S.day),IM);fname='_'+iso(dateOf(S.day))}
+    else if(mode==='week'){const IM=await preloadImgs(week);week.forEach((x,i)=>{if(i)doc.addPage();drawDayFull(C,x.day,x.date,IM)});doc.addPage();drawWeekRecap(C,week);fname='_semaine_'+S.start}
     else{
       const list=(monthCache&&monthCache.ym===S.ym)?monthCache.list:await loadMonth(S.ym);
       drawMonthSummary(C,S.ym,list);
-      list.filter(x=>hasData(x.day)).forEach(x=>{doc.addPage();drawDay(C,x.day,x.date)});
+      const worked=list.filter(x=>hasData(x.day)); const IM=await preloadImgs(worked);
+      worked.forEach(x=>{doc.addPage();drawDayFull(C,x.day,x.date,IM)});
       fname='_mois_'+S.ym;
     }
     const pages=doc.getNumberOfPages();
@@ -816,7 +926,8 @@ async function saveDays(scope,el){
     if(!list.length){toast('Aucun jour rempli à enregistrer');return}
     const zip=new JSZip(); const folder=scope==='week'?'Rapports semaine '+S.start:'Rapports '+ymLabel(S.ym);
     const dir=zip.folder(folder);
-    list.forEach(x=>{const C=pdfCtx();drawDay(C,x.day,x.date);pageNums(C);
+    const IM=await preloadImgs(list);
+    list.forEach(x=>{const C=pdfCtx();drawDayFull(C,x.day,x.date,IM);pageNums(C);
       dir.file(iso(x.date)+' '+DAYN[(x.date.getDay()+6)%7]+'.pdf',C.doc.output('arraybuffer'))});
     const blob=await zip.generateAsync({type:'blob'});
     const ok=await offerFile(folder.replace(/\s+/g,'_')+'.zip',blob);
