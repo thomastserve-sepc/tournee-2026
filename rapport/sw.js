@@ -1,5 +1,5 @@
 // Rapport Express — cache hors connexion. Change VERSION à chaque mise à jour des fichiers.
-const VERSION='rapport-v1';
+const VERSION='rapport-v2';
 const FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png',
   './lib/jspdf.umd.min.js','./lib/jspdf.plugin.autotable.min.js','./lib/jszip.min.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});

@@ -192,20 +192,114 @@ function blankWeek(){return {start:S.start,days:[0,1,2,3,4].map(blankDay)}}
 function toast(msg){const h=document.getElementById('toastHost');h.innerHTML='<div class="toast" role="status">'+esc(msg)+'</div>';clearTimeout(toast.t);toast.t=setTimeout(()=>h.innerHTML='',2200)}
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
 
-/* ---------- storage: claude db (synced) or localStorage ---------- */
+/* ---------- storage: claude db, or Firebase (version autonome), + localStorage ---------- */
 const LS='rapportExpress:';
+const FB={key:'AIzaSyD8m1YVvIs4aXx0KUrixCRd-wnbuW5QFNQ',url:'https://firestore.googleapis.com/v1/projects/crm-2026-salons/databases/(default)/documents',col:'rapport'};
+const FB_ON=!(window.claude&&window.claude.use);
+let syncState={ok:null,at:null,pending:0};
+function lsGet(k){try{const r=localStorage.getItem(LS+k);return r?JSON.parse(r):null}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v));return true}catch(e){return false}}
+const stamp=k=>Number(lsGet('_meta:'+k)||0);
+const pend=()=>lsGet('_pending')||{};
+async function fbGet(k){
+  const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),6000);
+  try{const r=await fetch(FB.url+'/'+FB.col+'/'+k+'?key='+FB.key,{signal:ctl.signal});
+    if(r.status===404) return {missing:true};
+    if(!r.ok) return null;
+    const d=await r.json(); const f=d.fields||{};
+    return {v:JSON.parse(f.data.stringValue),u:Number((f.updated&&(f.updated.integerValue||f.updated.doubleValue))||0)};
+  }catch(e){return null}finally{clearTimeout(t)}
+}
+async function fbPut(k,v,u){
+  try{const r=await fetch(FB.url+'/'+FB.col+'/'+k+'?key='+FB.key,{method:'PATCH',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({fields:{data:{stringValue:JSON.stringify(v)},updated:{integerValue:String(u)}}})});return r.ok}catch(e){return false}
+}
 async function load(key){
   if(store){try{const s=await store.doc(key).get();return s.exists?s.data().v:null}catch(e){}}
-  try{const r=localStorage.getItem(LS+key);return r?JSON.parse(r):null}catch(e){return null}
+  const local=lsGet(key);
+  if(FB_ON&&!pend()[key]){
+    const r=await fbGet(key);
+    if(r&&!r.missing){syncState.ok=true;syncState.at=new Date();
+      if(r.u>stamp(key)){lsSet(key,r.v);lsSet('_meta:'+key,r.u);return r.v}}
+    else if(r&&r.missing){syncState.ok=true}
+    else syncState.ok=false;
+  }
+  return local;
 }
 const timers={};
 function save(key,val){
   clearTimeout(timers[key]);
   timers[key]=setTimeout(async()=>{
     const v=JSON.parse(JSON.stringify(val));
-    try{localStorage.setItem(LS+key,JSON.stringify(v))}catch(e){}
+    lsSet(key,v);
     if(store){try{await store.doc(key).set({v,at:Date.now()})}catch(e){if(e&&e.code==='quota_exceeded')toast('Stockage plein')}}
+    if(FB_ON){const u=Date.now();lsSet('_meta:'+key,u);const p=pend();p[key]=u;lsSet('_pending',p);flush()}
   },500);
+}
+let flushing=false;
+async function flush(){
+  if(!FB_ON||flushing) return; flushing=true;
+  try{
+    const p=pend();
+    for(const [k,u] of Object.entries(p)){
+      const ok=await fbPut(k,lsGet(k),u);
+      if(!ok){syncState.ok=false;break}
+      const q=pend(); if(q[k]===u){delete q[k];lsSet('_pending',q)}
+      syncState.ok=true; syncState.at=new Date();
+    }
+  }finally{flushing=false; syncState.pending=Object.keys(pend()).length; showSync()}
+}
+function syncLabel(){
+  if(store) return 'Synchronisé sur ton compte Claude.';
+  if(!FB_ON) return 'Enregistré sur cet appareil.';
+  const n=Object.keys(pend()).length;
+  if(syncState.ok===false) return 'Hors connexion : '+(n?n+' modification'+(n>1?'s':'')+' en attente, envoi automatique au retour du réseau.':'données de cet appareil.');
+  if(n) return 'Synchronisation en cours…';
+  if(syncState.at) return 'Synchronisé entre tes appareils · '+syncState.at.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'});
+  return 'Synchronisation…';
+}
+function showSync(){const el=document.getElementById('syncHint');if(el)el.textContent=syncLabel()}
+async function pullNow(){
+  if(!FB_ON) return;
+  await flush();
+  const a=document.activeElement; if(V||(a&&/INPUT|TEXTAREA/.test(a.tagName))) {showSync();return}
+  const wk=wkKey(); const before=JSON.stringify([S.week,S.clients,S.settings]);
+  const [w,c,st]=await Promise.all([load(wk),load('clients'),load('settings')]);
+  if(wk!==wkKey()) return;
+  if(w) S.week=w; if(c) S.clients=c; if(st) Object.assign(S.settings,st);
+  if(JSON.stringify([S.week,S.clients,S.settings])!==before&&!V) render(); else showSync();
+}
+function migrateLocal(){
+  try{const p=pend();let n=0;
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k.startsWith(LS))continue;const key=k.slice(LS.length);
+      if(key.startsWith('_')||!(key==='clients'||key==='settings'||/^w\d{4}-\d\d-\d\d$/.test(key)))continue;
+      if(!stamp(key)&&!p[key]){const u=Date.now()-1000;lsSet('_meta:'+key,u);p[key]=u;n++}}
+    if(n)lsSet('_pending',p);
+  }catch(e){}
+}
+function startSync(){
+  if(!FB_ON) return;
+  migrateLocal();
+  pullNow();
+  setInterval(pullNow,30000);
+  window.addEventListener('online',pullNow);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)pullNow()});
+}
+async function importCrm(el){
+  const lbl=el.textContent; el.disabled=true; el.textContent='Import…';
+  try{
+    const r=await fetch(FB.url+'/meta/all_clients?key='+FB.key); if(!r.ok) throw new Error('CRM inaccessible ('+r.status+')');
+    const d=await r.json(); const raw=d.fields&&d.fields.data&&d.fields.data.stringValue; const list=raw?JSON.parse(raw):[];
+    let added=0,upd=0;
+    list.forEach(x=>{const name=String(x.salon||x.nom||'').trim(); if(!name) return;
+      const city=String(x.ville||'').trim();
+      let c=S.clients.find(k=>(x.id&&k.crmId===String(x.id)))||S.clients.find(k=>norm(k.name)===norm(name)&&norm(k.city)===norm(city));
+      if(!c){c={id:uidGen(),name};S.clients.push(c);added++}else upd++;
+      Object.assign(c,{crmId:x.id!=null?String(x.id):c.crmId,name,city:city||c.city||'',phone:x.tel1||c.phone||'',sector:x.sek||c.sector||'',num:x.kdnr||c.num||''});
+    });
+    saveClients(); render(); toast(added+' clients ajoutés · '+upd+' mis à jour depuis le CRM');
+  }catch(e){toast('Import CRM impossible : '+(e.message||e))}
+  finally{el.disabled=false;el.textContent=lbl}
 }
 const wkKey=()=>'w'+S.start;
 function saveWeek(){save(wkKey(),S.week)}
@@ -214,12 +308,14 @@ function saveClients(){save('clients',S.clients)}
 /* ---------- boot ---------- */
 async function boot(){
   render();
-  S.week=(await load(wkKey()))||blankWeek();
-  S.clients=(await load('clients'))||[];
-  const st=await load('settings'); if(st) Object.assign(S.settings,st);
+  const get=FB_ON?(k=>Promise.resolve(lsGet(k))):load;
+  S.week=(await get(wkKey()))||blankWeek();
+  S.clients=(await get('clients'))||[];
+  const st=await get('settings'); if(st) Object.assign(S.settings,st);
   const t=new Date(); const wd=(t.getDay()+6)%7; if(S.start===mondayOf(t)&&wd<5) S.day=wd;
   render();
   connect();
+  startSync();
 }
 async function connect(){
   if(!window.claude||!window.claude.use) return;
@@ -295,7 +391,7 @@ function render(){
   h+='<section class="block"><p class="label">Mon rapport</p><div class="card two">'+
      '<label class="f"><span>Nom</span><input type="text" id="setName" value="'+esc(S.settings.name)+'" oninput="setSet(\'name\',this.value)"></label>'+
      '<label class="f"><span>Société</span><input type="text" id="setCo" value="'+esc(S.settings.company)+'" oninput="setSet(\'company\',this.value)"></label>'+
-     '</div><p class="hint" style="margin-top:8px">'+(store?'Synchronisé sur ton compte Claude.':'Enregistré sur cet appareil. Fais une sauvegarde de temps en temps (onglet Clients › Exporter).')+'</p></section>';
+     '</div><p class="hint" id="syncHint" style="margin-top:8px">'+esc(syncLabel())+'</p></section>';
   main.innerHTML=h;
 }
 function pickDay(i){S.day=i;render();window.scrollTo({top:0})}
@@ -392,6 +488,7 @@ function renderClients(){
   let h='<h1 class="day">Mes clients</h1><p class="sum"><b>'+S.clients.length+'</b> salon'+(S.clients.length>1?'s':'')+' · complétés automatiquement à chaque visite</p>';
   h+='<input type="search" id="cliQ" placeholder="Chercher un salon, une ville, une marque…" value="'+esc(cliQ)+'" oninput="cliQ=this.value;document.getElementById(\'cliList\').innerHTML=clientRows()">';
   h+='<div class="list" id="cliList" style="margin-top:10px">'+clientRows()+'</div>';
+  if(FB_ON) h+='<section class="block"><p class="label">Depuis mon CRM</p><div class="card stack"><p class="hint" style="margin:0">Reprend tous les salons de ton CRM (nom, ville, téléphone, secteur). Les marques, employés et fermeture déjà saisis sont conservés.</p><div class="row"><button class="btn pri" id="crmBtn" onclick="importCrm(this)">Importer mes clients du CRM</button></div></div></section>';
   h+='<section class="block"><p class="label">Importer depuis Excel</p><div class="card stack">'+
      '<p class="hint" style="margin:0">Copie tes lignes dans Excel (avec la ligne d\'en-tête : Localité, Nom Client, Téléphone, Marques, Nb employés, Fermeture, Potentiel…) et colle-les ici.</p>'+
      '<textarea id="impTxt" placeholder="Colle ici…"></textarea><div class="row"><button class="btn pri" id="impBtn" onclick="importPaste()">Importer</button></div></div></section>';
