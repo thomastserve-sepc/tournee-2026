@@ -21,7 +21,7 @@
   --bg:#F5F4F6; --surface:#FFFFFF; --ink:#18151B; --muted:#76707C; --line:#E6E2E8;
   --accent:#6D2E46; --accent-soft:#F3E4EA; --accent-ink:#FFFFFF;
   --cl:#2F7A57; --cl-soft:#E1F1E8; --p:#2F5D8A; --p-soft:#E2ECF6; --ncl:#9A5B12; --ncl-soft:#F7EBD9;
-  --shadow:0 1px 2px rgba(24,21,27,.06),0 8px 24px rgba(24,21,27,.06);
+  --shadow:0 1px 2px rgba(24,21,27,.06),0 8px 24px rgba(24,21,27,.06); --danger:#C62E3A;
   --display:"Avenir Next","Avenir","Futura","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
   --body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
   --r:16px;
@@ -30,12 +30,12 @@
   --bg:#141216; --surface:#1E1B21; --ink:#F3F0F5; --muted:#A39CA9; --line:#2F2A33;
   --accent:#E59AB6; --accent-soft:#3A2430; --accent-ink:#1A0F14;
   --cl:#7FD3A6; --cl-soft:#1F3328; --p:#93BCE8; --p-soft:#1E2B39; --ncl:#E9B877; --ncl-soft:#3A2D1C;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); --danger:#E0505C; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#141216; --surface:#1E1B21; --ink:#F3F0F5; --muted:#A39CA9; --line:#2F2A33;
   --accent:#E59AB6; --accent-soft:#3A2430; --accent-ink:#1A0F14;
   --cl:#7FD3A6; --cl-soft:#1F3328; --p:#93BCE8; --p-soft:#1E2B39; --ncl:#E9B877; --ncl-soft:#3A2D1C;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); --danger:#E0505C; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{background:var(--bg)}
@@ -141,6 +141,19 @@ textarea{min-height:76px;resize:vertical}
 .tk span{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tk.add2{border-style:dashed;border-color:color-mix(in srgb,var(--accent) 45%,var(--line));color:var(--accent);align-items:center;justify-content:center;min-height:120px;font-weight:800}
 .tk.add2 small{color:var(--muted);font-weight:600}
+.cropwrap{display:flex;justify-content:center;background:var(--bg);border-radius:12px;padding:8px}
+.crop{position:relative;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.crop img{width:100%;height:100%;display:block;pointer-events:none}
+.crop .sel{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(10,8,12,.55);cursor:move;touch-action:none}
+.crop .sel i{position:absolute;width:30px;height:30px;border-radius:50%;background:var(--accent);border:3px solid #fff;touch-action:none}
+.crop .sel i[data-h=nw]{left:-16px;top:-16px;cursor:nwse-resize}.crop .sel i[data-h=ne]{right:-16px;top:-16px;cursor:nesw-resize}
+.crop .sel i[data-h=sw]{left:-16px;bottom:-16px;cursor:nesw-resize}.crop .sel i[data-h=se]{right:-16px;bottom:-16px;cursor:nwse-resize}
+.absgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:520px){.absgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.absd{display:flex;flex-direction:column;gap:4px;min-width:0}
+.absd b{font-size:12px;text-align:center}
+.absb{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 2px;font-size:11px;font-weight:700;min-height:34px}
+.absb[aria-pressed="true"]{background:var(--danger);border-color:var(--danger);color:#fff}
 .example{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ncl);background:var(--ncl-soft);padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
 </style>
 
@@ -177,7 +190,12 @@ textarea{min-height:76px;resize:vertical}
 "use strict";
 const DAYN=['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
 const FRAIS=[['dej','Déjeuner'],['din','Dîner'],['hot','Hôtel'],['park','Parking'],['lav','Lavage'],['ess','Essence'],['aut','Autres']];
-const NEXT=['Relance tél.','Envoyer offre','Démo / formation','Échantillons','Revisite < 4 sem.','Revisite normale'];
+const NEXT=['Re-passer 5 sem.','Patron ABS','Visiter tous les 3 mois','Revisite < 4 sem.','Revisite normale'];
+const ABS_D=[['lu','Lun'],['ma','Mar'],['me','Mer'],['je','Jeu'],['ve','Ven'],['sa','Sam']];
+function absGrid(){const a=V.abs||[];return ABS_D.map(([k,l])=>'<div class="absd"><b>'+l+'</b>'+[['m','Matin'],['a','Après-midi']].map(([p,pl])=>{const c=k+'-'+p;
+  return '<button type="button" class="absb" data-c="'+c+'" aria-pressed="'+a.includes(c)+'" onclick="toggleAbs(\''+c+'\')">'+pl+'</button>'}).join('')+'</div>').join('')}
+function toggleAbs(c){V.abs=V.abs||[];V.abs=V.abs.includes(c)?V.abs.filter(x=>x!==c):V.abs.concat(c);const g=document.getElementById('absGrid');if(g)g.innerHTML=absGrid()}
+function absText(a){if(!a||!a.length)return '';return ABS_D.map(([k,l])=>{const m=a.includes(k+'-m'),p=a.includes(k+'-a');return m&&p?l:m?l+' matin':p?l+' ap.-midi':''}).filter(Boolean).join(', ')}
 const POT=[['A','A · Fort'],['B','B · Moyen'],['C','C · Faible']];
 const DAYS_CLOSED=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Aucun'];
 let S={view:'rep',start:mondayOf(new Date()),day:0,week:null,clients:[],ym:'',settings:{name:'Thomas Serve',company:'DICOPAR SA',sector:'102 / 112'}};
@@ -353,7 +371,7 @@ function showSync(){const el=document.getElementById('syncHint');if(el)el.textCo
 async function pullNow(){
   if(!FB_ON) return;
   await flush(); flushImgs();
-  const a=document.activeElement; if(V||TK||(a&&/INPUT|TEXTAREA/.test(a.tagName))) {showSync();return}
+  const a=document.activeElement; if(V||TK||CROP||(a&&/INPUT|TEXTAREA/.test(a.tagName))) {showSync();return}
   const wk=wkKey(); const before=JSON.stringify([S.week,S.clients,S.settings]);
   const [w,c,st]=await Promise.all([load(wk),load('clients'),load('settings')]);
   if(wk!==wkKey()) return;
@@ -498,7 +516,7 @@ function openVisit(id){
   const d=S.week.days[S.day];
   const ex=id?d.visits.find(v=>v.id===id):null;
   const now=new Date();
-  V=ex?JSON.parse(JSON.stringify(ex)):{id:uidGen(),time:'',city:'',name:'',type:'',cmd:'',amount:'',promo:'',pot:'',next:'',obs:'',brands:'',staff:'',closed:'',clientId:''};
+  V=ex?JSON.parse(JSON.stringify(ex)):{id:uidGen(),time:'',city:'',name:'',type:'',cmd:'',amount:'',promo:'',pot:'',next:'',obs:'',brands:'',staff:'',closed:'',clientId:'',abs:[]};
   V._new=!ex; V._del=false;
   drawSheet();
   if(!ex) setTimeout(()=>{const n=document.getElementById('vName');n&&n.focus()},60);
@@ -523,7 +541,8 @@ function drawSheet(){
   '<div class="three"><label class="f"><span>Marques</span><input type="text" id="vBr" value="'+esc(V.brands)+'" oninput="V.brands=this.value" placeholder="Wella, Olaplex…"></label>'+
   '<label class="f"><span>Employés</span><input type="number" inputmode="numeric" id="vStaff" value="'+esc(V.staff)+'" oninput="V.staff=this.value"></label>'+
   '<label class="f"><span>Fermeture</span><input type="text" id="vClosed" list="closedL" value="'+esc(V.closed)+'" oninput="V.closed=this.value"></label></div>'+
-  '<div><p class="label" style="margin-bottom:6px">Potentiel</p>'+chipRow('pot',POT)+'</div></div>'+
+  '<div><p class="label" style="margin-bottom:6px">Potentiel</p>'+chipRow('pot',POT)+'</div>'+
+  '<div><p class="label" style="margin-bottom:6px">Patron absent <span style="text-transform:none;letter-spacing:0;font-weight:600">· touche les demi-journées où il n\'est pas là</span></p><div class="absgrid" id="absGrid">'+absGrid()+'</div></div></div>'+
   '<div><p class="label">Suite à donner</p>'+chipRow('next',NEXT)+'</div>'+
   '<label class="f"><span>Observations</span><textarea id="vObs" oninput="V.obs=this.value">'+esc(V.obs)+'</textarea></label>'+
   '<div class="row" style="justify-content:space-between"><div class="row">'+(V._new?'':'<button class="btn danger" id="vDel" onclick="delVisit()">'+(V._del?'Confirmer la suppression':'Supprimer')+'</button>')+'</div>'+
@@ -542,7 +561,7 @@ function typeName(q){
 }
 function useClient(id){
   const c=S.clients.find(x=>x.id===id); if(!c)return;
-  Object.assign(V,{clientId:c.id,name:c.name,city:c.city||V.city,brands:c.brands||'',staff:c.staff||'',closed:c.closed||'',pot:c.pot||V.pot});
+  Object.assign(V,{clientId:c.id,name:c.name,city:c.city||V.city,brands:c.brands||'',staff:c.staff||'',closed:c.closed||'',pot:c.pot||V.pot,abs:(c.abs||[]).slice()});
   if(!V.type) V.type='CL';
   drawSheet();
 }
@@ -552,7 +571,7 @@ function saveVisit(){
   // client fiche upsert
   let c=S.clients.find(x=>x.id===V.clientId)||S.clients.find(x=>norm(x.name)===norm(V.name)&&norm(x.city)===norm(V.city));
   if(!c){c={id:uidGen(),name:V.name.trim(),city:V.city.trim()};S.clients.push(c)}
-  Object.assign(c,{city:V.city||c.city,brands:V.brands,staff:V.staff,closed:V.closed,pot:V.pot,last:iso(dateOf(S.day))});
+  Object.assign(c,{city:V.city||c.city,brands:V.brands,staff:V.staff,closed:V.closed,pot:V.pot,abs:(V.abs||[]).slice(),last:iso(dateOf(S.day))});
   clean.clientId=c.id;
   const i=d.visits.findIndex(x=>x.id===V.id); if(i>=0)d.visits[i]=clean; else d.visits.push(clean);
   saveWeek(); saveClients(); closeSheet(); render(); toast('Visite enregistrée'); scheduleCrm();
@@ -594,7 +613,7 @@ function clientRows(){
   const n=norm(cliQ);
   const list=S.clients.filter(c=>!n||norm(c.name+' '+c.city+' '+(c.brands||'')).includes(n)).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   if(!list.length) return '<div class="empty"><b>'+(S.clients.length?'Aucun résultat':'Pas encore de clients')+'</b>'+(S.clients.length?'':'Ils s\'ajoutent tout seuls quand tu enregistres une visite, ou importe ta liste Excel plus bas.')+'</div>';
-  return list.slice(0,200).map(c=>'<div class="client"><span style="min-width:0"><b>'+esc(c.name)+'</b><div class="meta">'+esc([c.city,c.brands,c.staff?c.staff+' empl.':'',c.closed?'fermé '+c.closed:''].filter(Boolean).join(' · '))+'</div></span>'+
+  return list.slice(0,200).map(c=>'<div class="client"><span style="min-width:0"><b>'+esc(c.name)+'</b><div class="meta">'+esc([c.city,c.brands,c.staff?c.staff+' empl.':'',c.closed?'fermé '+c.closed:'',absText(c.abs)?'patron absent : '+absText(c.abs):''].filter(Boolean).join(' · '))+'</div></span>'+
     (c.pot?'<span class="chip '+(c.pot==='A'?'CL':c.pot==='B'?'P':'NCL')+'">'+esc(c.pot)+'</span>':'<span></span>')+'</div>').join('')+(list.length>200?'<p class="hint">+ '+(list.length-200)+' autres : affine la recherche.</p>':'');
 }
 function importPaste(){
@@ -615,10 +634,20 @@ function importPaste(){
   });
   saveClients(); render(); toast(added+' ajoutés · '+upd+' mis à jour');
 }
+const IS_DESKTOP=!/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)&&!(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+async function pickerSave(blob,filename,type){
+  const ext=filename.split('.').pop();
+  const h=await window.showSaveFilePicker({id:'rapport-'+ext,suggestedName:filename,types:[{description:ext.toUpperCase(),accept:{[type]:['.'+ext]}}]});
+  const w=await h.createWritable(); await w.write(blob); await w.close(); return true;
+}
 async function offerFile(filename,data){
   if(downloads){try{await downloads.save({filename,data});return true}catch(e){if(e&&e.code==='declined')return false}}
   const blob=data instanceof Blob?data:new Blob([data]);
   const type=/\.pdf$/.test(filename)?'application/pdf':/\.zip$/.test(filename)?'application/zip':/\.json$/.test(filename)?'application/json':'application/octet-stream';
+  if(IS_DESKTOP&&window.showSaveFilePicker){
+    try{return await pickerSave(blob,filename,type)}
+    catch(e){if(e&&e.name==='AbortError')return false; return saveSheet(blob,filename,type)}
+  }
   let file=null; try{file=new File([blob],filename,{type})}catch(e){}
   if(file&&navigator.canShare&&navigator.share){
     let can=false; try{can=navigator.canShare({files:[file]})}catch(e){}
@@ -643,6 +672,15 @@ function shareSheet(file,blob,filename){
       '<button class="btn pri" id="shareNow" onclick="pendingGo()">Envoyer / Enregistrer</button></div></div></div>';
   });
 }
+function saveSheet(blob,filename,type){
+  return new Promise(res=>{
+    pendingShare={blob,filename,type,res,picker:true};
+    document.getElementById('sheetHost').innerHTML='<div class="scrim"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div><h2>Ton fichier est prêt</h2>'+
+      '<p class="hint" style="margin:0 0 14px">'+esc(filename)+'</p><div class="row" style="justify-content:flex-end">'+
+      '<button class="btn" onclick="pendingDone(false)">Annuler</button><button class="btn pri" id="saveNow" onclick="pendingPick()">Choisir où l\'enregistrer…</button></div></div></div>';
+  });
+}
+function pendingPick(){const p=pendingShare;if(!p)return;pickerSave(p.blob,p.filename,p.type).then(()=>pendingDone(true),e=>{if(e&&e.name==='AbortError')pendingDone(false);else{plainDownload(p.blob,p.filename);pendingDone(true)}})}
 function pendingDone(ok){const p=pendingShare;pendingShare=null;closeSheet();if(p)p.res(ok)}
 function pendingGo(){const p=pendingShare;if(!p)return;navigator.share({files:[p.file],title:p.filename}).then(()=>pendingDone(true),e=>{if(e&&e.name==='AbortError')pendingDone(false);else{plainDownload(p.blob,p.filename);pendingDone(true)}})}
 function pendingDl(){const p=pendingShare;if(!p)return;plainDownload(p.blob,p.filename);pendingDone(true)}
@@ -717,25 +755,31 @@ const IDB=(()=>{let dbp=null;
   return {get:k=>tx('readonly',s=>s.get(k)),set:(k,v)=>tx('readwrite',s=>s.put(v,k)),del:k=>tx('readwrite',s=>s.delete(k))};
 })();
 const memImg={};
-function compressImage(file){return new Promise((res,rej)=>{
-  const url=URL.createObjectURL(file); const im=new Image();
-  im.onload=()=>{try{let max=1500,q=0.72,out=null,w,h;
-    for(let i=0;i<8;i++){const sc=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight));w=Math.round(im.naturalWidth*sc);h=Math.round(im.naturalHeight*sc);
-      const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.drawImage(im,0,0,w,h);
-      out=cv.toDataURL('image/jpeg',q); if(out.length<230000)break; if(q>0.5)q-=0.1;else max=Math.round(max*0.82)}
-    URL.revokeObjectURL(url);res({data:out,w,h})}catch(e){rej(e)}};
-  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('image illisible'))}; im.src=url;})}
-async function putImg(id,data){
-  memImg[id]=data; await IDB.set(id,data);
-  if(store){try{await store.doc('t_'+id).set({v:data})}catch(e){}}
-  if(FB_ON){const p=lsGet('_imgPending')||[];if(!p.includes(id)){p.push(id);lsSet('_imgPending',p)}flushImgs()}
+const imgKey=t=>t.img||t.id;
+function loadImgEl(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('image illisible'));im.src=src})}
+function encodeRegion(im,sx,sy,sw,sh,rot){
+  let max=1500,q=0.72,out=null,w,h;
+  for(let i=0;i<8;i++){
+    const sc=Math.min(1,max/Math.max(sw,sh)); const cw=Math.round(sw*sc), ch=Math.round(sh*sc);
+    const turn=rot%180!==0; w=turn?ch:cw; h=turn?cw:ch;
+    const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');
+    cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.translate(w/2,h/2);cx.rotate(rot*Math.PI/180);
+    cx.drawImage(im,sx,sy,sw,sh,-cw/2,-ch/2,cw,ch);
+    out=cv.toDataURL('image/jpeg',q); if(out.length<230000)break; if(q>0.5)q-=0.1;else max=Math.round(max*0.82);
+  }
+  return {data:out,w,h};
 }
-async function getImg(id){
-  if(memImg[id]) return memImg[id];
-  let d=await IDB.get(id);
-  if(!d&&store){try{const s=await store.doc('t_'+id).get();if(s.exists)d=s.data().v}catch(e){}}
-  if(!d&&FB_ON){const r=await fbGet('t_'+id);if(r&&!r.missing)d=r.v}
-  if(d){memImg[id]=d;IDB.set(id,d)}
+async function putImg(key,data){
+  memImg[key]=data; await IDB.set(key,data);
+  if(store){try{await store.doc('t_'+key).set({v:data})}catch(e){}}
+  if(FB_ON){const p=lsGet('_imgPending')||[];if(!p.includes(key)){p.push(key);lsSet('_imgPending',p)}flushImgs()}
+}
+async function getImg(key){
+  if(memImg[key]) return memImg[key];
+  let d=await IDB.get(key);
+  if(!d&&store){try{const s=await store.doc('t_'+key).get();if(s.exists)d=s.data().v}catch(e){}}
+  if(!d&&FB_ON){const r=await fbGet('t_'+key);if(r&&!r.missing)d=r.v}
+  if(d){memImg[key]=d;IDB.set(key,d)}
   return d||null;
 }
 let imgFlushing=false;
@@ -746,19 +790,24 @@ async function flushImgs(){
       if(!(await fbPut('t_'+id,d,Date.now())))break; p=p.filter(x=>x!==id); lsSet('_imgPending',p)}
   }finally{imgFlushing=false}
 }
-let TK=null;
+let TK=null, CROP=null;
 function pickTicket(){const i=document.getElementById('tkFile'); if(i){i.value='';i.click()}}
 async function onTicketFile(input){
   const f=input.files&&input.files[0]; if(!f)return;
-  toast('Préparation de la photo…');
-  try{const c=await compressImage(f); TK={id:uidGen(),cat:'',amount:'',note:'',w:c.w,h:c.h,_data:c.data,_new:true}; drawTicketSheet()}
-  catch(e){toast('Photo illisible : essaie une autre image')}
+  const url=URL.createObjectURL(f);
+  TK={id:uidGen(),cat:'',amount:'',note:'',_new:true};
+  startCrop(url,true);
 }
-function openTicket(id){const t=S.week.days[S.day].tickets.find(x=>x.id===id); if(!t)return; TK={...t,_new:false}; drawTicketSheet(); getImg(id).then(d=>{const im=document.getElementById('tkPrev');if(im&&d)im.src=d})}
+async function openTicket(id){
+  const t=(S.week.days[S.day].tickets||[]).find(x=>x.id===id); if(!t)return;
+  TK={...t,_new:false}; drawTicketSheet();
+  const d=await getImg(imgKey(t)); TK._data=TK._data||d; const im=document.getElementById('tkPrev'); if(im&&d)im.src=d;
+}
 function drawTicketSheet(){
   document.getElementById('sheetHost').innerHTML='<div class="scrim" onclick="if(event.target===this)closeTicket()"><div class="sheet" role="dialog" aria-modal="true" aria-label="Ticket"><div class="grab"></div>'+
   '<h2>'+(TK._new?'Nouveau ticket':'Ticket')+'</h2><div class="stack">'+
-  '<img id="tkPrev" alt="Photo du ticket" src="'+(TK._data||'')+'" style="width:100%;max-height:46vh;object-fit:contain;border-radius:12px;background:var(--bg)">'+
+  '<img id="tkPrev" alt="Photo du ticket" src="'+(TK._data||'')+'" style="width:100%;max-height:42vh;object-fit:contain;border-radius:12px;background:var(--bg)">'+
+  '<div class="row"><button class="btn" id="tkCrop" onclick="recrop()">Recadrer / pivoter</button></div>'+
   '<div><p class="label">Poste</p><div class="chips" role="group">'+FRAIS.map(([k,l])=>'<button type="button" aria-pressed="'+(TK.cat===k)+'" onclick="TK.cat=\''+k+'\';drawTicketSheet()">'+l+'</button>').join('')+'</div></div>'+
   '<div class="two"><label class="f"><span>Montant CHF</span><input type="number" inputmode="decimal" id="tkAmt" value="'+esc(TK.amount)+'" oninput="TK.amount=this.value" placeholder="0.00"></label>'+
   '<label class="f"><span>Note (facultatif)</span><input type="text" id="tkNote" value="'+esc(TK.note)+'" oninput="TK.note=this.value" placeholder="Restaurant, station…"></label></div>'+
@@ -766,23 +815,80 @@ function drawTicketSheet(){
   '<div class="row" style="justify-content:space-between"><div class="row">'+(TK._new?'':'<button class="btn danger" id="tkDel" onclick="delTicket()">'+(TK._del?'Confirmer la suppression':'Supprimer')+'</button>')+'</div>'+
   '<div class="row"><button class="btn" onclick="closeTicket()">'+(TK._new?'Annuler':'Fermer')+'</button><button class="btn pri" id="tkSave" onclick="saveTicket()">Enregistrer</button></div></div></div></div></div>';
 }
-function closeTicket(){TK=null;closeSheet()}
+function recrop(){if(!TK._data){toast('Photo en cours de chargement…');return} startCrop(TK._data,false)}
+/* recadrage : cadre à 4 coins, rotation par quart de tour */
+async function startCrop(src,isNew){
+  let im; try{im=await loadImgEl(src)}catch(e){toast('Photo illisible : essaie une autre image');if(isNew)TK=null;return}
+  CROP={src,im,isNew,rot:0,r:{x:.06,y:.06,w:.88,h:.88}};
+  drawCrop();
+}
+function cropDims(){const turn=CROP.rot%180!==0;return {W:turn?CROP.im.naturalHeight:CROP.im.naturalWidth,H:turn?CROP.im.naturalWidth:CROP.im.naturalHeight}}
+function drawCrop(){
+  const {W,H}=cropDims();
+  // aperçu pivoté
+  const sc=Math.min(1,1400/Math.max(W,H)); const cv=document.createElement('canvas'); cv.width=Math.round(W*sc); cv.height=Math.round(H*sc);
+  const cx=cv.getContext('2d'); cx.translate(cv.width/2,cv.height/2); cx.rotate(CROP.rot*Math.PI/180);
+  const iw=CROP.im.naturalWidth*sc, ih=CROP.im.naturalHeight*sc; cx.drawImage(CROP.im,-iw/2,-ih/2,iw,ih);
+  const prev=cv.toDataURL('image/jpeg',0.8);
+  document.getElementById('sheetHost').innerHTML='<div class="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-label="Recadrer"><div class="grab"></div>'+
+   '<h2>Sélectionne le ticket</h2><p class="hint" style="margin:-8px 0 12px">Tire les coins pour entourer seulement le ticket.</p>'+
+   '<div class="cropwrap" id="cropWrap"><div class="crop" id="cropBox"><img src="'+prev+'" alt="" draggable="false">'+
+   '<div class="sel" id="cropSel" data-h="move"><i data-h="nw"></i><i data-h="ne"></i><i data-h="sw"></i><i data-h="se"></i></div></div></div>'+
+   '<div class="row" style="justify-content:space-between;margin-top:14px"><div class="row"><button class="btn" id="cropRot" onclick="rotCrop()">↻ Pivoter</button><button class="btn" id="cropAll" onclick="CROP.r={x:0,y:0,w:1,h:1};placeSel()">Toute la photo</button></div>'+
+   '<div class="row"><button class="btn" onclick="cancelCrop()">Annuler</button><button class="btn pri" id="cropOk" onclick="applyCrop()">Valider</button></div></div></div></div>';
+  const wrap=document.getElementById('cropWrap'), box=document.getElementById('cropBox');
+  const aw=Math.max(200,wrap.clientWidth-16), ah=Math.max(220,window.innerHeight*0.56); const k=Math.min(aw/W,ah/H);
+  box.style.width=Math.round(W*k)+'px'; box.style.height=Math.round(H*k)+'px';
+  placeSel(); bindCrop();
+}
+function placeSel(){const s=document.getElementById('cropSel');if(!s)return;const r=CROP.r;s.style.left=r.x*100+'%';s.style.top=r.y*100+'%';s.style.width=r.w*100+'%';s.style.height=r.h*100+'%'}
+function rotCrop(){CROP.rot=(CROP.rot+90)%360;CROP.r={x:.06,y:.06,w:.88,h:.88};drawCrop()}
+function bindCrop(){
+  const box=document.getElementById('cropBox'); let drag=null;
+  box.addEventListener('pointerdown',e=>{const h=e.target.dataset&&e.target.dataset.h; if(!h)return; e.preventDefault();
+    drag={h,sx:e.clientX,sy:e.clientY,r:{...CROP.r},b:box.getBoundingClientRect()}; try{box.setPointerCapture(e.pointerId)}catch(_){}});
+  box.addEventListener('pointermove',e=>{if(!drag)return; e.preventDefault();
+    const dx=(e.clientX-drag.sx)/drag.b.width, dy=(e.clientY-drag.sy)/drag.b.height; const o=drag.r, m=.05; let {x,y,w,h}=o;
+    if(drag.h==='move'){x=Math.min(Math.max(0,o.x+dx),1-o.w);y=Math.min(Math.max(0,o.y+dy),1-o.h)}
+    else{ if(drag.h.includes('w')){x=Math.min(Math.max(0,o.x+dx),o.x+o.w-m);w=o.x+o.w-x}
+      if(drag.h.includes('e')){w=Math.min(Math.max(m,o.w+dx),1-o.x)}
+      if(drag.h.includes('n')){y=Math.min(Math.max(0,o.y+dy),o.y+o.h-m);h=o.y+o.h-y}
+      if(drag.h.includes('s')){h=Math.min(Math.max(m,o.h+dy),1-o.y)} }
+    CROP.r={x,y,w,h}; placeSel()});
+  const end=()=>{drag=null}; box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+}
+function cancelCrop(){const n=CROP&&CROP.isNew; if(CROP&&CROP.isNew&&CROP.src.startsWith('blob:'))URL.revokeObjectURL(CROP.src); CROP=null; if(n){TK=null;closeSheet()} else drawTicketSheet()}
+function applyCrop(){
+  const im=CROP.im, iw=im.naturalWidth, ih=im.naturalHeight, r=CROP.r, rot=CROP.rot;
+  // convertit le cadre (repère pivoté) en zone de l'image d'origine
+  let sx,sy,sw,sh;
+  if(rot===0){sx=r.x*iw;sy=r.y*ih;sw=r.w*iw;sh=r.h*ih}
+  else if(rot===90){sx=r.y*iw;sy=(1-r.x-r.w)*ih;sw=r.h*iw;sh=r.w*ih}
+  else if(rot===180){sx=(1-r.x-r.w)*iw;sy=(1-r.y-r.h)*ih;sw=r.w*iw;sh=r.h*ih}
+  else {sx=(1-r.y-r.h)*iw;sy=r.x*ih;sw=r.h*iw;sh=r.w*ih}
+  const out=encodeRegion(im,Math.round(sx),Math.round(sy),Math.max(1,Math.round(sw)),Math.max(1,Math.round(sh)),rot);
+  if(CROP.isNew&&CROP.src.startsWith('blob:'))URL.revokeObjectURL(CROP.src);
+  TK._data=out.data; TK.w=out.w; TK.h=out.h; TK._imgChanged=true; CROP=null; drawTicketSheet();
+}
+function closeTicket(){TK=null;CROP=null;closeSheet()}
 async function saveTicket(){
   if(!TK.cat){toast('Choisis le poste du ticket');return}
   const d=S.week.days[S.day]; if(!d.tickets)d.tickets=[];
   const amt=num(TK.amount); const old=d.tickets.find(x=>x.id===TK.id);
   if(old&&old.cat) d.frais[old.cat]=String(Math.max(0,Math.round((num(d.frais[old.cat])-num(old.amount))*100)/100)||'');
   d.frais[TK.cat]=String(Math.round((num(d.frais[TK.cat])+amt)*100)/100||'');
-  const rec={id:TK.id,cat:TK.cat,amount:TK.amount,note:TK.note,w:TK.w,h:TK.h};
+  let key=old?imgKey(old):TK.id;
+  if(TK._imgChanged&&old){const prevKey=key;key=uidGen();IDB.del(prevKey)}
+  const rec={id:TK.id,img:key,cat:TK.cat,amount:TK.amount,note:TK.note,w:TK.w,h:TK.h};
   if(old)Object.assign(old,rec);else d.tickets.push(rec);
-  if(TK._data) await putImg(TK.id,TK._data);
+  if(TK._imgChanged&&TK._data) await putImg(key,TK._data);
   saveWeek(); closeTicket(); render(); toast('Ticket enregistré');
 }
 function delTicket(){
   if(!TK._del){TK._del=true;drawTicketSheet();return}
   const d=S.week.days[S.day]; const old=d.tickets.find(x=>x.id===TK.id);
   if(old&&old.cat) d.frais[old.cat]=String(Math.max(0,Math.round((num(d.frais[old.cat])-num(old.amount))*100)/100)||'');
-  d.tickets=d.tickets.filter(x=>x.id!==TK.id); IDB.del(TK.id);
+  if(old)IDB.del(imgKey(old)); d.tickets=d.tickets.filter(x=>x.id!==TK.id);
   saveWeek(); closeTicket(); render(); toast('Ticket supprimé');
 }
 function ticketsHtml(d){
@@ -790,20 +896,20 @@ function ticketsHtml(d){
   let h='<div class="tkgrid">'+t.map(x=>'<button class="tk" id="tkb_'+x.id+'" onclick="openTicket(\''+x.id+'\')"><img id="tki_'+x.id+'" alt=""><span><b>'+esc((FRAIS.find(f=>f[0]===x.cat)||['',''])[1])+'</b>'+(num(x.amount)?' · '+esc(chf(num(x.amount))):'')+'</span></button>').join('')+
     '<button class="tk add2" id="tkAdd" onclick="pickTicket()"><span>+ Ticket</span><small>photo</small></button></div>'+
     '<input type="file" id="tkFile" accept="image/*" hidden onchange="onTicketFile(this)">';
-  setTimeout(()=>t.forEach(x=>getImg(x.id).then(src=>{const im=document.getElementById('tki_'+x.id);if(im&&src)im.src=src})),0);
+  setTimeout(()=>t.forEach(x=>getImg(imgKey(x)).then(src=>{const im=document.getElementById('tki_'+x.id);if(im&&src)im.src=src})),0);
   return h;
 }
 const FRL=k=>(FRAIS.find(f=>f[0]===k)||['',k])[1];
-async function preloadImgs(list){const m={};for(const x of list){for(const t of (x.day.tickets||[])){const d=await getImg(t.id);if(d)m[t.id]=d}}return m}
+async function preloadImgs(list){const m={};for(const x of list){for(const t of (x.day.tickets||[])){const d=await getImg(imgKey(t));if(d)m[imgKey(t)]=d}}return m}
 function drawTickets(C,d,date,IM){
-  const t=(d.tickets||[]).filter(x=>IM[x.id]); if(!t.length) return;
+  const t=(d.tickets||[]).filter(x=>IM[imgKey(x)]); if(!t.length) return;
   const {doc,M,W}=C; const dt=fmtLong(date).replace(',',''); const sub=dt.charAt(0).toUpperCase()+dt.slice(1);
   const boxW=(W-2*M-10)/2, boxH=150, top=36;
   t.forEach((x,i)=>{
     if(i%2===0){doc.addPage();C.head('Justificatifs',sub)}
     const bx=M+(i%2)*(boxW+10);
     const r=Math.min(boxW/(x.w||1),(boxH)/(x.h||1)); const w=(x.w||1)*r, h=(x.h||1)*r;
-    try{doc.addImage(IM[x.id],'JPEG',bx+(boxW-w)/2,top,w,h)}catch(e){}
+    try{doc.addImage(IM[imgKey(x)],'JPEG',bx+(boxW-w)/2,top+(boxH-h)/2,w,h)}catch(e){}
     doc.setDrawColor(...C.LINE);doc.rect(bx,top,boxW,boxH);
     doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...C.INK);
     doc.text(pdfTxt(FRL(x.cat)+(num(x.amount)?'  -  '+chfP(num(x.amount)):'')),bx,top+boxH+7);
@@ -811,6 +917,8 @@ function drawTickets(C,d,date,IM){
   });
 }
 function drawDayFull(C,d,date,IM){drawDay(C,d,date);drawTickets(C,d,date,IM||{})}
+function dayFileName(date){const s=date.toLocaleDateString('fr-CH',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(',','');
+  return s.split(' ').map(w=>w&&/^\D/.test(w)?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ')}
 
 /* ---------- PDF ---------- */
 function pdfTxt(s){return String(s??'').replace(/[–—]/g,'-').replace(/[’‘]/g,"'").replace(/[·•]/g,'-').replace(/[^\x00-\xFF]/g,'')}
@@ -906,7 +1014,7 @@ async function makePdf(mode,el){
     }
     const pages=doc.getNumberOfPages();
     for(let p=1;p<=pages;p++){doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...C.MUT);doc.text(p+' / '+pages,C.W-C.M,203,{align:'right'})}
-    const ok=await offerFile('Rapport_'+C.name.replace(/\s+/g,'_')+fname+'.pdf',doc.output('blob'));
+    const ok=await offerFile(mode==='day'?dayFileName(dateOf(S.day))+'.pdf':'Rapport_'+C.name.replace(/\s+/g,'_')+fname+'.pdf',doc.output('blob'));
     let copied=clipP?await clipP:false;
     if(!copied&&mode!=='day'){try{await navigator.clipboard.writeText(await mailText(mode));copied=true}catch(e){}}
     if(ok) toast(copied?'PDF prêt · texte du mail copié, colle-le dans ton mail':'PDF prêt');
@@ -917,6 +1025,10 @@ function pageNums(C){const pages=C.doc.getNumberOfPages();for(let p=1;p<=pages;p
 async function saveDays(scope,el){
   if(!window.jspdf){toast('Module PDF non chargé : vérifie la connexion');return}
   if(!window.JSZip){toast('Module de regroupement non chargé : vérifie la connexion');return}
+  let dirHandle=null;
+  if(!downloads&&IS_DESKTOP&&window.showDirectoryPicker){
+    try{dirHandle=await window.showDirectoryPicker({id:'rapport-jours',mode:'readwrite'})}catch(e){if(e&&e.name==='AbortError')return; dirHandle=null}
+  }
   const lbl=el.textContent; el.disabled=true; el.textContent='Création…';
   try{
     let list;
@@ -924,11 +1036,16 @@ async function saveDays(scope,el){
     else {if(S.view!=='mon'&&S.week)S.ym=ymOf(dateOf(S.day)); list=(monthCache&&monthCache.ym===S.ym)?monthCache.list:await loadMonth(S.ym)}
     list=list.filter(x=>hasData(x.day));
     if(!list.length){toast('Aucun jour rempli à enregistrer');return}
+    const IM=await preloadImgs(list);
+    if(dirHandle){
+      for(const x of list){const C=pdfCtx();drawDayFull(C,x.day,x.date,IM);pageNums(C);
+        const fh=await dirHandle.getFileHandle(dayFileName(x.date)+'.pdf',{create:true});const w=await fh.createWritable();await w.write(C.doc.output('blob'));await w.close()}
+      toast(list.length+' rapports enregistrés dans « '+dirHandle.name+' »');return;
+    }
     const zip=new JSZip(); const folder=scope==='week'?'Rapports semaine '+S.start:'Rapports '+ymLabel(S.ym);
     const dir=zip.folder(folder);
-    const IM=await preloadImgs(list);
     list.forEach(x=>{const C=pdfCtx();drawDayFull(C,x.day,x.date,IM);pageNums(C);
-      dir.file(iso(x.date)+' '+DAYN[(x.date.getDay()+6)%7]+'.pdf',C.doc.output('arraybuffer'))});
+      dir.file(dayFileName(x.date)+'.pdf',C.doc.output('arraybuffer'))});
     const blob=await zip.generateAsync({type:'blob'});
     const ok=await offerFile(folder.replace(/\s+/g,'_')+'.zip',blob);
     if(ok) toast(list.length+' rapports enregistrés, un par jour');
