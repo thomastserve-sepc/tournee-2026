@@ -304,7 +304,7 @@ async function pushCrm(){
     const sent=(await load('crmSent'))||{};
     const today=iso(new Date()); const todo=[];
     localWeeks().forEach(({start,week})=>week.days.forEach((d,i)=>{const date=addDaysIso(start,i); if(date>today) return;
-      d.visits.forEach(v=>{if(v.example||!String(v.name||'').trim())return;
+      d.visits.forEach(v=>{if(v.example||v.imported||!String(v.name||'').trim())return;
         const sig=JSON.stringify([v.name,v.city,v.amount,v.obs,v.next,v.promo,v.type,v.cmd,v.brands,date]);
         const s=sent[v.id]; if(!s||s.del||s.sig!==sig) todo.push({v,date,prev:(s&&!s.del)?s:null,sig})})}));
     const dels=Object.entries(sent).filter(([,s])=>s&&s.del);
@@ -601,6 +601,7 @@ function renderClients(){
   h+='<input type="search" id="cliQ" placeholder="Chercher un salon, une ville, une marque…" value="'+esc(cliQ)+'" oninput="cliQ=this.value;document.getElementById(\'cliList\').innerHTML=clientRows()">';
   h+='<div class="list" id="cliList" style="margin-top:10px">'+clientRows()+'</div>';
   if(FB_ON) h+='<section class="block"><p class="label">Depuis mon CRM</p><div class="card stack"><p class="hint" style="margin:0">Reprend tous les salons de ton CRM (nom, ville, téléphone, secteur). Les marques, employés et fermeture déjà saisis sont conservés.</p><div class="row"><button class="btn pri" id="crmBtn" onclick="importCrm(this)">Importer mes clients du CRM</button></div></div></section>';
+  h+='<section class="block"><p class="label">Anciens rapports</p><div class="card stack"><p class="hint" style="margin:0">Ajoute d\'anciennes journées à partir du fichier préparé par Claude. Rien n\'est effacé.</p><div class="row"><button class="btn pri" id="oldBtn" onclick="pickOldReports()">Importer des anciens rapports…</button></div><input type="file" id="oldFile" accept=".json,application/json" hidden onchange="onOldFile(this)"></div></section>';
   h+='<section class="block"><p class="label">Importer depuis Excel</p><div class="card stack">'+
      '<p class="hint" style="margin:0">Copie tes lignes dans Excel (avec la ligne d\'en-tête : Localité, Nom Client, Téléphone, Marques, Nb employés, Fermeture, Potentiel…) et colle-les ici.</p>'+
      '<textarea id="impTxt" placeholder="Colle ici…"></textarea><div class="row"><button class="btn pri" id="impBtn" onclick="importPaste()">Importer</button></div></div></section>';
@@ -931,6 +932,54 @@ function drawTickets(C,d,date,IM){
 function drawDayFull(C,d,date,IM){drawDay(C,d,date);drawTickets(C,d,date,IM||{})}
 function dayFileName(date){const s=date.toLocaleDateString('fr-CH',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(',','');
   return s.split(' ').map(w=>w&&/^\D/.test(w)?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ')}
+
+/* ---------- import d'anciens rapports (ajout sans effacer) ---------- */
+let IMP=null;
+function pickOldReports(){const i=document.getElementById('oldFile');if(i){i.value='';i.click()}}
+function onOldFile(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result); if(o.format!=='rapport-express-import'||!Array.isArray(o.days)) throw 0;
+      IMP=o; const n=o.days.reduce((a,d)=>a+d.visits.length,0); const ds=o.days.map(d=>d.date).sort();
+      document.getElementById('sheetHost').innerHTML='<div class="scrim"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div><h2>Ajouter les anciens rapports</h2>'+
+        '<p style="margin:0 0 10px"><b>'+o.days.length+'</b> jours · <b>'+n+'</b> visites · du '+esc(frDate(ds[0]))+' au '+esc(frDate(ds[ds.length-1]))+'</p>'+
+        '<p class="hint" style="margin:0 0 14px">Rien n\'est effacé : les visites s\'ajoutent à celles déjà saisies. Les km et les frais ne sont repris que si la journée n\'en a pas encore. Si tu importes deux fois le même fichier, rien n\'est doublé.</p>'+
+        '<div class="row" style="justify-content:flex-end"><button class="btn" onclick="IMP=null;closeSheet()">Annuler</button><button class="btn pri" id="impOk" onclick="mergeOld(this)">Ajouter</button></div></div></div>';
+    }catch(e){toast('Fichier non reconnu')}};
+  r.readAsText(f);
+}
+async function mergeOld(el){
+  if(!IMP) return; el.disabled=true; el.textContent='Ajout…';
+  let addV=0, skipV=0, days=0, newC=0;
+  const byWeek={};
+  IMP.days.forEach(d=>{const [y,m,dd]=d.date.split('-').map(Number);const dt=new Date(y,m-1,dd);const wk=mondayOf(dt);const idx=(dt.getDay()+6)%7; if(idx>4) return;(byWeek[wk]=byWeek[wk]||[]).push({...d,idx})});
+  for(const [wk,list] of Object.entries(byWeek)){
+    const key='w'+wk;
+    let w=(S.week&&S.week.start===wk)?S.week:(await load(key));
+    if(!w) w={start:wk,days:[0,1,2,3,4].map(blankDay)};
+    for(const d of list){
+      const day=w.days[d.idx]; if(!day.visits) day.visits=[]; if(!day.frais) day.frais={};
+      if(!num(day.km)&&d.km) day.km=String(d.km);
+      Object.entries(d.frais||{}).forEach(([k,v])=>{if(!num(day.frais[k])&&v) day.frais[k]=String(v)});
+      if(d.comment&&!day.comment) day.comment=d.comment;
+      d.visits.forEach((v,n)=>{
+        const id='old_'+d.date+'_'+n;
+        if(day.visits.some(x=>x.id===id)){skipV++;return}
+        let c=S.clients.find(x=>norm(x.name)===norm(v.name)&&norm(x.city)===norm(v.city))||S.clients.find(x=>norm(x.name)===norm(v.name));
+        if(c&&(!c.last||d.date>c.last)) c.last=d.date; if(c) newC++;
+        c=c||{};
+        day.visits.push({id,time:'',city:v.city||c.city||'',name:v.name,type:v.type||'',cmd:v.cmd||'',amount:v.amount?String(v.amount):'',promo:v.promo||'',pot:c.pot||'',next:'',obs:v.obs||'',
+          brands:c.brands||'',staff:c.staff||'',closed:c.closed||'',clientId:c.id||'',abs:(c.abs||[]).slice(),imported:true});
+        addV++;
+      });
+      days++;
+    }
+    if(S.week&&S.week.start===wk) S.week=w;
+    save(key,w);
+  }
+  saveClients(); IMP=null; closeSheet(); monthCache=null; render();
+  toast(addV+' visites ajoutées sur '+days+' jours'+(skipV?' · '+skipV+' déjà présentes':'')+(newC?' · '+newC+' reliées à tes fiches clients':''));
+}
 
 /* ---------- PDF ---------- */
 function pdfTxt(s){return String(s??'').replace(/[–—]/g,'-').replace(/[’‘]/g,"'").replace(/[·•]/g,'-').replace(/[^\x00-\xFF]/g,'')}
