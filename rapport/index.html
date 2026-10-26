@@ -704,14 +704,28 @@ function hasData(d){return d&&(d.visits.length||(d.tickets&&d.tickets.length)||n
 async function loadMonth(ym){
   const [y,m]=ym.split('-').map(Number); const last=new Date(y,m,0);
   const mon=new Date(y,m-1,1); mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
-  const out=[];
+  const out=[]; out.weekends=[];
   while(mon<=last){
     const key=iso(mon); const w=(S.week&&S.week.start===key)?S.week:await load('w'+key);
+    const sat=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+5);
+    if(sat.getMonth()===m-1) out.weekends.push({start:key,sat,km:w?num(w.weKm):0});
     for(let i=0;i<5;i++){const dt=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
       if(dt.getMonth()===m-1) out.push({date:dt,weekStart:key,day:w?w.days[i]:blankDay()})}
     mon.setDate(mon.getDate()+7);
   }
   return out;
+}
+function weKmOf(list){return (list.weekends||[]).reduce((a,x)=>a+x.km,0)}
+function weLabel(sat){const sun=new Date(sat.getFullYear(),sat.getMonth(),sat.getDate()+1);return 'Week-end du '+fmtShort(sat)+' au '+fmtShort(sun)}
+async function setWeKm(start,v){
+  let w=(S.week&&S.week.start===start)?S.week:await load('w'+start);
+  if(!w) w={start,days:[0,1,2,3,4].map(blankDay)};
+  w.weKm=v; save('w'+start,w); if(S.week&&S.week.start===start) S.week=w;
+  if(monthCache){const e=(monthCache.list.weekends||[]).find(x=>x.start===start);if(e)e.km=num(v);
+    const t=agg(monthCache.list),we=weKmOf(monthCache.list);
+    const a=document.getElementById('weTot');if(a)a.textContent=we+' km';
+    const b=document.getElementById('kmAll');if(b)b.textContent=(t.km+we)+' km';
+    const c=document.getElementById('kmWe');if(c)c.textContent=we+' km'}
 }
 function agg(list){
   const t={n:0,cmd:0,amt:0,fr:0,km:0,cl:0,p:0,ncl:0,days:0,frk:{},newc:[]};
@@ -737,8 +751,14 @@ async function renderMonth(){
   h+='<section class="block"><p class="label">Dépenses du mois</p><div class="tblw"><table class="tbl"><tbody>'+
     FRAIS.map(([k,l])=>'<tr><td>'+l+'</td><td class="r">'+chf(t.frk[k]||0)+'</td></tr>').join('')+
     '</tbody><tfoot><tr><td>Total dépenses</td><td class="r">'+chf(t.fr)+'</td></tr></tfoot></table></div></section>';
+  const we=weKmOf(list);
+  h+='<section class="block"><p class="label">Km du week-end</p><div class="tblw"><table class="tbl"><tbody>'+
+    (list.weekends||[]).map(x=>'<tr><td>'+esc(weLabel(x.sat))+'</td><td class="r" style="width:150px"><input type="number" inputmode="decimal" id="we_'+x.start+'" value="'+(x.km||'')+'" placeholder="0" oninput="setWeKm(\''+x.start+'\',this.value)" style="text-align:right;min-height:38px;padding:6px 10px"></td></tr>').join('')+
+    '</tbody><tfoot><tr><td>Total week-end</td><td class="r" id="weTot">'+we+' km</td></tr></tfoot></table></div></section>';
   h+='<section class="block"><p class="label">Indicateurs</p><div class="tblw"><table class="tbl"><tbody>'+
-    '<tr><td>Kilomètres parcourus</td><td class="r">'+t.km+' km</td></tr>'+
+    '<tr><td>Kilomètres en semaine</td><td class="r">'+t.km+' km</td></tr>'+
+    '<tr><td>Kilomètres du week-end</td><td class="r" id="kmWe">'+we+' km</td></tr>'+
+    '<tr><td><b>Kilomètres total</b></td><td class="r"><b id="kmAll">'+(t.km+we)+' km</b></td></tr>'+
     '<tr><td>Taux de commande</td><td class="r">'+(t.n?Math.round(t.cmd/t.n*100)+' %':'–')+'</td></tr>'+
     '<tr><td>Montant moyen par commande</td><td class="r">'+(t.cmd?chf(t.amt/t.cmd):'–')+'</td></tr>'+
     '<tr><td>Visites par jour travaillé</td><td class="r">'+(t.days?(t.n/t.days).toFixed(1):'–')+'</td></tr>'+
@@ -1023,13 +1043,14 @@ function drawDay(C,d,date){
   doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...C.INK);
   doc.text(doc.splitTextToSize(pdfTxt(d.comment||'-'),W-M-(M+120)),M+120,y+7);
 }
-function kpis(t){return [['Jours travaillés',String(t.days)],['Taux de commande',t.n?Math.round(t.cmd/t.n*100)+' %':'-'],['Panier moyen',t.cmd?chfP(t.amt/t.cmd):'-'],['Nouveaux clients',String(t.ncl)],['Prospects vus',String(t.p)],['Km',t.km+' km']]}
+function kpis(t,we){const k=[['Jours travaillés',String(t.days)],['Taux de commande',t.n?Math.round(t.cmd/t.n*100)+' %':'-'],['Panier moyen',t.cmd?chfP(t.amt/t.cmd):'-'],['Nouveaux clients',String(t.ncl)],['Prospects vus',String(t.p)],['Km semaine',t.km+' km']];
+  if(we!=null){k.push(['Km week-end',we+' km'],['Km total',(t.km+we)+' km'])} return k}
 function drawWeekRecap(C,list){
   const {doc}=C; const t=agg(list);
   C.head('Récapitulatif de la semaine','Semaine du '+fmtLong(list[0].date).replace(',',''));
   const rows=list.map(x=>{const s=dayStats(x.day);return [DAYN[(x.date.getDay()+6)%7],fmtShort(x.date),s.n,s.cl,s.p,s.ncl,s.cmd,chfP(s.amt),s.km?s.km+' km':'',chfP(s.fr)].map(v=>pdfTxt(String(v)))});
   recapTable(C,36,['Jour','Date'],rows,['Total semaine',''],t);
-  C.facts(doc.lastAutoTable.finalY+12,kpis(t));
+  C.facts(doc.lastAutoTable.finalY+12,kpis(t,num(S.week&&S.week.weKm)));
 }
 function recapTable(C,y,lead,rows,footLead,t,pad){
   C.doc.autoTable({...C.ts,startY:y,head:[lead.concat(['Visites','CL','P','NCL','Commandes','Montant','Km','Frais'])],body:rows,
@@ -1043,7 +1064,7 @@ function drawMonthSummary(C,ym,list){
   C.head('Synthèse du mois',ymLabel(ym));
   const rows=weeks.map(w=>{const a=agg(w.items);return [fmtShort(w.items[0].date)+' - '+fmtShort(w.items[w.items.length-1].date),a.days,a.n,a.cl,a.p,a.ncl,a.cmd,chfP(a.amt),a.km?a.km+' km':'',chfP(a.fr)].map(v=>pdfTxt(String(v)))});
   recapTable(C,36,['Semaine','Jours'],rows,['Total du mois',String(t.days)],t,2.4);
-  let y=doc.lastAutoTable.finalY+12; C.facts(y,kpis(t)); y+=16;
+  let y=doc.lastAutoTable.finalY+12; C.facts(y,kpis(t,weKmOf(list))); y+=16;
   C.label('DÉPENSES DU MOIS',M,y);
   doc.autoTable({...C.ts,startY:y+2,head:[FRAIS.map(f=>pdfTxt(f[1])).concat('Total dépenses')],
     body:[FRAIS.map(([k])=>chfP(t.frk[k]||0)||'-').concat(chfP(t.fr)||'-')],styles:{...C.ts.styles,fontSize:9,halign:'right'},headStyles:{...C.ts.headStyles,halign:'right'},
@@ -1118,7 +1139,7 @@ async function mailText(mode){
   if(mode==='month'){
     const list=(monthCache&&monthCache.ym===S.ym)?monthCache.list:await loadMonth(S.ym); const t=agg(list); const L=ymLabel(S.ym).toLowerCase(); const dL=(/^[aeiouo]/.test(L)?"d'":'de ')+L;
     txt='Objet : Rapports du mois '+dL+'\n\nBonjour,\n\nVous trouverez ci-joint mes rapports du mois '+dL+' ainsi que la synthèse du mois.\n\n'+
-      'En résumé : '+t.days+' jours travaillés, '+t.n+' visites, '+t.cmd+' commandes, '+chf(t.amt)+', '+t.ncl+' nouveaux clients, '+t.km+' km et '+chf(t.fr)+' de frais.\n\nMeilleures salutations\n'+S.settings.name;
+      'En résumé : '+t.days+' jours travaillés, '+t.n+' visites, '+t.cmd+' commandes, '+chf(t.amt)+', '+t.ncl+' nouveaux clients, '+t.km+' km en semaine'+(weKmOf(list)?' + '+weKmOf(list)+' km le week-end':'')+' et '+chf(t.fr)+' de frais.\n\nMeilleures salutations\n'+S.settings.name;
   }else{
     const t=agg(S.week.days.map((day,i)=>({date:dateOf(i),weekStart:S.start,day})));
     txt='Objet : Rapports de la semaine du '+fmtShort(dateOf(0))+' au '+fmtShort(dateOf(4))+'\n\nBonjour,\n\nVous trouverez ci-joint mes rapports de la semaine du '+fmtShort(dateOf(0))+' au '+fmtShort(dateOf(4))+'.\n\n'+
