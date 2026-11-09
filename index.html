@@ -214,6 +214,19 @@ select.fi{background-image:linear-gradient(45deg,transparent 50%,#7A7382 50%),li
  .day-wrap{padding:4px 10px 30px}.tv-add{grid-template-columns:repeat(2,1fr);margin-left:0}
 }
 
+
+.tv-rgt{display:flex;gap:8px;align-items:flex-start;flex-shrink:0}
+.tv-ph{width:58px;height:58px;border-radius:12px;background:#EEEBF0 center/cover no-repeat;border:1px solid var(--t-line);cursor:pointer}
+.tv-phbox{display:flex;flex-direction:column;gap:8px}
+.tv-phbig{width:100%;height:210px;border-radius:16px;background:#EEEBF0 center/cover no-repeat;cursor:pointer;border:1px solid #E8E3EA}
+.tv-phadd{border:1.5px dashed #DCD3DF;background:#fff;border-radius:14px;padding:12px;color:#6D2E46;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer}
+.tv-pv{position:fixed;inset:0;background:rgba(20,16,24,.92);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:14px}
+.tv-pv-h{color:#fff;text-align:center}.tv-pv-h b{display:block;font-size:18px}.tv-pv-h span{font-size:13px;opacity:.7}
+.tv-pv img{max-width:100%;max-height:70vh;border-radius:14px;object-fit:contain}
+.tv-pv-b{display:flex;gap:10px}
+.tv-pv-b button{border:none;border-radius:12px;padding:12px 16px;font-weight:800;font-size:14px;background:rgba(255,255,255,.14);color:#fff;font-family:inherit;cursor:pointer}
+.tv-pv-b button.ok{background:#fff;color:#6D2E46}
+@media (max-width:700px){.tv-ph{width:46px;height:46px}}
 /* ═══ Design 2 sur tous les onglets ═══ */
 html,body{background:#F4F2F5}
 .card{border:1px solid #E8E3EA;border-radius:16px;box-shadow:0 1px 2px rgba(27,23,32,.04)}
@@ -825,6 +838,65 @@ function quickSet(id,d,st){
 function undoSet(id,d){var v=vis[id];if(!v||v.visitDate!==d)return;v.status='none';logVisit(id);persist();render()}
 function workDaysLeft(){var t=new Date();t.setHours(12);var m=t.getMonth(),n=0;for(var x=new Date(t);x.getMonth()===m;x.setDate(x.getDate()+1)){var g=x.getDay();if(g>=1&&g<=5)n++}return n||1}
 
+// ══ PHOTOS DES SALONS (IndexedDB + Firebase, collection rapport/ph_<n°>) ══
+var PH_FB='https://firestore.googleapis.com/v1/projects/crm-2026-salons/databases/(default)/documents/rapport/',PH_KEY='AIzaSyD8m1YVvIs4aXx0KUrixCRd-wnbuW5QFNQ';
+var phMem={},phIdx=null,phQ=ld('tv3_phq')||[];
+function phDB(){return new Promise(function(ok,ko){try{var r=indexedDB.open('tournee-photos',1);r.onupgradeneeded=function(){r.result.createObjectStore('p')};r.onsuccess=function(){ok(r.result)};r.onerror=function(){ko(r.error)}}catch(e){ko(e)}})}
+function phIDB(mode,fn){return phDB().then(function(db){return new Promise(function(ok,ko){var t=db.transaction('p',mode),st=t.objectStore('p'),rq=fn(st);t.oncomplete=function(){ok(rq&&rq.result)};t.onerror=function(){ko(t.error)}})})}
+function phGet(kd){return phIDB('readonly',function(st){return st.get(kd)}).catch(function(){return null})}
+function phPut(kd,d){return phIDB('readwrite',function(st){return st.put(d,kd)}).catch(function(){})}
+function phDel(kd){return phIDB('readwrite',function(st){return st.delete(kd)}).catch(function(){})}
+function phDoc(name){return fetch(PH_FB+name+'?key='+PH_KEY,{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){return j&&j.fields&&j.fields.data?j.fields.data.stringValue:null}).catch(function(){return null})}
+function phSave(name,str){return fetch(PH_FB+name+'?key='+PH_KEY,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{data:{stringValue:str},updated:{integerValue:String(Date.now())}}})}).then(function(r){return r.ok})}
+function phLoadIdx(){if(!navigator.onLine)return Promise.resolve();return phDoc('ph_index').then(function(t){var a=[];try{a=t?JSON.parse(t):[]}catch(e){}phIdx={};a.forEach(function(k){phIdx[k]=1});Object.keys(phMem).forEach(function(k){if(phMem[k]===false&&phIdx[k]){delete phMem[k];phEnsure(k)}})})}
+function phIdxSet(kd,on){return phDoc('ph_index').then(function(t){var a=[];try{a=t?JSON.parse(t):[]}catch(e){}a=a.filter(function(k){return k!==kd});if(on)a.push(kd);phIdx={};a.forEach(function(k){phIdx[k]=1});return phSave('ph_index',JSON.stringify(a))})}
+function phPaint(kd){var d=phMem[kd];document.querySelectorAll('[data-ph="'+kd+'"]').forEach(function(e){if(d){e.style.backgroundImage='url('+d+')';e.classList.add('has');e.style.display=''}else{e.style.backgroundImage='';e.classList.remove('has');if(e.dataset.hide)e.style.display='none'}});document.querySelectorAll('[data-phbtn="'+kd+'"]').forEach(function(e){e.style.display=d?'none':''})}
+function phEnsure(kd){
+  if(kd in phMem){setTimeout(function(){phPaint(kd)},0);return}
+  phMem[kd]=null;
+  phGet(kd).then(function(d){
+    if(d){phMem[kd]=d;phPaint(kd);return}
+    if(phIdx&&phIdx[kd]&&navigator.onLine){phDoc('ph_'+kd).then(function(r){phMem[kd]=r||false;if(r)phPut(kd,r);phPaint(kd)})}
+    else{phMem[kd]=false;phPaint(kd)}
+  });
+}
+function phFlush(){if(!navigator.onLine||!phQ.length)return;var kd=phQ[0];var d=phMem[kd];
+  var job=d?phSave('ph_'+kd,d).then(function(ok){if(ok)return phIdxSet(kd,true).then(function(){return true});return false})
+          :fetch(PH_FB+'ph_'+kd+'?key='+PH_KEY,{method:'DELETE'}).then(function(){return phIdxSet(kd,false)}).then(function(){return true});
+  job.then(function(ok){if(ok){phQ.shift();sv('tv3_phq',phQ);phFlush()}}).catch(function(){})}
+function phCompress(file){return new Promise(function(ok,ko){var fr=new FileReader();fr.onload=function(){var im=new Image();im.onload=function(){var M=1000,w=im.width,h=im.height,k=Math.min(1,M/Math.max(w,h));var c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);var q=.78,d=c.toDataURL('image/jpeg',q);while(d.length>330000&&q>.4){q-=.08;d=c.toDataURL('image/jpeg',q)}ok(d)};im.onerror=ko;im.src=fr.result};fr.onerror=ko;fr.readAsDataURL(file)})}
+function phTake(kd){var i=document.createElement('input');i.type='file';i.accept='image/*';i.style.display='none';document.body.appendChild(i);
+  i.onchange=function(){var f=i.files&&i.files[0];document.body.removeChild(i);if(!f)return;phCompress(f).then(function(d){phMem[kd]=d;phPut(kd,d);phQ=phQ.filter(function(k){return k!==kd});phQ.push(kd);sv('tv3_phq',phQ);phPaint(kd);showToast('📷 Photo enregistrée');phFlush();if(modal&&modal.type==='photo')render()}).catch(function(){showToast('Photo illisible','err')})};
+  i.click()}
+function phRemove(kd){if(!confirm('Supprimer la photo de ce salon ?'))return;phMem[kd]=false;phDel(kd);phQ=phQ.filter(function(k){return k!==kd});phQ.push(kd);sv('tv3_phq',phQ);phFlush();modal=null;render();showToast('Photo supprimée')}
+function phThumb(kd,cls,hideIfNone){var t=el('div',cls||'tv-ph');t.dataset.ph=kd;if(hideIfNone){t.dataset.hide='1';t.style.display='none'}t.onclick=function(ev){if(ev&&ev.stopPropagation)ev.stopPropagation();if(phMem[kd])openPhoto(kd);else phTake(kd)};phEnsure(kd);return t}
+function openPhoto(kd){
+  var ov=el('div','tv-pv');var c=(cMap()[kd]||{salon:kd});
+  ov.innerHTML='<div class="tv-pv-h"><b>'+esc2(sal(c))+'</b><span>N° '+esc2(kd)+'</span></div>';
+  var im=el('img');im.src=phMem[kd];ov.appendChild(im);
+  var bar=el('div','tv-pv-b');
+  var b1=el('button','','📷 Remplacer');b1.onclick=function(){document.body.removeChild(ov);phTake(kd)};
+  var b2=el('button','','🗑 Supprimer');b2.onclick=function(){document.body.removeChild(ov);phRemove(kd)};
+  var b3=el('button','ok','Fermer');b3.onclick=function(){document.body.removeChild(ov)};
+  bar.appendChild(b1);bar.appendChild(b2);bar.appendChild(b3);ov.appendChild(bar);
+  ov.onclick=function(e){if(e.target===ov)document.body.removeChild(ov)};
+  document.body.appendChild(ov);
+}
+setTimeout(function(){phLoadIdx().then(phFlush)},1500);
+window.addEventListener('online',function(){phLoadIdx().then(phFlush)});
+
+function delPassage(kd,d){
+  if(!confirm('Supprimer le passage du '+fmtL(d)+' ?'))return;
+  if(vlog[kd]){vlog[kd]=vlog[kd].filter(function(x){return x.d!==d});if(!vlog[kd].length)delete vlog[kd]}
+  hist=hist.filter(function(h){return!(h.kd_nr===kd&&h.visitDate===d)});
+  var v=vis[kd];
+  if(v&&v.visitDate===d){
+    var l=(vlog[kd]||[]).slice().sort(function(a,b){return a.d<b.d?1:-1})[0];
+    if(l)vis[kd]={status:l.s,visitDate:l.d,amount:l.a?String(l.a):'',reason:l.r||'',note:l.n||'',products:l.p||''};
+    else delete vis[kd];
+  }
+  persist();showToast('Passage supprim\u00e9');
+}
 function renderDayPage(app,wk,cm,td){
   if(dIx===null){dIx=Math.max(0,wk.indexOf(td))}
   // ── En-tête
@@ -875,7 +947,7 @@ function renderDayPage(app,wk,cm,td){
       var r1=el('div','tv-r1');
       var tags=(r?'<span class="tv-tm num">'+esc2(r.heure||r.h||'')+'</span>':'')+'<span>'+esc2(sal(c))+'</span>'+(r?'<span class="tv-tag t-r">RDV</span>':'')+(f.prio?'<span class="tv-tag t-p">Priorité</span>':'')+(!vStats(id).last&&!isDone?'<span class="tv-tag t-new">Pas vu cette saison</span>':'');
       var nm=el('div','tv-nm','<span class="tv-n num">'+(pos+1)+'</span>'+tags+'<span class="tv-kd num">N° '+esc2(id)+'</span>');nm.onclick=function(){modal={type:'visit',kd:id,fromDay:d};render()};r1.appendChild(nm);
-      r1.appendChild(el('div','tv-pot p'+p,p));card.appendChild(r1);
+      var rgt=el('div','tv-rgt');rgt.appendChild(phThumb(id,'tv-ph',true));rgt.appendChild(el('div','tv-pot p'+p,p));r1.appendChild(rgt);card.appendChild(r1);
       var c25=parseFloat(c.ca_2025)||0,c26=parseFloat(c.ca_2026)||0,ls=lastSeen(id);
       var mt=[];
       if(c.strasse||c.ort)mt.push('<a href="'+mapsUrl(c)+'" target="_blank">📍 '+esc2([c.strasse,c.ort].filter(Boolean).join(', '))+'</a>');
@@ -896,6 +968,7 @@ function renderDayPage(app,wk,cm,td){
         btn('','✎ Modifier',function(){modal={type:'visit',kd:id,fromDay:d};render()});
         btn('','↶ Annuler',function(){undoSet(id,d)});
       }
+      var pb=btn('','📷 Photo',function(){phTake(id)});pb.dataset.phbtn=id;
       if(c.tel){var t=el('a','tv-ch b','📞 Appeler');t.href='tel:'+String(c.tel).replace(/\s/g,'');ch.appendChild(t)}
       ch.appendChild(el('span','tv-sp'));
       var up=btn('mv','↑',function(){moveIn(d,id,-1)});up.disabled=pos===0;
@@ -1304,6 +1377,9 @@ function renderModal(m,wk,cm,td){
     var v=vis[m.kd]||{},fd=m.fromDay,hb=!!book[m.kd];
     sh.appendChild(mkH(sal(c),c.ort+(c.sek?' · SEK '+c.sek:'')));
     var bd=document.createElement('div');bd.className='sh-b';
+    var phb=el('div','tv-phbox');var big=phThumb(m.kd,'tv-phbig',true);phb.appendChild(big);
+    var tk=el('button','tv-phadd','📷 Ajouter une photo du salon');tk.dataset.phbtn=m.kd;tk.onclick=function(){phTake(m.kd)};phb.appendChild(tk);
+    bd.appendChild(phb);
 
     // Onglets
     var TAB=m.tab||'v';
@@ -1368,6 +1444,10 @@ function renderModal(m,wk,cm,td){
           +'<span class="num" style="font-weight:700;color:#334155;flex-shrink:0">'+fmtL(x.d)+'</span>'
           +'<span style="flex:1;color:#7A7382;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(x.r||x.p||x.n||s6.l)+'</span>'
           +(x.a>0?'<span class="num" style="font-weight:800;color:#16a34a;flex-shrink:0">'+x.a.toLocaleString('fr-CH')+'.-</span>':'');
+        var dx=document.createElement('button');dx.textContent='\ud83d\uddd1';dx.title='Supprimer ce passage';
+        dx.style.cssText='border:1px solid #E8E3EA;background:#fff;border-radius:8px;width:30px;height:28px;font-size:13px;cursor:pointer;flex-shrink:0';
+        dx.onclick=function(ev){if(ev&&ev.stopPropagation)ev.stopPropagation();delPassage(m.kd,x.d);modal={type:'visit',kd:m.kd,fromDay:fd,tab:TAB};render()};
+        r6.appendChild(dx);
         tl.appendChild(r6);
       });
       if(VS.log.length>4){
