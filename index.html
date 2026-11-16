@@ -2084,7 +2084,16 @@ function renderModal(m,wk,cm,td){
   } else if(m.type==='sync'){
     sh.appendChild(mkH('🔄 Synchronisation'));
     var sb2=document.createElement('div');sb2.className='sh-b';
-    var eb=document.createElement('button');eb.className='btn-p';eb.textContent='📤 Exporter sync (.json)';eb.onclick=exportSync;sb2.appendChild(eb);
+    (function(){var bx=document.createElement('div');bx.style.cssText='border:1.5px solid #CFE6D8;background:#EEF7F1;border-radius:12px;padding:12px;text-align:center';
+      var st=document.createElement('div');st.style.cssText='font-size:13px;color:#2F7A57;font-weight:700;margin-bottom:4px';
+      var sub=document.createElement('div');sub.style.cssText='font-size:11px;color:#7A7382;margin-bottom:10px';
+      function upd(){var t=syLast?new Date(syLast):null;st.textContent=!navigator.onLine?'⚠️ Pas de connexion internet':syErr?'⚠️ Dernière synchro échouée':syLast?'✓ Synchronisé automatiquement':'Pas encore synchronisé';
+        sub.textContent=t?'Dernière synchro : '+t.toLocaleDateString('fr-CH')+' à '+t.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'}):'Se fait toute seule à chaque modification'}
+      upd();var b=document.createElement('button');b.className='btn-p';b.textContent='🔄 Synchroniser maintenant';
+      b.onclick=function(){b.disabled=true;b.textContent='Synchronisation…';syRun().then(function(){b.disabled=false;b.textContent='🔄 Synchroniser maintenant';upd();if(!syErr&&navigator.onLine)showToast('✓ Synchronisé','ok')})};
+      bx.appendChild(st);bx.appendChild(sub);bx.appendChild(b);sb2.appendChild(bx);
+      var l=document.createElement('div');l.style.cssText='font-size:11px;color:#9A93A1;text-align:center;margin-top:4px';l.textContent='Fichier (ancienne méthode, plus nécessaire) :';sb2.appendChild(l)})();
+    var eb=document.createElement('button');eb.className='btn-s';eb.style.textAlign='center';eb.textContent='📤 Exporter sync (.json)';eb.onclick=exportSync;sb2.appendChild(eb);
     var il=document.createElement('label');il.style.cssText='display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:10px;border:1.5px dashed #9A93A1;background:#f8fafc;color:#7A7382;font-weight:600;font-size:14px;cursor:pointer';il.textContent='📥 Importer sync (.json)';
     var fi=document.createElement('input');fi.type='file';fi.accept='.json';fi.style.display='none';fi.onchange=function(e){var f=e.target.files[0];if(f){importSync(f);modal=null}};il.appendChild(fi);sb2.appendChild(il);
     var agb=document.createElement('button');agb.className='btn-s';agb.style.textAlign='center';agb.textContent='📅 Agenda Apple (.ics / Raccourcis)';agb.onclick=function(){modal={type:'agenda'};render()};sb2.appendChild(agb);
