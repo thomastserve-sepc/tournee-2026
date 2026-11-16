@@ -227,6 +227,23 @@ select.fi{background-image:linear-gradient(45deg,transparent 50%,#7A7382 50%),li
 .tv-pv-b button{border:none;border-radius:12px;padding:12px 16px;font-weight:800;font-size:14px;background:rgba(255,255,255,.14);color:#fff;font-family:inherit;cursor:pointer}
 .tv-pv-b button.ok{background:#fff;color:#6D2E46}
 @media (max-width:700px){.tv-ph{width:46px;height:46px}}
+
+.tv-mchips{display:flex;gap:7px;margin-top:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.tv-mch{flex-shrink:0;border:1px solid #E8E3EA;background:#fff;border-radius:11px;padding:8px 12px;font-weight:700;font-size:13px;color:#1B1720;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;opacity:.55}
+.tv-mch.on{opacity:1;border-color:#1B1720}
+.tv-mch i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.tv-mch span{color:#7A7382;font-weight:600}
+.tv-mapbox{flex:1;position:relative;min-height:0}
+#tvmap{position:absolute;inset:0;background:#E8E3EA}
+.tv-mstat{position:absolute;left:12px;top:12px;z-index:500;background:rgba(255,255,255,.95);border-radius:10px;padding:7px 11px;font-size:12.5px;font-weight:700;color:#4A4350;box-shadow:0 2px 8px rgba(0,0,0,.12);transition:opacity .6s}
+.tv-pin{width:30px;height:30px;border-radius:50%;background:#fff;border:3px solid var(--c);color:var(--c);display:grid;place-items:center;font-weight:800;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.3);font-family:Inter,Arial,sans-serif}
+.tv-pin.dn{background:var(--s,var(--c));color:#fff;border-color:#fff}
+.tv-pin.home{border-color:#1B1720;font-size:15px}
+.tv-pop{display:flex;flex-direction:column;gap:3px;min-width:200px;font-family:Inter,Arial,sans-serif}
+.tv-pop b{font-size:15px;color:#1B1720}.tv-pop span{font-size:12px;color:#7A7382}
+.tv-pop-b{display:flex;gap:6px;margin-top:8px}
+.tv-pop-b a,.tv-pop-b button{flex:1;border:1px solid #E8E3EA;background:#fff;border-radius:9px;padding:8px 6px;font-weight:700;font-size:12.5px;color:#1B1720;text-decoration:none;text-align:center;font-family:inherit;cursor:pointer}
+.tv-pop-b .g{background:#2F7A57;border-color:#2F7A57;color:#fff}
 /* ═══ Design 2 sur tous les onglets ═══ */
 html,body{background:#F4F2F5}
 .card{border:1px solid #E8E3EA;border-radius:16px;box-shadow:0 1px 2px rgba(27,23,32,.04)}
@@ -612,7 +629,7 @@ function render(){
   // Modal
   if(modal)app.appendChild(renderModal(modal,wk,cm,td));
 
-  if(view==='week'){renderDayPage(app,wk,cm,td)} else {
+  if(view==='week'){renderDayPage(app,wk,cm,td)} else if(view==='map'){renderMap(app,wk,cm,td)} else {
   var TT={grid:'Vue d’ensemble',list:'Clients',suivi:'Suivi',stats:'Statistiques'};
   var top=el('div','tv-top');var r1=el('div','tv-row');
   var tot=wk.reduce(function(s,d){return s+(sch[d]||[]).length},0);
@@ -656,7 +673,7 @@ function render(){
   // NAV
   var nav=document.createElement('nav');nav.className='nav';
   var nRest=actC().filter(function(c){var v=vis[c.kd_nr];return!(vStats(c.kd_nr).n||(v&&(v.status==='visited'||v.status==='revisit')))}).length;
-  [{v:'week',i:'📅',l:'Tournée'},{v:'list',i:'👥',l:'Clients',b:nRest},{v:'suivi',i:'🔁',l:'Suivi'},{v:'stats',i:'📊',l:'Stats'},{v:'new',i:'➕',l:'Nouveau'}].forEach(function(n){
+  [{v:'week',i:'📅',l:'Tournée'},{v:'map',i:'🗺',l:'Carte'},{v:'list',i:'👥',l:'Clients',b:nRest},{v:'suivi',i:'🔁',l:'Suivi'},{v:'stats',i:'📊',l:'Stats'},{v:'new',i:'➕',l:'Nouveau'}].forEach(function(n){
     var b=document.createElement('button');b.className='nb'+(view===n.v||(n.v==='week'&&view==='grid')?' on':'');
     b.innerHTML='<span style="font-size:20px;position:relative;display:inline-block">'+n.i+(n.b?'<span class="num" style="position:absolute;top:-3px;right:-13px;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px;line-height:1.5">'+n.b+'</span>':'')+'</span>'+n.l;
     b.onclick=n.v==='new'?function(){modal={type:'newclient'};render()}:function(){view=n.v;render()};
@@ -1023,6 +1040,7 @@ function renderTrajet(bd,d,cm,td){
     }
     bd.appendChild(b3);
   } else bd.appendChild(el('div','tv-box','<div class="tv-rel"><div class="tx">'+(ids.length?'Tous les salons du jour sont faits 👍':'Aucun salon prévu ce jour.')+'</div></div>'));
+  var mb=el('button','tv-save','🗺 Voir la carte du jour');mb.style.cssText='width:100%;margin-bottom:12px';mb.onclick=function(){var i=dIx;mapDays=[0,1,2,3].map(function(k){return k===i});mapView=null;drOpen=false;view='map';render()};bd.appendChild(mb);
   bd.appendChild(el('div','tv-lbl','Ordre de passage'));
   var L=el('div','tv-box');
   ids.forEach(function(id,i){var c=cm[id]||{salon:id},dn=doneOn(id,d),v=vis[id]||{},cfg=SC[v.status]||SC.none,r=(rdv[d]||[]).filter(function(x){return x.kd_nr===id})[0];
@@ -1076,6 +1094,89 @@ function renderReprises(bd,d,cm,td){
   if(dn.length){bd.appendChild(el('div','tv-lbl','Rendues récemment'));var B=el('div','tv-box');
     dn.forEach(function(r){var row=el('div','tv-rel','<div class="tx" style="color:#7A7382"><s>'+esc2(r.cl)+' · '+esc2(r.p)+' × '+r.q+'</s><small>Rendu le '+fmt(r.dd||r.d).replace(/\.$/,'')+'</small></div>');var u=el('button','tv-del','↶');u.onclick=function(){r.st='open';delete r.dd;r.u=Date.now();saveRep();render()};row.appendChild(u);B.appendChild(row)});bd.appendChild(B)}
 }
+
+// ══ CARTE DE LA TOURNÉE (Leaflet chargé à la demande, géocodage geo.admin.ch, routes OSRM) ══
+var DAYC=['#6D2E46','#2459B8','#2F7A57','#E07A00'];
+var mapDays=null,mapView=null,mapHome=true,LFp=null;
+var GEO_K='tv3_geo';var geo=ld(GEO_K)||{};var RT_K='tv3_rt';var rtc=ld(RT_K)||{};
+var HOME={adr:"Route d'Yverdon 23B, 1028 Préverenges"};
+function loadLeaflet(){if(window.L)return Promise.resolve();if(LFp)return LFp;LFp=new Promise(function(ok,ko){var l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(l);var sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';sc.onload=ok;sc.onerror=function(){LFp=null;ko()};document.head.appendChild(sc)});return LFp}
+function geocode(q){return fetch('https://api3.geo.admin.ch/rest/services/api/SearchServer?type=locations&sr=4326&limit=1&searchText='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(j){var a=j.results&&j.results[0]&&j.results[0].attrs;return a?[+a.lat.toFixed(5),+a.lon.toFixed(5)]:null}).catch(function(){return null})}
+function geoOf(id,c){if(geo[id])return Promise.resolve(geo[id]);
+  var full=[c.strasse,(c.plz||'')+' '+(c.ort||'')].filter(function(x){return String(x||'').trim()}).join(' ');
+  return geocode(full).then(function(p){return p||geocode((c.ort||'').replace(/\s*\(.*\)/,''))}).then(function(p){if(p){geo[id]=p;sv(GEO_K,geo)}return p})}
+function homePt(){if(geo._home)return Promise.resolve(geo._home);return geocode(HOME.adr).then(function(p){if(p){geo._home=p;sv(GEO_K,geo)}return p})}
+function routeOf(pts){var key=pts.map(function(p){return p[0].toFixed(4)+','+p[1].toFixed(4)}).join(';');if(rtc[key])return Promise.resolve(rtc[key]);
+  var url='https://router.project-osrm.org/route/v1/driving/'+pts.map(function(p){return p[1]+','+p[0]}).join(';')+'?overview=full&geometries=geojson';
+  return fetch(url).then(function(r){return r.json()}).then(function(j){if(j.code!=='Ok')return null;var r=j.routes[0];var o={g:r.geometry.coordinates.map(function(c){return[+c[1].toFixed(5),+c[0].toFixed(5)]}),km:r.distance/1000,min:r.duration/60};
+    var ks=Object.keys(rtc);if(ks.length>40)delete rtc[ks[0]];rtc[key]=o;try{sv(RT_K,rtc)}catch(e){rtc={}}return o}).catch(function(){return null})}
+function renderMap(app,wk,cm,td){
+  if(!mapDays){mapDays=[0,1,2,3].map(function(i){return wk[i]===td||wk.indexOf(td)<0});if(mapDays.every(function(x){return!x}))mapDays=[true,true,true,true]}
+  var top=el('div','tv-top');var r1=el('div','tv-row');
+  var d0=new Date(wk[0]+'T12:00'),d3=new Date(wk[3]+'T12:00');
+  r1.appendChild(el('div','','<div class="tv-wk">Carte de la tournée</div><div class="tv-wk2">Semaine du '+d0.getDate()+' au '+d3.getDate()+' '+MOIS[d3.getMonth()]+' · S'+isoWk(wk[0])+'</div>'));
+  var ics=el('div','tv-ics');
+  [['‹',function(){wkOff--;mapDays=null;render()}],['›',function(){wkOff++;mapDays=null;render()}],['📍',function(){locateMe()}],['🏠',function(){mapHome=!mapHome;render()}]].forEach(function(b){var x=el('button','tv-ic');x.textContent=b[0];x.onclick=b[1];if(b[0]==='🏠'&&mapHome)x.style.background='#F6E7ED';ics.appendChild(x)});
+  r1.appendChild(ics);top.appendChild(r1);
+  var chips=el('div','tv-mchips');
+  var all=el('button','tv-mch'+(mapDays.every(Boolean)?' on':''),'Toute la semaine');all.onclick=function(){var a=mapDays.every(Boolean);mapDays=[!a,!a,!a,!a];if(a)mapDays[Math.max(0,wk.indexOf(td))]=true;render()};chips.appendChild(all);
+  wk.forEach(function(d,i){var b=el('button','tv-mch'+(mapDays[i]?' on':''),'<i style="background:'+DAYC[i]+'"></i>'+WDAYS[i].slice(0,3)+'. '+new Date(d+'T12:00').getDate()+'<span id="tvmk'+i+'"></span>');b.onclick=function(){mapDays[i]=!mapDays[i];render()};chips.appendChild(b)});
+  top.appendChild(chips);app.appendChild(top);
+  var box=el('div','tv-mapbox');var mdiv=el('div','');mdiv.id='tvmap';box.appendChild(mdiv);
+  var st=el('div','tv-mstat','Chargement de la carte…');box.appendChild(st);app.appendChild(box);
+  loadLeaflet().then(function(){
+    var map=L.map(mdiv,{zoomControl:false,attributionControl:true});
+    L.control.zoom({position:'bottomright'}).addTo(map);
+    L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'© swisstopo'}).addTo(map);
+    if(mapView)map.setView(mapView.c,mapView.z);else map.setView([46.4,6.9],9);
+    map.on('moveend',function(){mapView={c:map.getCenter(),z:map.getZoom()}});
+    window._tvMap=map;
+    var bounds=[],jobs=[],todoN=0;
+    st.textContent='Recherche des adresses…';
+    var hp=mapHome?homePt():Promise.resolve(null);
+    hp.then(function(home){
+      if(home){L.marker(home,{icon:L.divIcon({className:'',html:'<div class="tv-pin home">🏠</div>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map).bindPopup('<b>Maison</b><br>'+esc2(HOME.adr));bounds.push(home)}
+      var seq=Promise.resolve();
+      wk.forEach(function(d,i){if(!mapDays[i])return;
+        var ids=sch[d]||[];
+        seq=seq.then(function(){
+          var pts=[];var p2=Promise.resolve();
+          ids.forEach(function(id,k){p2=p2.then(function(){var c=cm[id];if(!c)return;return geoOf(id,c).then(function(pt){if(!pt)return;pts.push({id:id,pt:pt,k:k})})})});
+          return p2.then(function(){
+            pts.forEach(function(o){var c=cm[o.id],dn=doneOn(o.id,d),v=vis[o.id]||{},cfg=SC[v.status]||SC.none,r=(rdv[d]||[]).filter(function(x){return x.kd_nr===o.id})[0];
+              var html='<div class="tv-pin'+(dn?' dn':'')+'" style="--c:'+DAYC[i]+(dn?';--s:'+cfg.c:'')+'">'+(dn?cfg.i:(o.k+1))+'</div>';
+              var m=L.marker(o.pt,{icon:L.divIcon({className:'',html:html,iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map);
+              var c25=parseFloat(c.ca_2025)||0,c26=parseFloat(c.ca_2026)||0,ls=lastSeen(o.id);
+              var pop=el('div','tv-pop','<b>'+esc2(sal(c))+'</b><span>N° '+esc2(o.id)+' · '+WDAYS[i]+' · n° '+(o.k+1)+(r?' · ⭐ '+esc2(r.heure||''):'')+'</span><span>'+esc2(adrOf(c))+'</span><span>'+(c25||c26?'CA '+chf(c25+c26):'')+(ls?' · vu le '+fmt(ls).replace(/\.$/,''):'')+(dn?' · <b style="color:'+cfg.c+'">'+cfg.l+'</b>':'')+'</span>');
+              var bt=el('div','tv-pop-b');var go=el('a','','🧭 Y aller');go.href=mapsUrl(c);go.target='_blank';bt.appendChild(go);
+              if(!dn){var ok=el('button','g','✓ Visité');ok.onclick=function(){quickSet(o.id,d,'visited')};bt.appendChild(ok)}
+              var fi=el('button','','Fiche');fi.onclick=function(){modal={type:'visit',kd:o.id,fromDay:d};render()};bt.appendChild(fi);
+              pop.appendChild(bt);m.bindPopup(pop);bounds.push(o.pt);if(!dn)todoN++;
+            });
+            var chain=pts.map(function(o){return o.pt});
+            if(home&&chain.length)chain=[home].concat(chain,[home]);
+            if(chain.length<2)return;
+            var line=L.polyline(chain,{color:DAYC[i],weight:3,opacity:.35,dashArray:'6 6'}).addTo(map);
+            return routeOf(chain).then(function(rt){
+              if(!rt)return;map.removeLayer(line);
+              L.polyline(rt.g,{color:'#fff',weight:8,opacity:.8}).addTo(map);
+              L.polyline(rt.g,{color:DAYC[i],weight:5,opacity:.9}).addTo(map);
+              var sp=document.getElementById('tvmk'+i);if(sp)sp.textContent=' · '+Math.round(rt.km)+' km · '+Math.floor(rt.min/60)+'h'+String(Math.round(rt.min%60)).padStart(2,'0');
+            });
+          });
+        });
+      });
+      return seq;
+    }).then(function(){
+      if(bounds.length&&!mapView)map.fitBounds(bounds,{padding:[30,30]});
+      st.textContent=bounds.length?'Trajets calculés par la route'+(mapHome?' (aller-retour depuis la maison)':'')+' · touche un point pour les détails':'Aucun salon à afficher';
+      setTimeout(function(){st.style.opacity='0'},4000);
+    });
+    setTimeout(function(){map.invalidateSize()},50);
+  }).catch(function(){st.textContent='Carte indisponible (pas de connexion ?)'});
+}
+function locateMe(){var map=window._tvMap;if(!map||!navigator.geolocation){showToast('Position indisponible','warn');return}
+  navigator.geolocation.getCurrentPosition(function(p){var ll=[p.coords.latitude,p.coords.longitude];if(window._tvMe)map.removeLayer(window._tvMe);window._tvMe=L.circleMarker(ll,{radius:9,color:'#fff',weight:3,fillColor:'#2459B8',fillOpacity:1}).addTo(map).bindPopup('Ma position');map.setView(ll,13)},function(){showToast('Position refusée','warn')},{enableHighAccuracy:true,timeout:10000})}
 
 function renderDrawer(app,wk,cm,td){
   var bg=el('div','tv-dr-bg');bg.onclick=function(){drOpen=false;render()};app.appendChild(bg);
