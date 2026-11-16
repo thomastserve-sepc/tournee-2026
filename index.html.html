@@ -1100,7 +1100,8 @@ var DAYC=['#6D2E46','#2459B8','#2F7A57','#E07A00'];
 var mapDays=null,mapView=null,mapHome=true,LFp=null;
 var GEO_K='tv3_geo';var geo=ld(GEO_K)||{};var RT_K='tv3_rt';var rtc=ld(RT_K)||{};
 var HOME={adr:"Route d'Yverdon 23B, 1028 Préverenges"};
-function loadLeaflet(){if(window.L)return Promise.resolve();if(LFp)return LFp;LFp=new Promise(function(ok,ko){var l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(l);var sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';sc.onload=ok;sc.onerror=function(){LFp=null;ko()};document.head.appendChild(sc)});return LFp}
+function ldRes(u,css){return new Promise(function(ok,ko){var t=document.createElement(css?'link':'script');if(css){t.rel='stylesheet';t.href=u}else{t.src=u}t.onload=ok;t.onerror=ko;document.head.appendChild(t)})}
+function loadLeaflet(){if(window.L&&L.maplibreGL)return Promise.resolve();if(LFp)return LFp;LFp=ldRes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',1).catch(function(){}).then(function(){return window.L?0:ldRes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js')}).then(function(){return Promise.all([ldRes('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css',1),ldRes('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js')]).then(function(){return ldRes('https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js')}).catch(function(){})}).catch(function(e){LFp=null;throw e});return LFp}
 function geocode(q){return fetch('https://api3.geo.admin.ch/rest/services/api/SearchServer?type=locations&sr=4326&limit=1&searchText='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(j){var a=j.results&&j.results[0]&&j.results[0].attrs;return a?[+a.lat.toFixed(5),+a.lon.toFixed(5)]:null}).catch(function(){return null})}
 function geoOf(id,c){if(geo[id])return Promise.resolve(geo[id]);
   var full=[c.strasse,(c.plz||'')+' '+(c.ort||'')].filter(function(x){return String(x||'').trim()}).join(' ');
@@ -1125,9 +1126,9 @@ function renderMap(app,wk,cm,td){
   var box=el('div','tv-mapbox');var mdiv=el('div','');mdiv.id='tvmap';box.appendChild(mdiv);
   var st=el('div','tv-mstat','Chargement de la carte…');box.appendChild(st);app.appendChild(box);
   loadLeaflet().then(function(){
-    var map=L.map(mdiv,{zoomControl:false,attributionControl:true});
+    var map=L.map(mdiv,{zoomControl:false,attributionControl:true,maxZoom:18});
     L.control.zoom({position:'bottomright'}).addTo(map);
-    L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'© swisstopo'}).addTo(map);
+    var esri=function(){L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'© Esri'}).addTo(map)};if(L.maplibreGL&&window.maplibregl){try{L.maplibreGL({style:'https://tiles.openfreemap.org/styles/liberty',attribution:'© OpenFreeMap © OpenStreetMap'}).addTo(map)}catch(e){esri()}}else esri();
     if(mapView)map.setView(mapView.c,mapView.z);else map.setView([46.4,6.9],9);
     map.on('moveend',function(){mapView={c:map.getCenter(),z:map.getZoom()}});
     window._tvMap=map;
@@ -1168,7 +1169,7 @@ function renderMap(app,wk,cm,td){
       });
       return seq;
     }).then(function(){
-      if(bounds.length&&!mapView)map.fitBounds(bounds,{padding:[30,30]});
+      if(bounds.length&&!mapView)map.fitBounds(bounds,{padding:[30,30],maxZoom:14});
       st.textContent=bounds.length?'Trajets calculés par la route'+(mapHome?' (aller-retour depuis la maison)':'')+' · touche un point pour les détails':'Aucun salon à afficher';
       setTimeout(function(){st.style.opacity='0'},4000);
     });
