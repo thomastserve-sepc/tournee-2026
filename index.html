@@ -260,6 +260,10 @@ html,body{background:#F4F2F5}
 .week-wrap{padding:6px 14px 14px}
 .tv-wk2{font-size:12.5px;color:#7A7382;font-weight:600;margin-top:2px}
 @media (max-width:700px){.v-wrap{padding:10px 10px 26px}}
+.tv-tag.t-cmd{background:#E3F2E9;color:#2F7A57}
+.tv-ro>div>span:not(.tv-kd){display:block;margin-top:2px}
+.tv-ro .tv-kd{margin-left:4px}
+.tv-dr .tv-seg{overflow-x:auto;scrollbar-width:none}.tv-dr .tv-seg button{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -962,7 +966,7 @@ function renderDayPage(app,wk,cm,td){
       var card=el('div','tv-c'+(r?' rd':'')+(isDone?' dn':''));if(isDone)card.style.setProperty('--sc',cfg.c);
       var p=potOf(c);
       var r1=el('div','tv-r1');
-      var tags=(r?'<span class="tv-tm num">'+esc2(r.heure||r.h||'')+'</span>':'')+'<span>'+esc2(sal(c))+'</span>'+(r?'<span class="tv-tag t-r">RDV</span>':'')+(f.prio?'<span class="tv-tag t-p">Priorité</span>':'')+(!vStats(id).last&&!isDone?'<span class="tv-tag t-new">Pas vu cette saison</span>':'');
+      var tags=(r?'<span class="tv-tm num">'+esc2(r.heure||r.h||'')+'</span>':'')+'<span>'+esc2(sal(c))+'</span>'+(r?'<span class="tv-tag t-r">RDV</span>':'')+(f.prio?'<span class="tv-tag t-p">Priorité</span>':'')+(!vStats(id).last&&!isDone?'<span class="tv-tag t-new">Pas vu cette saison</span>':'')+(!isDone&&isReorder(id,td)?'<span class="tv-tag t-cmd">🛒 Prêt à recommander</span>':'');
       var nm=el('div','tv-nm','<span class="tv-n num">'+(pos+1)+'</span>'+tags+'<span class="tv-kd num">N° '+esc2(id)+'</span>');nm.onclick=function(){modal={type:'visit',kd:id,fromDay:d};render()};r1.appendChild(nm);
       var rgt=el('div','tv-rgt');rgt.appendChild(phThumb(id,'tv-ph',true));rgt.appendChild(el('div','tv-pot p'+p,p));r1.appendChild(rgt);card.appendChild(r1);
       var c25=parseFloat(c.ca_2025)||0,c26=parseFloat(c.ca_2026)||0,ls=lastSeen(id);
@@ -1184,13 +1188,14 @@ function renderDrawer(app,wk,cm,td){
   var dr=el('div','tv-dr');
   var d=wk[dIx]||wk[0];
   var dLbl=WDAYS[dIx]+' '+new Date(d+'T12:00').getDate();
-  var h=el('div','tv-dr-h','<b>'+({sug:'Suggestions · '+dLbl,rel:'Relances & remarques',tra:'Trajet · '+dLbl,rep:'Reprises produits'}[drTab]||'')+'</b>');
+  var h=el('div','tv-dr-h','<b>'+({sug:'Suggestions · '+dLbl,cmd:'Prêts à recommander',rel:'Relances & remarques',tra:'Trajet · '+dLbl,rep:'Reprises produits'}[drTab]||'')+'</b>');
   var x=el('button','tv-ic','✕');x.onclick=function(){drOpen=false;render()};h.appendChild(x);dr.appendChild(h);
   var seg=el('div','tv-seg');
-  [['sug','💡 Sugg.'],['tra','🗺 Trajet'],['rel','🔔 Relances'],['rep','↩ Reprises']].forEach(function(t){var b=el('button',drTab===t[0]?'on':'',t[1]);b.onclick=function(){drTab=t[0];render()};seg.appendChild(b)});
+  [['sug','💡 Sugg.'],['cmd','🛒 Recomm.'],['tra','🗺 Trajet'],['rel','🔔 Relances'],['rep','↩ Repr.']].forEach(function(t){var b=el('button',drTab===t[0]?'on':'',t[1]);b.onclick=function(){drTab=t[0];render()};seg.appendChild(b)});
   dr.appendChild(seg);
   var bd=el('div','tv-dr-b');
   if(drTab==='tra'){renderTrajet(bd,d,cm,td)}
+  else if(drTab==='cmd'){renderReorder(bd,d,cm,td,wk)}
   else if(drTab==='rep'){renderReprises(bd,d,cm,td)}
   else if(drTab==='sug'){
     var inWk={};wk.forEach(function(dd){(sch[dd]||[]).forEach(function(k){inWk[k]=1})});
@@ -2092,7 +2097,7 @@ function renderModal(m,wk,cm,td){
       upd();var b=document.createElement('button');b.className='btn-p';b.textContent='🔄 Synchroniser maintenant';
       b.onclick=function(){b.disabled=true;b.textContent='Synchronisation…';syRun().then(function(){b.disabled=false;b.textContent='🔄 Synchroniser maintenant';upd();if(!syErr&&navigator.onLine)showToast('✓ Synchronisé','ok')})};
       bx.appendChild(st);bx.appendChild(sub);bx.appendChild(b);sb2.appendChild(bx);
-      var l=document.createElement('div');l.style.cssText='font-size:11px;color:#9A93A1;text-align:center;margin-top:4px';l.textContent='Fichier (ancienne méthode, plus nécessaire) :';sb2.appendChild(l)})();
+      var l=document.createElement('div');l.style.cssText='font-size:11px;color:#9A93A1;text-align:center;margin-top:4px';l.textContent='Fichier (ancienne méthode, plus nécessaire) :';rxSection(sb2);sb2.appendChild(l)})();
     var eb=document.createElement('button');eb.className='btn-s';eb.style.textAlign='center';eb.textContent='📤 Exporter sync (.json)';eb.onclick=exportSync;sb2.appendChild(eb);
     var il=document.createElement('label');il.style.cssText='display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:10px;border:1.5px dashed #9A93A1;background:#f8fafc;color:#7A7382;font-weight:600;font-size:14px;cursor:pointer';il.textContent='📥 Importer sync (.json)';
     var fi=document.createElement('input');fi.type='file';fi.accept='.json';fi.style.display='none';fi.onchange=function(e){var f=e.target.files[0];if(f){importSync(f);modal=null}};il.appendChild(fi);sb2.appendChild(il);
@@ -2173,10 +2178,119 @@ function printWeek(){var wk=getWk(),cm=cMap(),wCA2=totalCA(function(d){return wk
 function printClients(){var ac=actC().sort(function(a,b){return(a.ort||'').localeCompare(b.ort||'')});var html='<h2 style="margin-bottom:16px">Clients ('+ac.length+')</h2><table style="width:100%;border-collapse:collapse;font-size:11px"><tr style="background:#6D2E46;color:#fff"><th style="padding:6px">Salon</th><th>Ville</th><th>Tél</th><th>Statut</th><th>CHF</th><th>📖</th></tr>';ac.forEach(function(c,i){var v=vis[c.kd_nr]||{},a=parseFloat(v.amount)||0,st=v.status||'',ico={visited:'✓',revisit:'⟳',absent:'~',closed:'✕',callback:'↩',patron:'👤'}[st]||'○';html+='<tr style="background:'+(i%2?'#f8fafc':'#fff')+'"><td style="padding:5px 6px;font-weight:600">'+sal(c)+'</td><td style="padding:5px 6px">'+c.ort+'</td><td style="padding:5px 6px">'+c.tel+'</td><td style="padding:5px 6px">'+ico+'</td><td style="padding:5px 6px;text-align:right;color:#16a34a;font-weight:600">'+(a>0?a.toLocaleString('fr-CH'):'')+'</td><td style="padding:5px 6px;text-align:center">'+(book[c.kd_nr]?'📖':'')+'</td></tr>'});html+='</table>';showPrintOv('Clients',html)}
 function printCA(){var cmds=Object.entries(vis).filter(function(e){return e[1].status==='visited'&&parseFloat(e[1].amount)>0}).sort(function(a,b){return(b[1].visitDate||'').localeCompare(a[1].visitDate||'')});var cm2=cMap(),tot2=0;var html='<h2 style="margin-bottom:16px">Rapport CA</h2><table style="width:100%;border-collapse:collapse;font-size:11px"><tr style="background:#16a34a;color:#fff"><th style="padding:6px">Date</th><th>Salon</th><th>Ville</th><th>Produits</th><th>CHF</th></tr>';cmds.forEach(function(e,i){var c2=cm2[e[0]],v2=e[1],a2=parseFloat(v2.amount)||0;tot2+=a2;html+='<tr style="background:'+(i%2?'#f0fdf4':'#fff')+'"><td style="padding:5px 6px">'+fmtL(v2.visitDate)+'</td><td style="padding:5px 6px;font-weight:600">'+(c2?sal(c2):e[0])+'</td><td style="padding:5px 6px">'+(c2?c2.ort:'')+'</td><td style="padding:5px 6px">'+(v2.products||'')+'</td><td style="padding:5px 6px;text-align:right;font-weight:600;color:#16a34a">'+a2.toLocaleString('fr-CH')+'</td></tr>'});html+='<tr style="font-weight:700;border-top:2px solid #e2e8f0"><td colspan="4" style="padding:8px">TOTAL</td><td style="padding:8px;text-align:right;color:#16a34a;font-size:14px">'+tot2.toLocaleString('fr-CH')+' CHF</td></tr></table>';showPrintOv('CA',html)}
 
+// ══ LECTURE DES RAPPORTS (lecture seule : rien n'est jamais écrit dans les rapports) ══
+var RX_K='tv3_rxmap',RXS_K='tv3_rxseen',RX_FROM='2026-11-16';var rxmap=ld(RX_K)||{},rxseen=ld(RXS_K)||{},rxPend=ld('tv3_rxpend')||[],rxLast=ld('tv3_rxlast')||null,rxBusy=false,rxCrm=null;
+var RX_STOP={coiffure:1,coiffeur:1,coiffeuse:1,salon:1,de:1,la:1,le:1,les:1,by:1,sarl:1,barbier:1,hair:1,du:1,et:1,co:1,studio:1,beauty:1,barber:1,styling:1,sa:1,mixte:1,chez:1,atelier:1,institut:1,espace:1};
+function rxN(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+function rxT(s){return rxN(s).split(' ').filter(function(t){return t.length>1&&!RX_STOP[t]})}
+function rxCity(s){return rxN(String(s||'').split(',').pop()).replace(/^saint /,'st ').replace(/\b(vd|vs|fr|dist|1)\b/g,'').trim()}
+function rxDice(a,b){if(a===b)return 1;if(a.length<2||b.length<2)return 0;var m={},n=0;for(var i=0;i<a.length-1;i++){var g=a.substr(i,2);m[g]=(m[g]||0)+1}for(var j=0;j<b.length-1;j++){var h=b.substr(j,2);if(m[h]>0){m[h]--;n++}}return 2*n/(a.length+b.length-2)}
+function rxSc(name,c){var a=rxT(name),best=0;[c.salon,c.name].forEach(function(f){var b=rxT(f);if(!a.length||!b.length){if(rxN(name)&&rxN(name)===rxN(f))best=Math.max(best,.9);return}
+  var s=rxDice(a.join(' '),b.join(' '));var sa=a.every(function(t){return b.indexOf(t)>=0}),sb=b.every(function(t){return a.indexOf(t)>=0});if(sa||sb)s=Math.max(s,.9);best=Math.max(best,s)});return best}
+function rxCands(v,dt,cm){var rc=rxCity(v.city),out=[];Object.keys(cm).forEach(function(k){var c=cm[k],cc=rxCity(c.ort);var s=rxSc(v.name,c);if(s<.35)return;
+  s+=(rc&&cc&&cc.slice(0,5)===rc.slice(0,5))?.3:-.3;if((vlog[k]||[]).some(function(x){return x.d===dt}))s+=.5;out.push([s,k])});return out.sort(function(a,b){return b[0]-a[0]})}
+function rxSaveMaps(){sv(RX_K,rxmap);sv(RXS_K,rxseen)}
+function rxDoc(name){return fetch(PH_FB+name+'?key='+PH_KEY,{cache:'no-store'}).then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(j){var t=j&&j.fields&&j.fields.data&&j.fields.data.stringValue;return t?JSON.parse(t):null})}
+function rxCrmLoad(){if(rxCrm)return Promise.resolve(rxCrm);return fetch('https://firestore.googleapis.com/v1/projects/crm-2026-salons/databases/(default)/documents/meta/all_clients?key='+PH_KEY,{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){var m={};try{JSON.parse(j.fields.data.stringValue).forEach(function(c){if(c.kdnr)m[c.id]=String(c.kdnr).trim()})}catch(e){}rxCrm=m;return m}).catch(function(){return{}})}
+function rxMondays(n){var d=new Date(),out=[];d.setHours(12);d.setDate(d.getDate()-((d.getDay()+6)%7));for(var i=0;i<n;i++){out.push(d.toISOString().slice(0,10));d.setDate(d.getDate()-7)}return out}
+function rxApply(kd,dt,v){
+  var a=parseFloat(String(v.amount||'').replace(',','.'))||0;a=Math.round(a*100)/100;
+  var nx=(v.next||'').trim(),st=/patron/i.test(nx)?'patron':/ferm/i.test(nx)?'closed':'visited';
+  var note=(v.obs||'').trim();if(nx&&st==='visited')note=(note+' · '+nx).replace(/^ · /,'');if(st==='patron')note=('Patron absent · '+note).replace(/ · $/,'');
+  var prod=(v.promo||'').trim();
+  var vl=vlog[kd]||(vlog[kd]=[]),e=vl.filter(function(x){return x.d===dt})[0],ch=false;
+  if(e){if(a>(parseFloat(e.a)||0)){e.a=a;ch=true}if(st==='visited'&&e.s!=='visited'&&e.s!=='revisit'){e.s='visited';e.r=e.r||'Visite simple';ch=true}
+    if(prod&&(e.p||'').indexOf(prod)<0){e.p=((e.p||'')+' · '+prod).replace(/^ · /,'');ch=true}
+    if(note&&(e.n||'').indexOf(note)<0){e.n=((e.n||'')+' · '+note).replace(/^ · /,'');ch=true}}
+  else{vl.push({d:dt,s:st,a:a,p:prod,n:note,r:st==='visited'?'Visite simple':'',src:'rapport'});ch=true}
+  vl.sort(function(x,y){return x.d<y.d?1:-1});
+  var t=vl[0],cur=vis[kd]||{};
+  if(!cur.visitDate||t.d>cur.visitDate||(t.d===cur.visitDate&&(ch||!cur.status||cur.status==='none'))){
+    vis[kd]=Object.assign({},cur,{status:t.s,visitDate:t.d,amount:t.a?String(t.a):(t.d===cur.visitDate?cur.amount||'':''),reason:t.r||cur.reason||'',note:t.n||'',products:t.p||''})}
+  if(a>0){var h=hist.filter(function(x){return x.kd_nr===kd&&x.visitDate===dt})[0];
+    if(!h){hist.push({kd_nr:kd,visitDate:dt,amount:a,products:prod,note:note,archivedAt:dt+'T17:00:00.000Z'});ch=true}
+    else if(a>(parseFloat(h.amount)||0)){h.amount=a;ch=true}}
+  return ch}
+function rxRun(force){
+  if(rxBusy||!navigator.onLine)return Promise.resolve(0);
+  if(!force&&rxLast&&Date.now()-new Date(rxLast).getTime()<10*60000)return Promise.resolve(0);
+  rxBusy=true;var weeks=rxMondays(rxLast?3:9),cm=cMap(),added=0,pend=[];
+  return Promise.all([rxDoc('clients').catch(function(){return null}),rxCrmLoad()].concat(weeks.map(function(w){return rxDoc('w'+w).catch(function(){return null})}))).then(function(res){
+    var rcl={};(res[0]||[]).forEach(function(c){rcl[c.id]=c});var crm=res[1]||{};
+    res.slice(2).forEach(function(W){if(!W||!W.days)return;var st=new Date(W.start+'T12:00');
+      W.days.forEach(function(dy,i){var dd=new Date(st);dd.setDate(st.getDate()+i);var dt=dd.toISOString().slice(0,10);
+        if(dt<RX_FROM)return;
+        (dy.visits||[]).forEach(function(v){if(!v||!(v.name||'').trim()||/r[ée]union/i.test(v.name))return;
+          var sig=[dt,v.amount||'',v.cmd||'',v.next||'',v.promo||'',v.obs||''].join('|');var vid=v.id||(dt+v.name);
+          var key=(v.clientId||('n:'+rxN(v.name)))+'|'+rxCity(v.city),kd=rxmap[key];
+          if(rxseen[vid]&&rxseen[vid].s===sig&&kd)return;
+          if(kd==='-'){rxseen[vid]={s:sig,k:'-'};return}
+          if(!kd||!cm[kd]){kd=null;var rc=rcl[v.clientId];var cid=rc&&rc.crmId;
+            var lk=(cid&&crm[cid]&&cm[crm[cid]])?crm[cid]:(cid&&/^c_/.test(cid)&&cm[cid.slice(2)])?cid.slice(2):null;
+            if(lk){var lc=cm[lk],sim=rxSc(v.name,lc),rc1=rxCity(v.city),cc1=rxCity(lc.ort),same=!rc1||!cc1||rc1.slice(0,5)===cc1.slice(0,5);if((same&&sim>=.5)||(same&&!rc1)||sim>=.95&&same)kd=lk}
+            if(!kd){var m=(v.obs||'').match(/\b(P?\d{5})\b/);if(m&&cm[m[1]])kd=m[1]}
+            if(!kd){var cs=rxCands(v,dt,cm);if(cs[0]&&cs[0][0]>=1.15&&(!cs[1]||cs[0][0]-cs[1][0]>=.15))kd=cs[0][1];
+              else{pend.push({key:key,name:v.name,city:v.city,d:dt,a:v.amount||'',c:cs.slice(0,6).map(function(x){return x[1]})});return}}
+            rxmap[key]=kd}
+          if(rxApply(kd,dt,v))added++;rxseen[vid]={s:sig,k:kd}})})});
+    var seenK={};rxPend=pend.filter(function(p){if(seenK[p.key])return false;seenK[p.key]=1;return true});svRaw('tv3_rxpend',rxPend);
+    rxLast=new Date().toISOString();svRaw('tv3_rxlast',rxLast);rxSaveMaps();
+    if(added){persist();var a=document.activeElement;if(!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)))render();showToast('📥 '+added+' visite'+(added>1?'s':'')+' des rapports ajoutée'+(added>1?'s':''),'ok')}
+    else if(rxPend.length&&force)render();
+    if(rxPend.length&&!force)setTimeout(function(){showToast('📥 '+rxPend.length+' visite'+(rxPend.length>1?'s':'')+' à associer (bouton 🔄)','warn')},added?3000:0);
+    return added}).catch(function(){return 0}).then(function(n){rxBusy=false;return n})}
+function rxSection(sb2){
+  var bx=document.createElement('div');bx.style.cssText='border:1.5px solid #E4D3DB;background:#FBF6F8;border-radius:12px;padding:12px;margin-top:4px';
+  var t=rxLast?new Date(rxLast):null;
+  bx.innerHTML='<div style="font-size:13px;font-weight:700;color:#6D2E46;text-align:center">📥 Visites de l\'app Rapport</div><div style="font-size:11px;color:#7A7382;text-align:center;margin:3px 0 10px">Ajoutées toutes seules (lecture seule, le rapport n\'est jamais modifié)'+(t?'<br>Dernière lecture : '+t.toLocaleDateString('fr-CH')+' à '+t.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'}):'')+'</div>';
+  var b=document.createElement('button');b.className='btn-s';b.style.textAlign='center';b.style.width='100%';b.textContent='📥 Lire les rapports maintenant';
+  b.onclick=function(){b.disabled=true;b.textContent='Lecture…';rxRun(true).then(function(n){showToast(n?'📥 '+n+' ajoutée(s)':'✓ Tout est déjà à jour','ok');render()})};bx.appendChild(b);
+  if(rxPend.length){var cm=cMap();
+    bx.appendChild(el('div','','<div style="font-size:12px;font-weight:700;color:#B45309;margin:12px 0 6px">⚠️ À associer ('+rxPend.length+') : je n\'ai pas reconnu ces salons</div>'));
+    rxPend.forEach(function(p){var row=document.createElement('div');row.style.cssText='background:#fff;border:1px solid #EADFE5;border-radius:10px;padding:8px;margin-bottom:6px';
+      row.appendChild(el('div','','<div style="font-size:13px;font-weight:600">'+esc2(p.name)+' <span style="font-weight:400;color:#7A7382">· '+esc2(p.city||'')+' · '+fmt(p.d).replace(/\.$/,'')+(p.a?' · '+esc2(p.a)+'.-':'')+'</span></div>'));
+      var w=document.createElement('div');w.style.cssText='display:flex;gap:6px;margin-top:6px';
+      var se=document.createElement('select');se.className='tv-in2';se.style.flex='1';se.style.minWidth='0';
+      var o0=document.createElement('option');o0.value='';o0.textContent='Choisir le client…';se.appendChild(o0);
+      p.c.forEach(function(k){var c=cm[k];if(!c)return;var o=document.createElement('option');o.value=k;o.textContent=sal(c).trim()+' – '+(c.ort||'').trim()+' (N° '+k+')';se.appendChild(o)});
+      var all=document.createElement('optgroup');all.label='Tous les clients';Object.keys(cm).map(function(k){return[sal(cm[k]).trim()+' – '+(cm[k].ort||'').trim()+' (N° '+k+')',k]}).sort().forEach(function(x){var o=document.createElement('option');o.value=x[1];o.textContent=x[0];all.appendChild(o)});se.appendChild(all);
+      var oi=document.createElement('option');oi.value='-';oi.textContent='— Ignorer ce salon —';se.appendChild(oi);
+      var ok=document.createElement('button');ok.className='tv-save';ok.textContent='OK';ok.onclick=function(){if(!se.value)return;rxmap[p.key]=se.value;rxSaveMaps();rxPend=rxPend.filter(function(z){return z.key!==p.key});svRaw('tv3_rxpend',rxPend);rxRun(true).then(function(){render()})};
+      w.appendChild(se);w.appendChild(ok);row.appendChild(w);bx.appendChild(row)})}
+  sb2.appendChild(bx)}
+
+// ══ CLIENTS PRÊTS À RECOMMANDER ══
+function dDiff(a,b){return Math.round((new Date(a+'T12:00')-new Date(b+'T12:00'))/864e5)}
+var reoCache=null;
+function reorderList(td,cm){
+  var out=[];Object.keys(vlog).forEach(function(kd){var c=cm[kd];if(!c||(cf[kd]||{}).stop)return;
+    var L=(vlog[kd]||[]).filter(function(x){return(parseFloat(x.a)||0)>0&&x.d<=td}).sort(function(a,b){return a.d<b.d?1:-1});if(!L.length)return;
+    var last=L[0],days=dDiff(td,last.d),gaps=[];for(var i=0;i<L.length-1&&i<5;i++){var g=dDiff(L[i].d,L[i+1].d);if(g>=14)gaps.push(g)}
+    gaps.sort(function(a,b){return a-b});var cyc=gaps.length?gaps[Math.floor(gaps.length/2)]:49;cyc=Math.max(28,Math.min(120,cyc));
+    if(days<cyc-7||days>cyc+56)return;var ls=lastSeen(kd);if(ls&&dDiff(td,ls)<14)return;
+    var avg=L.slice(0,4).reduce(function(s,x){return s+(parseFloat(x.a)||0)},0)/Math.min(4,L.length);
+    var what=(last.p||'').trim()||(last.n||'').replace(/Patron absent ·?/,'').trim();
+    if(!what){var h=hist.filter(function(x){return x.kd_nr===kd&&x.visitDate===last.d})[0];if(h)what=(h.products||h.note||'').trim()}
+    out.push({kd:kd,last:last,days:days,cyc:cyc,avg:avg,what:what,n:L.length,late:L.length>1&&days>cyc+7})});
+  return out.sort(function(a,b){return b.avg-a.avg})}
+function isReorder(kd,td){if(!reoCache||reoCache.td!==td){var cm=cMap(),m={};reorderList(td,cm).forEach(function(r){m[r.kd]=1});reoCache={td:td,m:m}}return!!reoCache.m[kd]}
+function renderReorder(bd,d,cm,td,wk){
+  var L=reorderList(td,cm),inWk={};wk.forEach(function(dd,i){(sch[dd]||[]).forEach(function(k){if(!inWk[k])inWk[k]=WDAYS_S[i]})});
+  var tot=L.reduce(function(s,r){return s+r.avg},0);
+  bd.appendChild(el('div','tv-lbl','Ont commandé il y a 4 à 12 semaines · potentiel ~'+chf(tot)));
+  var bx=el('div','tv-box');
+  if(!L.length)bx.appendChild(el('div','tv-sg','<span>Personne pour l\'instant.</span>'));
+  L.slice(0,30).forEach(function(r){var c=cm[r.kd];
+    var row=el('div','tv-sg tv-ro','<div><b>'+esc2(sal(c))+'</b> <span class="tv-kd num">N° '+esc2(r.kd)+'</span><span>'+esc2(c.ort||'')+' · dernière commande le '+fmt(r.last.d).replace(/\.$/,'')+' ('+Math.round(r.days/7)+' sem.) · '+chf(parseFloat(r.last.a)||0)+'</span>'+(r.what?'<span style="color:#2F7A57">🛒 '+esc2(r.what)+'</span>':'')+'<span>'+(r.n>1?'Commande en général toutes les ~'+Math.round(r.cyc/7)+' sem.':'1re commande cette saison')+(r.late?' · <b style="color:#B45309">en retard</b>':'')+'</span></div>');
+    if(inWk[r.kd])row.appendChild(el('span','tv-tag t-cmd','Prévu '+inWk[r.kd]+'.'));
+    else{var b=el('button','tv-plus','＋');b.title='Ajouter à '+WDAYS[dIx];b.onclick=function(){sch[d]=(sch[d]||[]).concat([r.kd]);persist();showToast('Ajouté à '+WDAYS[dIx]);render()};row.appendChild(b)}
+    bx.appendChild(row)});
+  bd.appendChild(bx)}
+
 // ══ SYNCHRO MULTI-APPAREILS (Firebase, collection séparée tournee/ — ne touche pas aux rapports) ══
 var SY_FB='https://firestore.googleapis.com/v1/projects/crm-2026-salons/databases/(default)/documents/tournee/';
 var svRaw=sv;
-var SY_COLS={vis:SK,sch:SCK,extra:EK,hist:HK,book:BK,rdv:RK,cf:CFK,vlog:VHK,rel:REL_K};
+var SY_COLS={vis:SK,sch:SCK,extra:EK,hist:HK,book:BK,rdv:RK,cf:CFK,vlog:VHK,rel:REL_K,rxmap:RX_K,rxseen:RXS_K};
 var SY_BYK={};Object.keys(SY_COLS).forEach(function(c){SY_BYK[SY_COLS[c]]=c});
 var syST=ld('tv3_syst')||{},syPend=ld('tv3_sypend')||{},syJoined=!!ld('tv3_syok'),syBusy=false,syAgain=false,syTimer=null,syLast=ld('tv3_sylast')||null,syErr=false;
 function syHash(o){var s=JSON.stringify(o===undefined?null:o),h=0;for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0}return h+':'+s.length}
@@ -2190,8 +2304,8 @@ function syUnkeyed(col,o){
   if(col==='extra')return Object.keys(o).map(function(k){return o[k]});
   if(col==='rel')return Object.keys(o).map(function(k){return o[k]}).sort(function(a,b){return String(a.id)<String(b.id)?1:-1});
   return o}
-function syGet(col){return{vis:vis,sch:sch,extra:extra,hist:hist,book:book,rdv:rdv,cf:cf,vlog:vlog,rel:rel}[col]}
-function sySet(col,v){if(col==='vis')vis=v;else if(col==='sch')sch=v;else if(col==='extra')extra=v;else if(col==='hist')hist=v;else if(col==='book')book=v;else if(col==='rdv')rdv=v;else if(col==='cf')cf=v;else if(col==='vlog')vlog=v;else if(col==='rel')rel=v;svRaw(SY_COLS[col],v)}
+function syGet(col){return{vis:vis,sch:sch,extra:extra,hist:hist,book:book,rdv:rdv,cf:cf,vlog:vlog,rel:rel,rxmap:rxmap,rxseen:rxseen}[col]}
+function sySet(col,v){reoCache=null;if(col==='vis')vis=v;else if(col==='sch')sch=v;else if(col==='extra')extra=v;else if(col==='hist')hist=v;else if(col==='book')book=v;else if(col==='rdv')rdv=v;else if(col==='cf')cf=v;else if(col==='vlog')vlog=v;else if(col==='rel')rel=v;else if(col==='rxmap')rxmap=v;else if(col==='rxseen')rxseen=v;svRaw(SY_COLS[col],v)}
 function sySaveST(){svRaw('tv3_syst',syST);svRaw('tv3_sypend',syPend)}
 // Première fois : on note l'état actuel sans le considérer comme « modifié »
 if(!syST._v){Object.keys(SY_COLS).forEach(function(c){var o=syKeyed(c,syGet(c)),st={};Object.keys(o).forEach(function(k){st[k]=[0,syHash(o[k])]});syST[c]=st});syST._v=1;sySaveST()}
@@ -2199,7 +2313,7 @@ function syDiff(col){var o=syKeyed(col,syGet(col)),st=syST[col]||(syST[col]={}),
   Object.keys(o).forEach(function(k){var h=syHash(o[k]);if(!st[k]||st[k][1]!==h){st[k]=[now,h];ch=true}});
   Object.keys(st).forEach(function(k){if(!(k in o)&&st[k][1]!==null){st[k]=[now,null];ch=true}});
   if(ch)syPend[col]=1;return ch}
-sv=function(k,v){svRaw(k,v);if(SY_BYK[k]){clearTimeout(syTimer);syTimer=setTimeout(function(){var any=false;Object.keys(SY_COLS).forEach(function(c){if(syDiff(c))any=true});sySaveST();if(any)syRun()},1200)}};
+sv=function(k,v){svRaw(k,v);if(k===VHK||k===HK)reoCache=null;if(SY_BYK[k]){clearTimeout(syTimer);syTimer=setTimeout(function(){var any=false;Object.keys(SY_COLS).forEach(function(c){if(syDiff(c))any=true});sySaveST();if(any)syRun()},1200)}};
 function syGetDoc(col){return fetch(SY_FB+'s_'+col+'?key='+PH_KEY,{cache:'no-store'}).then(function(r){if(r.status===404)return{};if(!r.ok)throw new Error('HTTP '+r.status);return r.json().then(function(j){var t=j.fields&&j.fields.data&&j.fields.data.stringValue;return t?JSON.parse(t):{}})})}
 function syPutDoc(col,M){return fetch(SY_FB+'s_'+col+'?key='+PH_KEY,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{data:{stringValue:JSON.stringify(M)},updated:{stringValue:new Date().toISOString()}}})}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status)})}
 function syCol(col){return syGetDoc(col).then(function(R){
@@ -2224,7 +2338,8 @@ function syRun(){if(!navigator.onLine)return Promise.resolve(false);if(syBusy){s
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')syRun()});
 window.addEventListener('online',function(){syRun()});
 setInterval(function(){if(document.visibilityState==='visible')syRun()},60000);
-setTimeout(syRun,1500);
+setTimeout(function(){syRun().then(function(){rxRun()})},1500);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')setTimeout(function(){rxRun()},3000)});
 
 try{render()}catch(err){document.getElementById('app').innerHTML='<div style="padding:20px;color:#dc2626;font-family:sans-serif"><h3>Erreur: '+err.message+'</h3><pre style="font-size:11px">'+err.stack+'</pre></div>'}
 </script>
