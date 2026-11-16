@@ -2164,6 +2164,59 @@ function printWeek(){var wk=getWk(),cm=cMap(),wCA2=totalCA(function(d){return wk
 function printClients(){var ac=actC().sort(function(a,b){return(a.ort||'').localeCompare(b.ort||'')});var html='<h2 style="margin-bottom:16px">Clients ('+ac.length+')</h2><table style="width:100%;border-collapse:collapse;font-size:11px"><tr style="background:#6D2E46;color:#fff"><th style="padding:6px">Salon</th><th>Ville</th><th>Tél</th><th>Statut</th><th>CHF</th><th>📖</th></tr>';ac.forEach(function(c,i){var v=vis[c.kd_nr]||{},a=parseFloat(v.amount)||0,st=v.status||'',ico={visited:'✓',revisit:'⟳',absent:'~',closed:'✕',callback:'↩',patron:'👤'}[st]||'○';html+='<tr style="background:'+(i%2?'#f8fafc':'#fff')+'"><td style="padding:5px 6px;font-weight:600">'+sal(c)+'</td><td style="padding:5px 6px">'+c.ort+'</td><td style="padding:5px 6px">'+c.tel+'</td><td style="padding:5px 6px">'+ico+'</td><td style="padding:5px 6px;text-align:right;color:#16a34a;font-weight:600">'+(a>0?a.toLocaleString('fr-CH'):'')+'</td><td style="padding:5px 6px;text-align:center">'+(book[c.kd_nr]?'📖':'')+'</td></tr>'});html+='</table>';showPrintOv('Clients',html)}
 function printCA(){var cmds=Object.entries(vis).filter(function(e){return e[1].status==='visited'&&parseFloat(e[1].amount)>0}).sort(function(a,b){return(b[1].visitDate||'').localeCompare(a[1].visitDate||'')});var cm2=cMap(),tot2=0;var html='<h2 style="margin-bottom:16px">Rapport CA</h2><table style="width:100%;border-collapse:collapse;font-size:11px"><tr style="background:#16a34a;color:#fff"><th style="padding:6px">Date</th><th>Salon</th><th>Ville</th><th>Produits</th><th>CHF</th></tr>';cmds.forEach(function(e,i){var c2=cm2[e[0]],v2=e[1],a2=parseFloat(v2.amount)||0;tot2+=a2;html+='<tr style="background:'+(i%2?'#f0fdf4':'#fff')+'"><td style="padding:5px 6px">'+fmtL(v2.visitDate)+'</td><td style="padding:5px 6px;font-weight:600">'+(c2?sal(c2):e[0])+'</td><td style="padding:5px 6px">'+(c2?c2.ort:'')+'</td><td style="padding:5px 6px">'+(v2.products||'')+'</td><td style="padding:5px 6px;text-align:right;font-weight:600;color:#16a34a">'+a2.toLocaleString('fr-CH')+'</td></tr>'});html+='<tr style="font-weight:700;border-top:2px solid #e2e8f0"><td colspan="4" style="padding:8px">TOTAL</td><td style="padding:8px;text-align:right;color:#16a34a;font-size:14px">'+tot2.toLocaleString('fr-CH')+' CHF</td></tr></table>';showPrintOv('CA',html)}
 
+// ══ SYNCHRO MULTI-APPAREILS (Firebase, collection séparée tournee/ — ne touche pas aux rapports) ══
+var SY_FB='https://firestore.googleapis.com/v1/projects/crm-2026-salons/databases/(default)/documents/tournee/';
+var svRaw=sv;
+var SY_COLS={vis:SK,sch:SCK,extra:EK,hist:HK,book:BK,rdv:RK,cf:CFK,vlog:VHK,rel:REL_K};
+var SY_BYK={};Object.keys(SY_COLS).forEach(function(c){SY_BYK[SY_COLS[c]]=c});
+var syST=ld('tv3_syst')||{},syPend=ld('tv3_sypend')||{},syJoined=!!ld('tv3_syok'),syBusy=false,syAgain=false,syTimer=null,syLast=ld('tv3_sylast')||null,syErr=false;
+function syHash(o){var s=JSON.stringify(o===undefined?null:o),h=0;for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0}return h+':'+s.length}
+function syKeyed(col,v){var o={};
+  if(col==='hist'){(v||[]).forEach(function(h){o[(h.kd_nr||'')+'|'+(h.visitDate||'')+'|'+(h.amount==null?'':h.amount)]=h});return o}
+  if(col==='extra'){(v||[]).forEach(function(c){o[c.kd_nr||JSON.stringify(c)]=c});return o}
+  if(col==='rel'){(v||[]).forEach(function(r){o[r.id||JSON.stringify(r)]=r});return o}
+  return v||{}}
+function syUnkeyed(col,o){
+  if(col==='hist')return Object.keys(o).map(function(k){return o[k]}).sort(function(a,b){return(a.visitDate||'')<(b.visitDate||'')?-1:1});
+  if(col==='extra')return Object.keys(o).map(function(k){return o[k]});
+  if(col==='rel')return Object.keys(o).map(function(k){return o[k]}).sort(function(a,b){return String(a.id)<String(b.id)?1:-1});
+  return o}
+function syGet(col){return{vis:vis,sch:sch,extra:extra,hist:hist,book:book,rdv:rdv,cf:cf,vlog:vlog,rel:rel}[col]}
+function sySet(col,v){if(col==='vis')vis=v;else if(col==='sch')sch=v;else if(col==='extra')extra=v;else if(col==='hist')hist=v;else if(col==='book')book=v;else if(col==='rdv')rdv=v;else if(col==='cf')cf=v;else if(col==='vlog')vlog=v;else if(col==='rel')rel=v;svRaw(SY_COLS[col],v)}
+function sySaveST(){svRaw('tv3_syst',syST);svRaw('tv3_sypend',syPend)}
+// Première fois : on note l'état actuel sans le considérer comme « modifié »
+if(!syST._v){Object.keys(SY_COLS).forEach(function(c){var o=syKeyed(c,syGet(c)),st={};Object.keys(o).forEach(function(k){st[k]=[0,syHash(o[k])]});syST[c]=st});syST._v=1;sySaveST()}
+function syDiff(col){var o=syKeyed(col,syGet(col)),st=syST[col]||(syST[col]={}),now=Date.now(),ch=false;
+  Object.keys(o).forEach(function(k){var h=syHash(o[k]);if(!st[k]||st[k][1]!==h){st[k]=[now,h];ch=true}});
+  Object.keys(st).forEach(function(k){if(!(k in o)&&st[k][1]!==null){st[k]=[now,null];ch=true}});
+  if(ch)syPend[col]=1;return ch}
+sv=function(k,v){svRaw(k,v);if(SY_BYK[k]){clearTimeout(syTimer);syTimer=setTimeout(function(){var any=false;Object.keys(SY_COLS).forEach(function(c){if(syDiff(c))any=true});sySaveST();if(any)syRun()},1200)}};
+function syGetDoc(col){return fetch(SY_FB+'s_'+col+'?key='+PH_KEY,{cache:'no-store'}).then(function(r){if(r.status===404)return{};if(!r.ok)throw new Error('HTTP '+r.status);return r.json().then(function(j){var t=j.fields&&j.fields.data&&j.fields.data.stringValue;return t?JSON.parse(t):{}})})}
+function syPutDoc(col,M){return fetch(SY_FB+'s_'+col+'?key='+PH_KEY,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{data:{stringValue:JSON.stringify(M)},updated:{stringValue:new Date().toISOString()}}})}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status)})}
+function syCol(col){return syGetDoc(col).then(function(R){
+  var o=syKeyed(col,syGet(col)),st=syST[col]||(syST[col]={}),got=false,need=false;
+  if(col==='hist'||col==='extra'||col==='rel'){var c2={};Object.keys(o).forEach(function(k){c2[k]=o[k]});o=c2}
+  Object.keys(R).forEach(function(k){var rt=R[k][0],lt=st[k]?st[k][0]:-1,rv=R[k][1];
+    if(rt>lt||(rt===lt&&rt===0&&!syJoined&&st[k]&&st[k][1]!==(rv===null?null:syHash(rv)))){
+      if(rv===null)delete o[k];else o[k]=rv;st[k]=[rt,rv===null?null:syHash(rv)];got=true}});
+  Object.keys(st).forEach(function(k){if(!(k in R)||st[k][0]>R[k][0])need=true});
+  if(got)sySet(col,syUnkeyed(col,o));
+  var p=need?syPutDoc(col,(function(){var M={};Object.keys(st).forEach(function(k){M[k]=[st[k][0],st[k][1]===null?null:(o[k]===undefined?null:o[k])]});return M})()):Promise.resolve();
+  return p.then(function(){delete syPend[col];return got})})}
+function syRun(){if(!navigator.onLine)return Promise.resolve(false);if(syBusy){syAgain=true;return Promise.resolve(false)}syBusy=true;
+  var cols=Object.keys(SY_COLS),got=false,i=0;
+  function next(){if(i>=cols.length)return Promise.resolve();var c=cols[i++];return syCol(c).then(function(g){if(g)got=true}).then(next)}
+  return next().then(function(){syErr=false;if(!syJoined){syJoined=true;svRaw('tv3_syok',1);showToast('🔄 Synchronisation activée','ok')}
+      syLast=new Date().toISOString();svRaw('tv3_sylast',syLast);sySaveST();
+      if(got){var a=document.activeElement,busy=a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName);if(!busy){try{render()}catch(e){}}showToast('🔄 Mis à jour depuis un autre appareil','ok')}
+      return got})
+    .catch(function(){syErr=true;sySaveST();return false})
+    .then(function(g){syBusy=false;if(syAgain){syAgain=false;setTimeout(syRun,300)}return g})}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')syRun()});
+window.addEventListener('online',function(){syRun()});
+setInterval(function(){if(document.visibilityState==='visible')syRun()},60000);
+setTimeout(syRun,1500);
+
 try{render()}catch(err){document.getElementById('app').innerHTML='<div style="padding:20px;color:#dc2626;font-family:sans-serif"><h3>Erreur: '+err.message+'</h3><pre style="font-size:11px">'+err.stack+'</pre></div>'}
 </script>
 </body>
